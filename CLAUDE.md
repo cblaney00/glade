@@ -35,7 +35,9 @@ pygame drawing). Drawn on a 480x270 canvas and scaled up 4x without smoothing.
 - `glade/life.py` — everything that moves (Blades, Vines, Motes, Bugs, Petals,
   Shafts, Waterfall, River, Lantern, Critter).
 - `glade/scenes.py` — one `build_<place>()` per place; clickable `Spot`s per place.
-- `glade/main.py` — window on the monitor at +0+0, made "below/sticky/skip_taskbar"
+- `glade/pond.py` — the lily pond shown on his lower monitor (koi, lily pads, ripples).
+- `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
+  on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; hover labels, fades, app launching.
 
 Run: `nix develop /home/insideabush/nixos-config#vibe-python --command python glade/main.py`
