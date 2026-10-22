@@ -248,9 +248,19 @@ class View:
     def __init__(self, rect, w, h):
         self.rect, self.w, self.h = rect, w, h
         self.canvas = art.solid()  # always full size so every brush works; only w x h is shown
+        # Where the pointer is, in this view's own surface pixels. The X11 window reads
+        # it from pygame; under Wayland each monitor is its own surface and its backend
+        # sets this (None when the pointer is elsewhere).
+        self.external = False
+        self.pointer = None
 
     def mouse(self):
-        mx, my = pygame.mouse.get_pos()
+        if self.external:
+            if self.pointer is None:
+                return None
+            mx, my = self.pointer
+        else:
+            mx, my = pygame.mouse.get_pos()
         if not self.rect.collidepoint(mx, my):
             return None
         return (mx - self.rect.x) * self.w / self.rect.w, (my - self.rect.y) * self.h / self.rect.h
@@ -353,6 +363,15 @@ class Glade:
             art.glow(s, *self.flash[1].mark, int(10 + 30 * (1 - k)), (255, 250, 220), int(160 * k))
 
     def frame(self, dt):
+        self.render(dt)
+        for view, _ in self.views():
+            view.present(self.screen)
+            if self.screen.get_masks()[3]:  # composited screen: make sure no pixel is see-through
+                self.screen.fill((0, 0, 0, 255), view.rect, special_flags=pygame.BLEND_RGBA_MAX)
+        pygame.display.flip()
+
+    def render(self, dt):
+        """Advance everything by dt and paint each view's canvas (without showing it)."""
         t = time.monotonic() - self.t0
         if self.fade_to:
             self.fade += dt / 0.45
@@ -375,10 +394,6 @@ class Glade:
             m = view.mouse()
             if m:
                 view.canvas.blit(CURSOR, (int(m[0]), int(m[1])))
-            view.present(self.screen)
-            if self.screen.get_masks()[3]:  # composited screen: make sure no pixel is see-through
-                self.screen.fill((0, 0, 0, 255), view.rect, special_flags=pygame.BLEND_RGBA_MAX)
-        pygame.display.flip()
 
 
 def shots(out):
@@ -420,6 +435,9 @@ def shots(out):
 def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--shots":
         return shots(sys.argv[2])
+    if os.environ.get("WAYLAND_DISPLAY") and "--x11" not in sys.argv:
+        import wayland  # Hyprland: the glade as the desktop layer, one surface per monitor
+        return wayland.run()
     pygame.init()
     mons = monitors()
     # One window covering every monitor; the bits of it that no monitor shows are unseen.
