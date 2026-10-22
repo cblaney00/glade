@@ -18,7 +18,8 @@ game *Putt-Putt Travels Through Time*. Places, each with paths to others:
 
 Objects in each place open his apps (tree hollow → Files, lantern → Terminal,
 waterfall pool → Music, boat → Steam, mushroom ring → Browser, cave → Discord,
-rune stone → Code editor). The mapping lives in `APPS` in `glade/main.py`.
+rune stone → Code editor). The mapping lives in `APPS` in `glade/main.py`; each one
+has a floating wooden plaque with a pixel icon (`ICONS`) so it is obvious where to click.
 
 **Art direction (his words):** pixel art, colours that really pop with lots of
 pastels; mimic **Rain World**'s sprites, animation and colour, *but idyllic*. In
@@ -35,7 +36,10 @@ pygame drawing). Drawn on a 480x270 canvas and scaled up 4x without smoothing.
 - `glade/life.py` — everything that moves (Blades, Vines, Motes, Bugs, Petals,
   Shafts, Waterfall, River, Lantern, Critter).
 - `glade/scenes.py` — one `build_<place>()` per place; clickable `Spot`s per place.
-- `glade/pond.py` — the lily pond shown on his lower monitor (koi, lily pads, ripples).
+- `glade/lower.py` — the lower monitor: the ground in front of whichever place is shown
+  above, in its palette; paths leaving the upper screen continue here (specs are
+  `sc.lower` in each scene builder, in lower-screen coords = upper x - 40).
+- `glade/pond.py` — the Glade's lily pond on the lower screen (koi, lily pads, ripples).
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; hover labels, fades, app launching.

@@ -18,9 +18,10 @@ from life import (Blades, Bugs, Critter, Lantern, Motes, Petals, River, Shafts, 
 class Spot:
     """Somewhere you can click: `go` to another place, or `app` to open a program."""
 
-    def __init__(self, kind, rect, label, target, mark=None):
+    def __init__(self, kind, rect, label, target, mark=None, direction=None):
         self.kind, self.rect, self.label, self.target = kind, pygame.Rect(rect), label, target
         self.mark = mark or self.rect.center
+        self.direction = direction  # which way a path arrow points; guessed from position if None
 
 
 class Scene:
@@ -239,6 +240,10 @@ def build_glade():
         Spot("app", (360, 154, 24, 28), "Files", "files", (371, 168)),
         Spot("app", (156, 190, 28, 34), "Terminal", "terminal", (170, 199)),
     ]
+    sc.lower = dict(ground=0.3, pond=(270, 128, 112, 66), paths=[dict(
+        pts=[(101, -2), (90, 8), (80, 30), (78, 60), (86, 95), (102, 130), (110, 170), (104, 230)],
+        widths=[47, 49, 52, 56, 60, 64, 68, 74],
+        sign=(160, 196), spot=((60, 150, 120, 75), "The Mossy Rocks", "rocks", (106, 206)))])
     return sc.done()
 
 
@@ -346,6 +351,9 @@ def build_waterfall():
         Spot("go", (196, 240, 84, 30), "Back to the Glade", "glade", (234, 258)),
         Spot("go", (432, 194, 48, 40), "The River", "river", (462, 214)),
     ]
+    sc.lower = dict(ground=0.2, props=["rocks"], bug=(180, 240, 255), paths=[dict(
+        pts=[(193, -2), (191, 30), (187, 80), (182, 140), (177, 230)], widths=[51, 55, 60, 66, 74],
+        sign=(240, 172), spot=((130, 110, 120, 115), "Back to the Glade", "glade", (180, 204)))])
     return sc.done()
 
 
@@ -436,6 +444,7 @@ def build_river():
         Spot("go", (22, 192, 46, 22), "The Waterfall", "waterfall", (42, 204)),
         Spot("app", (310, 182, 78, 24), "Games", "games", (350, 194)),
     ]
+    sc.lower = dict(ground=0.18, props=["rocks"], bug=(150, 255, 236))
     return sc.done()
 
 
@@ -510,6 +519,7 @@ def build_forest():
         Spot("go", (0, 198, 44, 42), "The Mossy Rocks", "rocks", (14, 220)),
         Spot("app", (116, 214, 70, 30), "Web Browser", "browser", (150, 230)),
     ]
+    sc.lower = dict(ground=0.2, props=["mushrooms"], bug=(220, 255, 140))
     return sc.done()
 
 
@@ -601,6 +611,9 @@ def build_rocks():
         Spot("app", (218, 192, 48, 38), "Discord", "discord", (242, 214)),
         Spot("app", (70, 146, 38, 82), "Code Editor", "code", (89, 183)),
     ]
+    sc.lower = dict(ground=0.14, props=["rocks"], bug=(255, 200, 240), paths=[dict(
+        pts=[(204, -2), (203, 30), (198, 90), (193, 150), (190, 230)], widths=[43, 48, 56, 64, 72],
+        sign=(252, 172), spot=((140, 110, 110, 115), "Back to the Glade", "glade", (192, 204)))])
     return sc.done()
 
 

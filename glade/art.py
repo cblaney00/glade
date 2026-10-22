@@ -45,23 +45,27 @@ def plane():
     return pygame.Surface((W, H), pygame.SRCALPHA)
 
 
-def sky(pal):
-    """Vertical gradient in solid bands joined by an ordered-dither seam."""
-    surf = solid()
-    stops = pal["sky"]
+def gradient(surf, rect, stops, steps=6):
+    """Vertical gradient over rect in solid bands joined by an ordered-dither seam."""
+    x0, y0, w, h = rect
     n = len(stops) - 1
-    for y in range(H):
-        t = y / (H - 1) * n
+    for yy in range(max(0, y0), min(surf.get_height(), y0 + h)):
+        t = (yy - y0) / max(1, h - 1) * n
         i = min(int(t), n - 1)
-        f = (t - i) * 6
+        f = (t - i) * steps
         a, b = stops[i], stops[i + 1]
-        lo, hi = mix(a, b, math.floor(f) / 6), mix(a, b, math.ceil(f) / 6)
+        lo, hi = mix(a, b, math.floor(f) / steps), mix(a, b, math.ceil(f) / steps)
         frac = f - math.floor(f)
-        surf.fill(lo, (0, y, W, 1))
-        row = BAYER[y % 4]
-        for x in range(W):
+        surf.fill(lo, (x0, yy, w, 1))
+        row = BAYER[yy % 4]
+        for x in range(x0, x0 + w):
             if frac * 16 > row[x % 4] + 0.5:
-                surf.set_at((x, y), hi)
+                surf.set_at((x, yy), hi)
+
+
+def sky(pal):
+    surf = solid()
+    gradient(surf, (0, 0, W, H), pal["sky"])
     return surf
 
 
