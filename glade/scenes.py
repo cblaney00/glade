@@ -166,9 +166,9 @@ def mushroom(lay, x, y, size, cap, sc=None, glow_list=None):
         lay.set_at((x + k, y - size - size // 2 + size), mix(cap, (30, 20, 60), 0.5))
     if sc is not None:
         cx, cy = x, y - size - size // 4
-        for dx in range(-size + 1, size):
-            if 0 <= x + dx < W and 0 <= cy < H:
-                sc.emit.set_at((x + dx, cy), art.scale(cap, 0.45))
+        for dx in (-1, 0, 1):  # the cap glows from its crown
+            if 0 <= x + dx < W and 0 <= cy - 1 < H:
+                sc.emit.set_at((x + dx, cy - 1), art.scale(cap, 0.35))
         if glow_list is not None:
             glow_list.append((cx, cy, 30 + size * 4, cap, 90, cx * 0.1))
 
@@ -652,6 +652,8 @@ def build_forest():
 
     # a ring of glowing mushrooms, and more scattered about
     lay = art.plane()
+    glowmoss(sc, lay, 300, 476, 80, 18, GLOW["moss"], strength=50, specks=0.5)  # inside the ring, behind it
+    glowmoss(sc, lay, 640, 470, 50, 12, GLOW["lime"])
     caps = [(130, 140, 255), (255, 150, 220), (140, 236, 255), (200, 160, 255)]
     ring = []
     for i in range(11):
@@ -662,8 +664,6 @@ def build_forest():
     for x, y in ((120, 500), (520, 480), (700, 500), (880, 470), (440, 520)):
         for _ in range(rng.randint(2, 3)):
             mushroom(lay, x + rng.randint(-14, 14), y + rng.randint(-4, 4), rng.randint(4, 8), rng.choice(caps), sc, ring)
-    glowmoss(sc, lay, 300, 476, 80, 18, GLOW["moss"], strength=50, specks=0.5)
-    glowmoss(sc, lay, 640, 470, 50, 12, GLOW["lime"])
     sc.add(lay, 0.12, texture=0)
     sc.live(Pulses(ring, speed=1.0))
     sc.live(Blades(rng, (0, 424, W, 116), 400, [sc.col("leaf", 0.1), sc.col("leaf3", 0.1), sc.col("leaf2", 0.1)], 8, 24))

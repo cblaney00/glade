@@ -385,6 +385,8 @@ def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):
     if moss:
         mask = pygame.mask.from_surface(tmp)
         hi = mix(moss, (240, 255, 230), 0.35)
+        deep = mix(moss, (10, 30, 40), 0.3)
+        tones = [moss] * 7 + [deep, deep, hi]  # mottled, not one flat slab
         for x in range(bw):
             for y in range(bh):
                 if not mask.get_at((x, y)):
@@ -395,11 +397,14 @@ def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):
                     if mask.get_at((x, yy)):
                         k = (yy - y) / max(1, depth)
                         if k < 0.7 or BAYER[yy % 4][x % 4] > (k - 0.7) * 50:
-                            tmp.set_at((x, yy), hi if yy - y < 2 else moss)
+                            tmp.set_at((x, yy), hi if yy - y < 2 else tones[rng.randrange(10)])
                 if rng.random() < 0.06:  # moss drips
                     for yy in range(y + depth, min(bh, y + depth + rng.randint(3, 12))):
                         if mask.get_at((x, yy)):
                             tmp.set_at((x, yy), moss)
+                if x % 5 == 0 and y > 2:  # little tufts standing up off the top
+                    for k in range(rng.randint(1, 3)):
+                        tmp.set_at((x + rng.choice((-1, 0, 0, 1)) * (k > 0), y - 1 - k), hi)
                 if glow_pts is not None and x % 9 == 0:
                     glow_pts.append((gx, y + oy + 2))
                 break

@@ -237,7 +237,7 @@ class Signs:
     def draw(self, s, spot, hot, t):
         cold, warm, rect = spot.boards
         if hot:
-            art.glow(s, *rect.center, max(rect.w, rect.h) // 2 + 14, (255, 150, 220), 60)
+            art.glow(s, *rect.center, max(rect.w, rect.h) // 2 + 18, (255, 150, 220), 120)
         s.blit(warm if hot else cold, rect)
 
 
