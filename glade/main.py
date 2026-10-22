@@ -117,15 +117,15 @@ def sparkle(s, x, y, t, color=(255, 255, 240)):
                 s.set_at((int(px) + dx, int(py) + dy), mix(color, (255, 190, 230), 0.4))
 
 
-def arrow(s, x, y, t, target_dir):
+def arrow(s, x, y, t, target_dir, color=(255, 252, 240), bob=2):
     """A bobbing chevron pointing the way down a path."""
     dx, dy = target_dir
-    bob = math.sin(t * 4) * 2
+    bob = math.sin(t * 4) * bob
     cx, cy = x + dx * bob, y + dy * bob
     for k in (0, 3):
         ax, ay = cx + dx * k, cy + dy * k
         px, py = -dy, dx
-        pygame.draw.lines(s, (255, 252, 240), False, [
+        pygame.draw.lines(s, color, False, [
             (ax - dx * 3 + px * 3, ay - dy * 3 + py * 3), (ax, ay), (ax - dx * 3 - px * 3, ay - dy * 3 - py * 3)])
 
 
@@ -141,7 +141,7 @@ def go_direction(spot):
 class Glade:
     def __init__(self, screen, rect):
         self.screen, self.rect = screen, rect
-        self.canvas = pygame.Surface((W, H))
+        self.canvas = art.solid()
         self.scenes = {}
         self.here = self.scene(HOME)
         self.label = Label()
@@ -197,6 +197,11 @@ class Glade:
         s = self.canvas
         self.here.draw(s, t)
         sp = None if self.fade_to else self.hovered()
+        for other in self.here.spots:  # faint, always-on hints of where the paths go
+            if other.kind == "go" and other is not sp:
+                k = 0.5 + 0.5 * math.sin(t * 1.5 + other.mark[0])
+                c = mix(self.here.pal["mist"], (255, 255, 250), 0.3 + 0.5 * k)
+                arrow(s, *other.mark, t * 0.5, go_direction(other), c, bob=1)
         if sp:
             if sp.kind == "go":
                 arrow(s, *sp.mark, t, go_direction(sp))
@@ -208,7 +213,7 @@ class Glade:
             k = 1 - (t - flash[1]) / 0.6
             art.glow(s, *flash[0].mark, int(10 + 30 * (1 - k)), (255, 250, 220), int(160 * k))
         if self.fade > 0:
-            veil = pygame.Surface((W, H))
+            veil = art.solid()
             veil.fill(self.here.pal["mist"])
             veil.set_alpha(int(255 * min(1.0, self.fade)))
             s.blit(veil, (0, 0))
@@ -216,6 +221,8 @@ class Glade:
         if 0 <= mx < W and 0 <= my < H:
             s.blit(CURSOR, (int(mx), int(my)))
         self.screen.blit(pygame.transform.scale(s, self.rect.size), self.rect.topleft)
+        if self.screen.get_masks()[3]:  # composited screen: make sure no pixel is see-through
+            self.screen.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MAX)
         pygame.display.flip()
 
 
@@ -228,7 +235,7 @@ def shots(out):
         t0 = time.monotonic()
         sc = build()
         built = time.monotonic() - t0
-        s = pygame.Surface((W, H))
+        s = art.solid()
         for i in range(40):
             sc.update(0.1)
         t0 = time.monotonic()

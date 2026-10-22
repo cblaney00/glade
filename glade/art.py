@@ -34,13 +34,20 @@ def at_depth(pal, color, d):
 
 # --- surfaces ---------------------------------------------------------------------
 
+def solid(size=(W, H)):
+    """An opaque surface. Never use a bare pygame.Surface(size): under a compositor the
+    screen has an alpha channel, plain surfaces inherit it and start fully transparent,
+    and everything drawn through them comes out black."""
+    return pygame.Surface(size, 0, 24)
+
+
 def plane():
     return pygame.Surface((W, H), pygame.SRCALPHA)
 
 
 def sky(pal):
     """Vertical gradient in solid bands joined by an ordered-dither seam."""
-    surf = pygame.Surface((W, H))
+    surf = solid()
     stops = pal["sky"]
     n = len(stops) - 1
     for y in range(H):
@@ -267,7 +274,7 @@ def glow(s, x, y, r, color, strength=60):
     key = (r, color, strength)
     g = _GLOWS.get(key)
     if g is None:
-        g = pygame.Surface((r * 2 + 1, r * 2 + 1))
+        g = solid((r * 2 + 1, r * 2 + 1))
         for i in range(r, 0, -1):
             k = strength / 255 * (1 - i / (r + 1)) ** 1.6
             pygame.draw.circle(g, tuple(int(c * k) for c in color), (r, r), i)

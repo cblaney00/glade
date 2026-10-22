@@ -185,6 +185,9 @@ def build_glade():
     art.path(lay, [(240, 214), (204, 234), (160, 256), (130, 278)], [26, 34, 42, 50], earth, edge)
     pygame.draw.ellipse(lay, edge, (208, 206, 66, 20))
     pygame.draw.ellipse(lay, earth, (209, 205, 64, 18))
+    # a few mossy rocks by the path down to the Mossy Rocks
+    for x, y, w, h in ((96, 238, 30, 13), (70, 246, 20, 9), (190, 262, 24, 10), (60, 228, 14, 6)):
+        art.rock(lay, rng, x, y, w, h, sc.col("stone", 0.2), moss=sc.col("moss", 0.18), mossiness=0.7)
     # signpost
     wood, wood2 = sc.col("wood", 0.22), sc.col("wood2", 0.22)
     pygame.draw.rect(lay, wood, (238, 182, 4, 32))
