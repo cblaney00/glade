@@ -4,6 +4,7 @@ Run:  python glade/main.py            (Ctrl+Q quits)
       python glade/main.py --shots DIR   (renders a picture of every place, then exits)
 """
 
+import glob
 import math
 import os
 import re
@@ -32,88 +33,233 @@ APPS = {
     "code": "code",
 }
 
-INK = (46, 36, 84)
+INK = (34, 24, 58)
 
 CURSOR = art.sprite([
-    "11.......",
-    "131......",
-    "1331.....",
-    "13331....",
-    "133331...",
-    "1333331..",
-    "13333331.",
-    "1333311..",
-    "131131...",
-    "11.131...",
-    "....11...",
+    "11..........",
+    "131.........",
+    "1331........",
+    "13331.......",
+    "133331......",
+    "1333331.....",
+    "13333331....",
+    "133333331...",
+    "1333333331..",
+    "1333331111..",
+    "1331331.....",
+    "131.1331....",
+    "11..1331....",
+    ".....111....",
 ], {"1": INK, "3": (255, 250, 240)})
 
-# Little pictures of each app, shown on a wooden plaque over the thing that opens it.
-ICONS = {k: art.sprite(rows, pal) for k, (rows, pal) in {
-    "files": ([
-        ".yyy.....",
-        "yyyyyyyyy",
-        "YYYYYYYYY",
-        "YYYYYYYYY",
-        "YYYYYYYYY",
-        "YYYYYYYYY",
-        "ooooooooo",
-    ], {"y": (255, 222, 120), "Y": (255, 196, 90), "o": (214, 140, 70)}),
-    "terminal": ([
-        "kkkkkkkkk",
-        "kgkkkkkkk",
-        "kkgkkkkkk",
-        "kkkgkkkkk",
-        "kkgkkkkkk",
-        "kgkkkgggk",
-        "kkkkkkkkk",
-    ], {"k": (52, 44, 92), "g": (150, 255, 180)}),
-    "music": ([
-        "....nnnnn",
-        "....nnnnn",
-        "....n...n",
-        "....n...n",
-        "..nnn.nnn",
-        ".nnnnnnnn",
-        "..nn..nn.",
-    ], {"n": (190, 120, 255)}),
-    "games": ([
-        ".........",
-        ".ccccccc.",
-        "ccwcccrcc",
-        "cwwwcrcrc",
-        "ccwcccrcc",
-        "cc.....cc",
-        ".........",
-    ], {"c": (120, 150, 240), "w": (255, 255, 255), "r": (255, 140, 170)}),
-    "browser": ([
-        "..bbbbb..",
-        ".bggbbbb.",
-        "bgggbbgbb",
-        "bbggbgggb",
-        "bbbgbbggb",
-        ".bbbbbgb.",
-        "..bbbbb..",
-    ], {"b": (110, 190, 255), "g": (130, 230, 150)}),
-    "discord": ([
-        ".ppppppp.",
-        "ppppppppp",
-        "ppwpppwpp",
-        "ppppppppp",
-        "pwwwwwwwp",
-        ".ppppppp.",
-        "..pp.....",
-    ], {"p": (140, 130, 255), "w": (255, 255, 255)}),
-    "code": ([
-        "......c..",
-        "..c..c...",
-        ".c...c.c.",
-        "c...c...c",
-        ".c..c..c.",
-        "..cc...c.",
-        "..c......",
-    ], {"c": (90, 200, 255)}),
-}.items()}
+
+# --- the little pictures of each app, 16 x 14 -------------------------------------------
+
+def _icon(fn):
+    s = pygame.Surface((16, 14), pygame.SRCALPHA)
+    fn(s)
+    return s
+
+
+def _files(s):
+    o, back, front, hi = (150, 90, 50), (255, 214, 120), (255, 192, 86), (255, 238, 176)
+    pygame.draw.rect(s, o, (0, 1, 7, 4))
+    pygame.draw.rect(s, back, (1, 2, 5, 3))
+    pygame.draw.rect(s, o, (0, 3, 16, 11))
+    pygame.draw.rect(s, back, (1, 4, 14, 2))
+    pygame.draw.rect(s, front, (1, 6, 14, 6))
+    pygame.draw.line(s, hi, (1, 6), (14, 6))
+    pygame.draw.line(s, (220, 146, 66), (1, 12), (14, 12))
+
+
+def _terminal(s):
+    k, bar, scr, g = (40, 32, 70), (120, 108, 180), (26, 22, 50), (150, 255, 180)
+    pygame.draw.rect(s, k, (0, 0, 16, 13))
+    pygame.draw.rect(s, bar, (1, 1, 14, 2))
+    for x, c in ((2, (255, 120, 150)), (4, (255, 220, 110)), (6, (150, 255, 180))):
+        s.set_at((x, 1), c)
+    pygame.draw.rect(s, scr, (1, 4, 14, 8))
+    pygame.draw.lines(s, g, False, [(3, 5), (5, 7), (3, 9)])
+    pygame.draw.line(s, g, (7, 10), (11, 10))
+
+
+def _music(s):
+    n, hi = (204, 146, 255), (240, 214, 255)
+    pygame.draw.rect(s, n, (5, 0, 10, 2))
+    pygame.draw.line(s, n, (5, 0), (5, 10))
+    pygame.draw.line(s, n, (14, 0), (14, 9))
+    pygame.draw.ellipse(s, n, (1, 9, 6, 5))
+    pygame.draw.ellipse(s, n, (10, 8, 6, 5))
+    s.set_at((3, 10), hi)
+    s.set_at((12, 9), hi)
+
+
+def _games(s):
+    c, d = (124, 150, 240), (80, 96, 190)
+    pygame.draw.rect(s, d, (0, 4, 16, 8), border_radius=3)
+    pygame.draw.rect(s, c, (0, 3, 16, 8), border_radius=3)
+    pygame.draw.rect(s, d, (1, 10, 4, 3), border_radius=1)
+    pygame.draw.rect(s, d, (11, 10, 4, 3), border_radius=1)
+    w = (255, 255, 255)
+    pygame.draw.line(s, w, (2, 7), (6, 7))
+    pygame.draw.line(s, w, (4, 5), (4, 9))
+    s.set_at((11, 6), (255, 140, 170))
+    s.set_at((13, 6), (150, 255, 180))
+    s.set_at((12, 5), (255, 220, 110))
+    s.set_at((12, 7), (140, 220, 255))
+    pygame.draw.line(s, (180, 196, 255), (3, 3), (12, 3))
+
+
+def _browser(s):
+    b, g, line = (96, 176, 255), (130, 230, 150), (200, 230, 255)
+    pygame.draw.circle(s, b, (8, 7), 7)
+    pygame.draw.polygon(s, g, [(4, 2), (7, 3), (6, 6), (3, 8), (2, 5)])
+    pygame.draw.polygon(s, g, [(10, 6), (13, 5), (14, 9), (11, 12), (9, 9)])
+    pygame.draw.ellipse(s, line, (5, 0, 7, 15), 1)
+    pygame.draw.line(s, line, (1, 7), (15, 7))
+    s.set_at((4, 3), (230, 245, 255))
+
+
+def _discord(s):
+    p, w, d = (140, 130, 255), (255, 255, 255), (90, 80, 200)
+    pygame.draw.ellipse(s, p, (0, 2, 16, 11))
+    pygame.draw.rect(s, p, (2, 1, 3, 3))
+    pygame.draw.rect(s, p, (11, 1, 3, 3))
+    pygame.draw.rect(s, w, (4, 5, 2, 3))
+    pygame.draw.rect(s, w, (10, 5, 2, 3))
+    pygame.draw.lines(s, d, False, [(5, 9), (7, 10), (9, 10), (11, 9)])
+
+
+def _code(s):
+    c, hi = (90, 200, 255), (200, 240, 255)
+    pygame.draw.lines(s, c, False, [(4, 3), (1, 7), (4, 11)], 2)
+    pygame.draw.lines(s, c, False, [(11, 3), (14, 7), (11, 11)], 2)
+    pygame.draw.line(s, hi, (9, 1), (7, 12), 2)
+
+
+ICONS = {}
+ICON_PAINTERS = dict(files=_files, terminal=_terminal, music=_music, games=_games, browser=_browser,
+                     discord=_discord, code=_code)
+
+
+def font_path():
+    """Departure Mono, the same pixel font as the bar. The package passes it in."""
+    path = os.environ.get("GLADE_FONT")
+    if path and os.path.exists(path):
+        return path
+    found = glob.glob("/nix/store/*-departure-mono-*/share/fonts/otf/DepartureMono-Regular.otf")
+    return found[0] if found else None
+
+
+# --- signs: the name of every place you can go and every app you can open -------------------
+
+WOOD = (66, 42, 78)
+WOOD_HI = (112, 80, 122)
+WOOD_LO = (36, 22, 48)
+EDGE = (24, 14, 34)
+TEXT = (255, 238, 214)
+HOT = (255, 172, 228)
+
+
+class Signs:
+    """Carved wooden boards with each target's name (and its picture, for apps). They
+    are always shown and never move, so they are easy to click; the board itself is
+    part of what you can click. Hovering lights it up."""
+
+    def __init__(self):
+        pygame.font.init()
+        path = font_path()
+        self.font = pygame.font.Font(path, 11) if path else pygame.font.Font(None, 16)
+        if not ICONS:
+            ICONS.update({k: _icon(f) for k, f in ICON_PAINTERS.items()})
+
+    def chevron(self, direction, color):
+        s = pygame.Surface((9, 9), pygame.SRCALPHA)
+        dx, dy = direction
+        if abs(dx) >= abs(dy):
+            pts = [(2, 0), (6, 4), (2, 8)] if dx > 0 else [(6, 0), (2, 4), (6, 8)]
+        else:
+            pts = [(0, 6), (4, 2), (8, 6)] if dy < 0 else [(0, 2), (4, 6), (8, 2)]
+        pygame.draw.lines(s, color, False, pts, 2)
+        return s
+
+    def board(self, spot, direction, hot):
+        text = self.font.render(spot.label, False, (255, 255, 255) if hot else TEXT)
+        shade = self.font.render(spot.label, False, EDGE)
+        tw, th = text.get_size()
+        icon = ICONS.get(spot.target) if spot.kind == "app" else None
+        lead = 0
+        if icon:
+            lead = 20
+        elif spot.kind == "go":
+            lead = 12
+        w, h = tw + lead + 12, max(th, 14) + 8
+        top = 4  # room for the moss tuft above the board
+        s = pygame.Surface((w + 4, h + top + 3), pygame.SRCALPHA)
+        r = pygame.Rect(2, top, w, h)
+        pygame.draw.rect(s, HOT if hot else EDGE, r.inflate(2, 2), border_radius=3)
+        pygame.draw.rect(s, (92, 60, 104) if hot else WOOD, r, border_radius=2)
+        pygame.draw.line(s, WOOD_HI, (r.x + 2, r.y), (r.right - 3, r.y))
+        pygame.draw.line(s, WOOD_LO, (r.x + 2, r.bottom - 1), (r.right - 3, r.bottom - 1))
+        for gy in (r.y + 4, r.bottom - 5):  # wood grain
+            for gx in range(r.x + 3, r.right - 3, 7):
+                s.set_at((gx, gy), WOOD_LO if not hot else (70, 44, 82))
+        x = r.x + 6
+        cy = r.centery
+        if icon:
+            s.blit(icon, (x, cy - 7))
+            x += 20
+        elif spot.kind == "go":
+            s.blit(self.chevron(direction, HOT if hot else TEXT), (x - 1, cy - 4))
+            x += 12
+        ty = cy - th // 2
+        s.blit(shade, (x + 1, ty + 1))
+        s.blit(text, (x, ty))
+        # a tuft of glowing moss on the top-left corner, and a strand hanging off the right
+        moss = (150, 255, 200)
+        for dx, dy in ((0, 0), (1, -1), (2, -1), (3, 0), (4, -1), (5, 0), (2, -2), (6, 0)):
+            s.set_at((r.x + 3 + dx, r.y + dy), moss if dy < 0 else (90, 190, 150))
+        for dy in range(1, 5):
+            s.set_at((r.right - 5 + (dy == 4), r.bottom + dy - 2), (90, 190, 150))
+        return s
+
+    def prepare(self, spot, w, h):
+        """Draw a spot's boards once, place them, and make them clickable."""
+        if getattr(spot, "boards", None) is not None:
+            return
+        direction = go_direction(spot, w, h)
+        cold, hot = self.board(spot, direction, False), self.board(spot, direction, True)
+        rect = cold.get_rect(center=spot.sign)
+        rect.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
+        spot.boards = (cold, hot, rect)
+        spot.hits = [spot.rect, rect.inflate(4, 4)]
+
+    def draw(self, s, spot, hot, t):
+        cold, warm, rect = spot.boards
+        if hot:
+            art.glow(s, *rect.center, max(rect.w, rect.h) // 2 + 14, (255, 150, 220), 60)
+        s.blit(warm if hot else cold, rect)
+
+
+def sparkle(s, x, y, t, color=(255, 255, 240)):
+    """Twinkling little stars circling a spot you are pointing at."""
+    for i in range(6):
+        a = t * 1.6 + i / 6 * math.tau
+        px, py = x + math.cos(a) * 20, y + math.sin(a) * 10 - 4
+        tw = 0.5 + 0.5 * math.sin(t * 6 + i * 1.7)
+        art.glow(s, px, py, 5, color, int(80 * tw) // 10 * 10)
+        s.set_at((int(px), int(py)), color)
+
+
+def go_direction(spot, w, h):
+    if spot.direction:
+        return spot.direction
+    cx, cy = spot.mark
+    if cx < 120:
+        return (-1, 0)
+    if cx > w - 120:
+        return (1, 0)
+    return (0, -1) if cy < h * 0.75 else (0, 1)
 
 
 def monitors():
@@ -170,78 +316,6 @@ def launch(key):
         pass
 
 
-class Label:
-    def __init__(self):
-        pygame.font.init()
-        self.font = pygame.font.Font(None, 14)
-        self.cache = {}
-
-    def draw(self, s, text, x, y, width):
-        img = self.cache.get(text)
-        if img is None:
-            img = self.font.render(text, False, (255, 252, 244))
-            self.cache[text] = img
-        w, h = img.get_size()
-        bx = max(2, min(width - w - 8, int(x - w / 2 - 3)))
-        by = max(2, int(y - h - 4))
-        box = pygame.Surface((w + 6, h + 3), pygame.SRCALPHA)
-        box.fill((*INK, 190))
-        s.blit(box, (bx, by))
-        pygame.draw.line(s, (255, 190, 226), (bx, by + h + 2), (bx + w + 5, by + h + 2))
-        s.blit(img, (bx + 3, by + 2))
-
-
-def plaque(s, spot, t, hot):
-    """A small wooden plaque with the app's picture, floating over the thing it opens."""
-    x, y = spot.mark
-    py = int(y - 17 + math.sin(t * 1.6 + x * 0.1) * 1.5)
-    art.glow(s, x, py, 13 if hot else 10, (255, 246, 210), 110 if hot else 55)
-    wood, face = (176, 110, 120), (255, 246, 232) if hot else (250, 236, 222)
-    r = pygame.Rect(0, 0, 13, 11)
-    r.center = (x, py)
-    pygame.draw.rect(s, wood, r.inflate(2, 2), border_radius=2)
-    pygame.draw.rect(s, face, r, border_radius=2)
-    pygame.draw.line(s, (255, 255, 255), (r.x + 1, r.y), (r.right - 2, r.y))
-    pygame.draw.line(s, wood, (x, r.bottom + 1), (x, r.bottom + 3))  # a little hanging string
-    icon = ICONS.get(spot.target)
-    if icon:
-        s.blit(icon, (r.x + 2, r.y + 2))
-    return py
-
-
-def sparkle(s, x, y, t, color=(255, 255, 240)):
-    """Twinkling little stars circling a spot you can click."""
-    for i in range(5):
-        a = t * 1.6 + i / 5 * math.tau
-        px, py = x + math.cos(a) * 9, y + math.sin(a) * 5 - 2
-        tw = 0.5 + 0.5 * math.sin(t * 6 + i * 1.7)
-        art.glow(s, px, py, 3, color, int(80 * tw))
-        s.set_at((int(px), int(py)), color)
-
-
-def arrow(s, x, y, t, direction, color=(255, 252, 240), bob=2):
-    """A bobbing chevron pointing the way down a path."""
-    dx, dy = direction
-    b = math.sin(t * 4) * bob
-    cx, cy = x + dx * b, y + dy * b
-    for k in (0, 3):
-        ax, ay = cx + dx * k, cy + dy * k
-        px, py = -dy, dx
-        pygame.draw.lines(s, color, False, [
-            (ax - dx * 3 + px * 3, ay - dy * 3 + py * 3), (ax, ay), (ax - dx * 3 - px * 3, ay - dy * 3 - py * 3)])
-
-
-def go_direction(spot, w, h):
-    if spot.direction:
-        return spot.direction
-    cx, cy = spot.mark
-    if cx < 60:
-        return (-1, 0)
-    if cx > w - 60:
-        return (1, 0)
-    return (0, -1) if cy < h * 0.75 else (0, 1)
-
-
 class View:
     """One monitor's worth of glade: a small canvas, and where it is shown on screen."""
 
@@ -269,7 +343,7 @@ class View:
         m = self.mouse()
         if m:
             for sp in spots:
-                if sp.rect.collidepoint(m):
+                if sp.hit(m):
                     return sp
         return None
 
@@ -290,8 +364,8 @@ class Glade:
             pw, ph = min(W, lower.w // scale), min(H, lower.h // scale)
             self.bottom = View(fit(lower, pw, ph), pw, ph)
         self.scenes, self.lowers = {}, {}
+        self.signs = Signs()
         self.here = self.scene(HOME)
-        self.label = Label()
         self.fade, self.fade_to = 0.0, None
         self.flash = None
         self.t0 = time.monotonic()
@@ -319,17 +393,15 @@ class Glade:
             m = view.mouse()
             if not m:
                 continue
-            c = getattr(content, "critter", None)
-            if c and c.hit(*m):
-                c.hop()
-                return
+            for sp in content.spots:
+                self.signs.prepare(sp, view.w, view.h)
             sp = view.hovered(content.spots)
             if sp is None:
-                if hasattr(content, "click"):
-                    content.click(*m, t)
-                else:
-                    for b in content.bugs:
-                        b.scatter(*m, t)
+                for c in content.creatures:
+                    if c.poke(*m, t):
+                        return
+                for b in content.bugs:
+                    b.scatter(*m, t)
             elif sp.kind == "go":
                 self.fade_to = sp.target
             else:
@@ -339,28 +411,16 @@ class Glade:
 
     def overlay(self, view, content, t):
         s = view.canvas
-        sp = None if self.fade_to else view.hovered(content.spots)
-        for other in content.spots:
-            if other.kind == "go" and other is not sp:  # faint, always-on hints of where paths go
-                k = 0.5 + 0.5 * math.sin(t * 1.5 + other.mark[0])
-                arrow(s, *other.mark, t * 0.5, go_direction(other, view.w, view.h),
-                      mix(content.pal["mist"], (255, 255, 250), 0.3 + 0.5 * k), bob=1)
-        label_y = None
-        for other in content.spots:
-            if other.kind == "app":
-                py = plaque(s, other, t, other is sp)
-                if other is sp:
-                    label_y = py - 7
-        if sp:
-            if sp.kind == "go":
-                arrow(s, *sp.mark, t, go_direction(sp, view.w, view.h))
-                label_y = sp.mark[1] - 6
-            else:
-                sparkle(s, *sp.mark, t)
-            self.label.draw(s, sp.label, sp.mark[0], label_y, view.w)
+        for sp in content.spots:
+            self.signs.prepare(sp, view.w, view.h)
+        hot = None if self.fade_to else view.hovered(content.spots)
+        for sp in content.spots:
+            self.signs.draw(s, sp, sp is hot, t)
+        if hot is not None and hot.kind == "app":
+            sparkle(s, *hot.mark, t)
         if self.flash and self.flash[0] is view and t - self.flash[2] < 0.6:
             k = 1 - (t - self.flash[2]) / 0.6
-            art.glow(s, *self.flash[1].mark, int(10 + 30 * (1 - k)), (255, 250, 220), int(160 * k))
+            art.glow(s, *self.flash[1].mark, int(20 + 60 * (1 - k)), (255, 250, 220), int(160 * k) // 10 * 10)
 
     def frame(self, dt):
         self.render(dt)
@@ -388,7 +448,7 @@ class Glade:
             self.overlay(view, content, t)
             if self.fade > 0:
                 veil = art.solid()
-                veil.fill(self.here.pal["mist"])
+                veil.fill(INK)
                 veil.set_alpha(int(255 * min(1.0, self.fade)))
                 view.canvas.blit(veil, (0, 0))
             m = view.mouse()
@@ -398,13 +458,17 @@ class Glade:
 
 def shots(out):
     """A picture of every place with its lower screen under it, laid out as on his desk
-    (the lower monitor is 40 canvas pixels in from the left), plus timings."""
+    (the lower monitor is 80 canvas pixels in from the left), plus timings."""
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
     pygame.display.set_mode((W, H))
     os.makedirs(out, exist_ok=True)
-    lw, lh, lx = 400, 225, 40
+    lw, lh, lx = 800, 450, 80
+    signs = Signs()
+    only = os.environ.get("GLADE_ONLY")
     for key, build in BUILDERS.items():
+        if only and key != only:
+            continue
         t0 = time.monotonic()
         sc = build()
         low = Lower(sc, lw, lh)
@@ -413,6 +477,8 @@ def shots(out):
         for i in range(40):
             sc.update(0.1)
             low.update(0.1, i / 10)
+            sc.draw(top, i / 10)
+            low.draw(bot, i / 10)
         t0 = time.monotonic()
         for i in range(30):
             sc.draw(top, 4.0 + i / 30)
@@ -420,15 +486,13 @@ def shots(out):
         per = (time.monotonic() - t0) / 30
         for content, s, w, h in ((sc, top, W, H), (low, bot, lw, lh)):
             for spot in content.spots:
-                if spot.kind == "app":
-                    plaque(s, spot, 4.0, False)
-                else:
-                    arrow(s, *spot.mark, 4.0, go_direction(spot, w, h))
+                signs.prepare(spot, w, h)
+                signs.draw(s, spot, False, 5.0)
         sheet = pygame.Surface((W, H + lh))
-        sheet.fill((30, 26, 50))
+        sheet.fill((20, 16, 34))
         sheet.blit(top, (0, 0))
         sheet.blit(bot, (lx, H), (0, 0, lw, lh))
-        pygame.image.save(pygame.transform.scale(sheet, (W * 2, (H + lh) * 2)), os.path.join(out, f"{key}.png"))
+        pygame.image.save(sheet, os.path.join(out, f"{key}.png"))
         print(f"{key}: built in {built:.2f}s, {per * 1000:.1f} ms/frame")
 
 

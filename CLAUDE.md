@@ -19,33 +19,55 @@ game *Putt-Putt Travels Through Time*. Places, each with paths to others:
 Objects in each place open his apps (tree hollow → Files, lantern → Terminal,
 waterfall pool → Music, boat → Steam, mushroom ring → Browser, cave → Discord,
 rune stone → Code editor). The mapping lives in `APPS` in `glade/main.py`; each one
-has a floating wooden plaque with a pixel icon (`ICONS`) so it is obvious where to click.
+has a carved wooden name board (`Signs` in `main.py`) with a pixel icon (`ICONS`) and
+its name, always shown and never moving, so it is obvious where to click and easy to hit
+(the board is clickable too). Paths to other places have the same boards, with an arrow.
 
 **Art direction (his words):** pixel art, colours that really pop with lots of
-pastels; mimic **Rain World**'s sprites, animation and colour, *but idyllic*. In
-practice: depth planes fading into pastel mist, no outlines, sunlit rims, dense
-hanging plants, and everything gently moving (grass, vines, pollen, glowing bugs,
-water, a little tailed creature that wanders the Glade and hops when clicked).
+pastels; mimic **Rain World**'s sprites, animation and colour, *but idyllic*. Then
+(2026-10-22): it is **always night**; the sun/moon must **not** be the main light —
+the light comes from fluorescent moss, glowing mushrooms/crystals, lanterns and
+fireflies; lighting must not look flat; **more slugs** (not too many) and other
+invertebrates; little **glowing squid** that, for no reason, swim through the air;
+much more detail; plaques must not move; the words always shown, nicely.
+In practice: depth planes fading into violet night mist, no outlines, moonlit rims and
+shaded undersides, dense hanging plants, and everything gently moving.
 
 ## How it is built
 
 Python + pygame (dev shell `vibe-python`; no numpy there, so everything is plain
-pygame drawing). Drawn on a 480x270 canvas and scaled up 4x without smoothing.
+pygame drawing). Drawn on a 960x540 canvas and scaled up 2x without smoothing (the
+lower monitor: 800x450).
 
-- `glade/art.py` — drawing brushes and the depth/mist colour model (`at_depth`).
-- `glade/life.py` — everything that moves (Blades, Vines, Motes, Bugs, Petals,
-  Shafts, Waterfall, River, Lantern, Critter).
+**Lighting** (`art.Lighting`): each picture has a light map — dim moonlit ambient, dark
+near the ground — plus baked pools of coloured light around everything that glows
+(`lamp`), contact shadows (`shadow`), and an `emit` layer of self-lit pixels. A frame is
+drawn in true colours, multiplied by the light map plus that frame's moving lights,
+then the glowing things are painted on top. So moving parts in `life.py` have up to
+three passes: `draw` (before lighting), `light` (add to the light map), `shine` (after).
+
+- `glade/art.py` — brushes, the depth/mist colour model (`at_depth`), `glowmoss`, lighting.
+- `glade/life.py` — everything that moves: plants (Blades, Vines, Petals), light
+  (Stars, Motes, Fireflies, Pulses, Shafts, Lantern, GlowThreads), water (Waterfall,
+  River), creatures (Critter, Squid, Slug — with `shell` it is a snail — Millipede).
+  Clickable creatures have `poke()`.
 - `glade/scenes.py` — one `build_<place>()` per place; clickable `Spot`s per place.
 - `glade/lower.py` — the lower monitor: the ground in front of whichever place is shown
   above, in its palette; paths leaving the upper screen continue here (specs are
-  `sc.lower` in each scene builder, in lower-screen coords = upper x - 40).
+  `sc.lower` in each scene builder, in lower-screen coords = upper x - 80).
 - `glade/pond.py` — the Glade's lily pond on the lower screen (koi, lily pads, ripples).
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
-  with `wmctrl` so it sits behind every window; hover labels, fades, app launching.
+  with `wmctrl` so it sits behind every window; name boards, fades, app launching.
+- `glade/wayland.py` — the same under Hyprland, as a layer-shell surface per monitor.
 
 Run: `nix develop /home/insideabush/nixos-config#vibe-python --command python glade/main.py`
 (Ctrl+Q quits, Home key jumps home). Review the art without a display:
 `python glade/main.py --shots DIR` writes a PNG of every place.
 
-Not done yet: starting it automatically at login (that is a config change → `ccn`).
+Performance matters (it runs all day): keep surfaces 32-bit (`art.solid`), and see-through
+layers trimmed to what is on them (`art.trimmed`). `--shots` prints ms per frame; keep it
+around 10 ms for both screens.
+
+It is installed on his system from a copy in the config repo (`pkgs/glade`), which is
+started at login under Hyprland. Changing the installed copy is a config change → `ccn`.
