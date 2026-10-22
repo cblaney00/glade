@@ -1,0 +1,23 @@
+# Nix / direnv
+.direnv/
+result
+result-*
+
+# Editors
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# OS
+.DS_Store
