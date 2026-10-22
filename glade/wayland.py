@@ -14,6 +14,9 @@ import os
 import time
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")  # pygame draws off-screen only
+# SDL would otherwise catch SIGTERM and turn it into a quit event nobody reads here (GTK
+# runs the loop, not pygame), so the glade could not be stopped, e.g. at logout.
+os.environ.setdefault("SDL_NO_SIGNAL_HANDLERS", "1")
 
 import cairo  # noqa: E402
 import gi  # noqa: E402
