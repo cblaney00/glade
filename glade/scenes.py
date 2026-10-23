@@ -91,12 +91,12 @@ class Scene(art.Lighting):
         for kind, p in self.parts:
             if kind == "still":
                 s.blit(*p)
-            else:
+            elif not getattr(p, "gone", False):  # eaten by the apex, for now
                 p.draw(s, t)
         self.lit(s, self.lives, t)
 
     def update(self, dt):
-        if self.critter:
+        if self.critter and not getattr(self.critter, "gone", False):
             self.critter.update(dt)
 
 
@@ -138,6 +138,7 @@ def moon(scene, x, y, r=20):
         pygame.draw.circle(s, dark, (x + dx, y + dy), cr)
     pygame.draw.circle(s, (255, 255, 255), (x - r // 3, y - r // 3), r // 4)
     scene.lamp(x, y, r * 6, (90, 100, 150), 40)
+    scene.moon = (x, y, r)  # clicking it starts listening for a word (apex.py)
 
 
 def glowmoss(sc, lay, x, y, w, h, color=None, strength=80, specks=1.0):

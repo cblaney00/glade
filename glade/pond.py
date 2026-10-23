@@ -163,9 +163,10 @@ class Pond:
                 xx = x + math.sin(t * 0.4 + ph) * 6
                 pygame.draw.line(s, mix(self.deep, self.light_c, 0.3 * k), (xx, y), (xx + 6 + k * 4, y + math.sin(ph) * 3))
         shadow = mix(self.deep, (20, 30, 70), 0.35)
-        for f in self.fish:
+        fish = [f for f in self.fish if not getattr(f, "gone", False)]  # eaten (apex.py)
+        for f in fish:
             f.draw_shadow(s, shadow)
-        for f in self.fish:
+        for f in fish:
             f.draw(s, t)
         dark, light = mix(self.pad, (20, 30, 70), 0.4), mix(self.pad, self.light_c, 0.3)
         vein = mix(self.pad, (20, 30, 70), 0.2)

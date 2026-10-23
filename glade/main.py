@@ -16,6 +16,7 @@ import time
 import pygame
 
 import art
+from apex import Hunt, Listener
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -354,6 +355,16 @@ class View:
         # sets this (None when the pointer is elsewhere).
         self.external = False
         self.pointer = None
+        # the camera: which part of the canvas is shown, and how big. Normally all of it;
+        # during the apex easter egg it follows the creature (Glade.follow).
+        self.cam = [w / 2, h / 2, 1.0]
+
+    def shown(self):
+        """The part of the canvas on screen right now."""
+        cx, cy, zoom = self.cam
+        r = pygame.Rect(0, 0, round(self.w / zoom), round(self.h / zoom))
+        r.center = (round(cx), round(cy))
+        return r.clamp(pygame.Rect(0, 0, self.w, self.h))
 
     def mouse(self):
         if self.external:
@@ -364,7 +375,8 @@ class View:
             mx, my = pygame.mouse.get_pos()
         if not self.rect.collidepoint(mx, my):
             return None
-        return (mx - self.rect.x) * self.w / self.rect.w, (my - self.rect.y) * self.h / self.rect.h
+        r = self.shown()
+        return r.x + (mx - self.rect.x) * r.w / self.rect.w, r.y + (my - self.rect.y) * r.h / self.rect.h
 
     def hovered(self, spots):
         m = self.mouse()
@@ -375,7 +387,7 @@ class View:
         return None
 
     def present(self, screen):
-        shown = self.canvas.subsurface((0, 0, self.w, self.h))
+        shown = self.canvas.subsurface(self.shown())
         screen.blit(pygame.transform.scale(shown, self.rect.size), self.rect.topleft)
 
 
@@ -401,6 +413,11 @@ class Glade:
         self.keys_on = False  # the keyboard is steering the glade (shows the hint)
         self.on_launch = None  # called whenever an app is opened
         self.hint = None
+        # the easter egg (apex.py): click the moon, type the word
+        self.listener = Listener()
+        self.on_listen = None  # called when the moon starts listening for typing
+        self.on_heard = None   # ... and when it has heard the word
+        self.hunt = None
 
     def scene(self, key):
         if key not in self.scenes:
@@ -458,15 +475,56 @@ class Glade:
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
             sp = view.hovered(content.spots)
+            moon = getattr(content, "moon", None)
+            if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
+                self.listener.start(t)  # the moon listens...
+                if self.on_listen:
+                    self.on_listen()
+                return
             if sp is None:
                 for c in content.creatures:
-                    if c.poke(*m, t):
+                    if not getattr(c, "gone", False) and c.poke(*m, t):
                         return
                 for b in content.bugs:
                     b.scatter(*m, t)
             else:
                 self.activate(view, content, sp, t)
             return
+
+    def follow(self, dt):
+        """Point each screen's camera: at the apex while it is about, so he never has to
+        look for it, and gently back to the whole picture once it has gone."""
+        for view in (self.top, self.bottom):
+            if view is None:
+                continue
+            want = [view.w / 2, view.h / 2, 1.0]
+            pts = self.hunt.focus(view is self.bottom) if self.hunt is not None else []
+            if pts:
+                # frame all the action, with room around it: as close as 2x, but never
+                # so close that the creature's target or its shot is out of the picture
+                x0, x1 = min(p[0] for p in pts) - 50, max(p[0] for p in pts) + 50
+                y0, y1 = min(p[1] for p in pts) - 40, max(p[1] for p in pts) + 40
+                zoom = max(1.0, min(2.0, view.w / (x1 - x0), view.h / (y1 - y0)))
+                want = [(x0 + x1) / 2, (y0 + y1) / 2, zoom]
+            # a slow, smooth glide — never a jump — that hurries (still smoothly) when
+            # something it should show is about to slip out of the picture
+            old = list(view.cam)
+            for speed in (1.6, 7.0):
+                k = min(1.0, dt * speed)
+                view.cam[:] = [old[i] + (want[i] - old[i]) * k for i in range(3)]
+                r = view.shown().inflate(-24, -24)
+                if all(r.collidepoint(p) for p in pts):
+                    break
+
+    def typed(self, ch, t):
+        """A letter typed while the moon is listening."""
+        if self.listener.key(ch, t):
+            if self.on_heard:
+                self.on_heard()
+            if self.hunt is None:
+                low = self.lower() if self.bottom else None
+                size = (self.bottom.w, self.bottom.h) if self.bottom else (0, 0)
+                self.hunt = Hunt(self.here, low, size, t)
 
     # --- the keyboard ----------------------------------------------------------------
     # Commands: left/right/up/down walk along the path that goes that way; next/prev
@@ -547,10 +605,21 @@ class Glade:
         elif t > 2:
             self.warm()
         self.here.update(dt)
+        if self.hunt is not None:
+            if self.hunt.done or self.hunt.scene is not self.here:
+                self.hunt.finish()  # finished, or he went elsewhere: everyone is back
+                self.hunt = None
+            else:
+                self.hunt.update(dt, t)
+        self.follow(dt)
         for view, content in self.views():
             if content is not self.here:
                 content.update(dt, t)
             content.draw(view.canvas, t)
+            if view is self.top:
+                self.listener.draw_moon(view.canvas, getattr(content, "moon", None), t)
+            if self.hunt is not None:
+                self.hunt.draw(view.canvas, view is self.bottom, t)
             self.overlay(view, content, t)
             if self.fade > 0:
                 veil = art.solid()
@@ -634,7 +703,10 @@ def main():
                 return
             if e.type == pygame.KEYDOWN and e.key == pygame.K_q and e.mod & pygame.KMOD_CTRL:
                 return
-            if e.type == pygame.KEYDOWN and e.key in KEYS:
+            if e.type == pygame.KEYDOWN and glade.listener.listening(time.monotonic() - glade.t0) \
+                    and e.unicode.isalpha():
+                glade.typed(e.unicode, time.monotonic() - glade.t0)
+            elif e.type == pygame.KEYDOWN and e.key in KEYS:
                 cmd = KEYS[e.key]
                 if cmd == "next" and e.mod & pygame.KMOD_SHIFT:
                     cmd = "prev"

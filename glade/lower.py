@@ -260,7 +260,7 @@ class Lower(art.Lighting):
 
     def click(self, x, y, t):
         for c in self.creatures:
-            if c.poke(x, y, t):
+            if not getattr(c, "gone", False) and c.poke(x, y, t):
                 return
         for b in self.bugs:
             b.scatter(x, y, t)
@@ -276,7 +276,7 @@ class Lower(art.Lighting):
             s.blit(*self.pond_top)
         s.blit(*self.front)
         for part in self.parts:
-            if hasattr(part, "draw"):
+            if hasattr(part, "draw") and not getattr(part, "gone", False):
                 part.draw(s, t)
         self.lit(s, self.parts + ([self.pond] if self.pond else []), t)
 

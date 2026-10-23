@@ -213,6 +213,7 @@ class Lighting:
     def lit(self, s, parts, t):
         """Apply the lighting to s, whose picture has been drawn already."""
         lm = self.light.copy()
+        parts = [p for p in parts if not getattr(p, "gone", False)]  # eaten (apex.py)
         for p in parts:
             f = getattr(p, "light", None)
             if f:

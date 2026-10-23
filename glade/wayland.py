@@ -116,11 +116,12 @@ class Surface:
         v = self.view
         cr.set_source_rgb(*(c / 255 for c in main.INK))
         cr.paint()
-        shown = v.canvas.subsurface((0, 0, v.w, v.h))
+        r = v.shown()  # all of the canvas, or the part the camera is following
+        shown = v.canvas.subsurface(r)
         data = bytearray(pygame.image.tobytes(shown, "BGRA"))
-        img = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_RGB24, v.w, v.h, v.w * 4)
+        img = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_RGB24, r.w, r.h, r.w * 4)
         cr.translate(v.rect.x, v.rect.y)
-        cr.scale(v.rect.w / v.w, v.rect.h / v.h)
+        cr.scale(v.rect.w / r.w, v.rect.h / r.h)
         cr.set_source_surface(img, 0, 0)
         cr.get_source().set_filter(cairo.FILTER_NEAREST)
         cr.paint()
@@ -150,7 +151,11 @@ class Keyboard:
 
     def start(self, glade):
         self.glade = glade
+        self.submap = ""
         glade.on_launch = self.off
+        # the moon: while it listens, letters go to the glade ("glademoon" submap)
+        glade.on_listen = lambda: self.dispatch("submap", "glademoon")
+        glade.on_heard = self.off
         if not self.sig:
             return
         self.off()  # in case a previous glade left it on
@@ -169,7 +174,7 @@ class Keyboard:
         os.open(self.pipe, os.O_WRONLY | os.O_NONBLOCK)  # held open so the pipe never reads as closed
         GLib.io_add_watch(fd, GLib.IO_IN, self.read)
         threading.Thread(target=self.events, daemon=True).start()
-        GLib.timeout_add_seconds(10, self.idle)
+        GLib.timeout_add_seconds(1, self.idle)
 
     def dispatch(self, *args):
         try:
@@ -192,6 +197,9 @@ class Keyboard:
     def idle(self):
         if self.glade.keys_on and time.monotonic() - self.used > self.IDLE:
             self.off()
+        t = time.monotonic() - self.glade.t0
+        if self.submap == "glademoon" and not self.glade.listener.listening(t):
+            self.off()  # the moon stopped listening: the letters are the windows' again
         return True
 
     def read(self, fd, cond):
@@ -200,7 +208,9 @@ class Keyboard:
         except BlockingIOError:
             return True
         for cmd in data.split():
-            if cmd == "keys":
+            if cmd.startswith("key-") and len(cmd) == 5:
+                self.glade.typed(cmd[4], time.monotonic() - self.glade.t0)
+            elif cmd == "keys":
                 self.window = None  # Super+Home has just cleared the windows away
                 self.on()
             elif self.glade.keys_on:
@@ -231,12 +241,13 @@ class Keyboard:
     def event(self, line):
         name, _, data = line.partition(">>")
         if name == "submap":
+            self.submap = data
             self.glade.keys_on = data == "glade"
             if not self.glade.keys_on:
                 self.glade.picked = None
         elif name == "activewindowv2":
             self.window = data if re.fullmatch(r"(0x)?[0-9a-f]+", data) else None
-            if self.window and self.glade.keys_on:
+            if self.window and self.submap in ("glade", "glademoon"):
                 self.off()  # a window has the focus: the keys are its again
         return False
 

@@ -233,6 +233,7 @@ class Fireflies:
 
     def __init__(self, rng, region, n, color=GLOW["firefly"], reach=34, homes=None):
         x0, y0, w, h = region
+        self.bounds = (x0 + 6, y0 + 6, x0 + w - 6, y0 + h - 6)  # they never wander off the screen
         pts = homes or [(x0 + rng.random() * w, y0 + rng.random() * h) for _ in range(n)]
         self.items = [(x, y, rng.random() * 100, rng.uniform(14, 46), rng.uniform(2.6, 6.5), rng.uniform(0.6, 1.2))
                       for x, y in pts]
@@ -240,6 +241,7 @@ class Fireflies:
         self.body = mix(color, (255, 255, 255), 0.6)
         self.scatter_at, self.scatter_from = -99.0, (0, 0)
         self.now = []
+        self.mult = {}  # index -> 0..1: how much of that firefly is left (apex.py)
 
     def scatter(self, x, y, t):
         self.scatter_from = (x, y)
@@ -262,18 +264,22 @@ class Fireflies:
             d = math.hypot(dx, dy) or 1
             px += dx / d * 50 * k
             py += dy / d * 50 * k - 16 * k
+        bx0, by0, bx1, by1 = self.bounds
+        if bx1 > bx0 and by1 > by0:
+            px, py = max(bx0, min(bx1, px)), max(by0, min(by1, py))
         return px, py, k
 
     def draw(self, s, t):
         self.now = []
-        for item in self.items:
+        for i, item in enumerate(self.items):
             period = item[4]
             k = ((t + item[2]) % period) / period
             b = math.sin(k / 0.28 * math.pi) if k < 0.28 else 0.0  # a slow swell on, then dark
             x, y, k = self.pos(item, t)
             if k > 0:
                 b += (max(b, 0.7) - b) * k  # glow up and back down gently, not all at once
-            self.now.append((x, y, b))
+            m = self.mult.get(i, 1.0)
+            self.now.append((x, y, b * m) if m > 0.02 else (-99, -99, 0.0))
 
     def light(self, lm, t):
         for x, y, b in self.now:
@@ -624,16 +630,23 @@ class Squid(Clock):
         self.heading += max(-1.2 * dt, min(1.2 * dt, turn))
         k = ((t / self.period) + self.phase) % 1.0
         self.squeeze = math.sin(k / 0.25 * math.pi) if k < 0.25 else 0.0
-        if k < 0.25:
+        x0, y0, w, h = self.region
+        if k < 0.25 and self.y > y0 + 10:  # above its patch of sky it stops pulsing and sinks back
             thrust = 120
             self.vx += math.cos(self.heading) * thrust * dt
             self.vy += math.sin(self.heading) * thrust * dt
         damp = math.exp(-1.6 * dt)
         self.vx *= damp
         self.vy = self.vy * damp + 16 * dt  # a slow sink between pulses
+        # soft walls: it never drifts out of its patch of sky, so never off the screen
+        if self.y < y0:
+            self.vy += (y0 - self.y) * 8 * dt
+        if self.x < x0:
+            self.vx += (x0 - self.x) * 6 * dt
+        elif self.x > x0 + w:
+            self.vx -= (self.x - x0 - w) * 6 * dt
         self.x += self.vx * dt
         self.y += self.vy * dt
-        x0, y0, w, h = self.region
         if math.hypot(tx - self.x, ty - self.y) < 30 or not (x0 - 40 < self.x < x0 + w + 40 and y0 - 40 < self.y < y0 + h + 40):
             self.target = self.pick()
         # tentacles: rope chains hanging off the head, pulled out behind
