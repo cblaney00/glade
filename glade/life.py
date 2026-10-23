@@ -227,19 +227,29 @@ class Fireflies:
                       for x, y in pts]
         self.color, self.reach = color, reach
         self.body = mix(color, (255, 255, 255), 0.6)
-        self.scatter_until, self.scatter_from = 0.0, (0, 0)
+        self.scatter_at, self.scatter_from = -99.0, (0, 0)
         self.now = []
+
+    SCATTER = 2.6  # seconds: they swell and drift over ~0.6s, then settle back slowly
 
     def scatter(self, x, y, t):
         self.scatter_from = (x, y)
-        self.scatter_until = t + 1.8
+        self.scatter_at = t
+
+    def stirred(self, t):
+        """How stirred up they are, 0..1: eases in, holds a moment, eases out."""
+        a = t - self.scatter_at
+        if not 0 <= a < self.SCATTER:
+            return 0.0
+        ease = lambda f: f * f * (3 - 2 * f)  # noqa: E731
+        return ease(min(1.0, a / 0.6)) * ease(min(1.0, (self.SCATTER - a) / 1.6))
 
     def pos(self, item, t):
         x, y, ph, rad, _, sp = item
         px = x + math.sin(t * 0.3 * sp + ph) * rad + math.sin(t * 0.9 * sp + ph * 2) * rad * 0.3
         py = y + math.sin(t * 0.4 * sp + ph * 1.3) * rad * 0.5 + math.cos(t * 1.3 + ph) * 3
-        if t < self.scatter_until:
-            k = (self.scatter_until - t) / 1.8
+        k = self.stirred(t)
+        if k > 0:
             dx, dy = px - self.scatter_from[0], py - self.scatter_from[1]
             d = math.hypot(dx, dy) or 1
             px += dx / d * 60 * k
@@ -252,8 +262,9 @@ class Fireflies:
             period = item[4]
             k = ((t + item[2]) % period) / period
             b = math.sin(k / 0.28 * math.pi) if k < 0.28 else 0.0  # a slow swell on, then dark
-            if t < self.scatter_until:
-                b = max(b, 0.8)
+            k = self.stirred(t)
+            if k > 0:
+                b += (max(b, 0.8) - b) * k  # glow up and back down gently, not all at once
             self.now.append((*self.pos(item, t), b))
 
     def light(self, lm, t):
