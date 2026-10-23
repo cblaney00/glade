@@ -24,6 +24,17 @@ def wind(t):
     return 0.65 + 0.35 * math.sin(t * 0.37) + 0.12 * math.sin(t * 1.9)
 
 
+def swell(a, rise, fall, wait=0.0):
+    """A gentle 0..1..0 envelope `a` seconds after something happened: nothing for `wait`
+    seconds, then it eases up over `rise` and back down over `fall`. Nothing that reacts
+    to a click should appear all at once — he finds that jarring."""
+    a -= wait
+    if not 0 <= a < rise + fall:
+        return 0.0
+    ease = lambda f: f * f * (3 - 2 * f)  # noqa: E731
+    return ease(min(1.0, a / rise)) * ease(min(1.0, (rise + fall - a) / fall))
+
+
 def q(v, step=12):
     """Round a glow strength, so the glow cache stays small."""
     return max(0, int(v) // step * step)
@@ -230,31 +241,28 @@ class Fireflies:
         self.scatter_at, self.scatter_from = -99.0, (0, 0)
         self.now = []
 
-    SCATTER = 2.6  # seconds: they swell and drift over ~0.6s, then settle back slowly
-
     def scatter(self, x, y, t):
         self.scatter_from = (x, y)
         self.scatter_at = t
 
-    def stirred(self, t):
-        """How stirred up they are, 0..1: eases in, holds a moment, eases out."""
-        a = t - self.scatter_at
-        if not 0 <= a < self.SCATTER:
-            return 0.0
-        ease = lambda f: f * f * (3 - 2 * f)  # noqa: E731
-        return ease(min(1.0, a / 0.6)) * ease(min(1.0, (self.SCATTER - a) / 1.6))
+    def stirred(self, t, x, y):
+        """How stirred up the one at (x, y) is, 0..1. Nothing happens for a moment after
+        the click; then it spreads outward like a ripple — the nearest stir first — each
+        swelling over about a second and a half and settling back over two."""
+        d = math.hypot(x - self.scatter_from[0], y - self.scatter_from[1])
+        return swell(t - self.scatter_at, 1.5, 2.2, wait=0.35 + d / 450)
 
     def pos(self, item, t):
         x, y, ph, rad, _, sp = item
         px = x + math.sin(t * 0.3 * sp + ph) * rad + math.sin(t * 0.9 * sp + ph * 2) * rad * 0.3
         py = y + math.sin(t * 0.4 * sp + ph * 1.3) * rad * 0.5 + math.cos(t * 1.3 + ph) * 3
-        k = self.stirred(t)
+        k = self.stirred(t, px, py)
         if k > 0:
             dx, dy = px - self.scatter_from[0], py - self.scatter_from[1]
             d = math.hypot(dx, dy) or 1
-            px += dx / d * 60 * k
-            py += dy / d * 60 * k - 20 * k
-        return px, py
+            px += dx / d * 50 * k
+            py += dy / d * 50 * k - 16 * k
+        return px, py, k
 
     def draw(self, s, t):
         self.now = []
@@ -262,10 +270,10 @@ class Fireflies:
             period = item[4]
             k = ((t + item[2]) % period) / period
             b = math.sin(k / 0.28 * math.pi) if k < 0.28 else 0.0  # a slow swell on, then dark
-            k = self.stirred(t)
+            x, y, k = self.pos(item, t)
             if k > 0:
-                b += (max(b, 0.8) - b) * k  # glow up and back down gently, not all at once
-            self.now.append((*self.pos(item, t), b))
+                b += (max(b, 0.7) - b) * k  # glow up and back down gently, not all at once
+            self.now.append((x, y, b))
 
     def light(self, lm, t):
         for x, y, b in self.now:
@@ -597,8 +605,8 @@ class Squid(Clock):
             return False
         dx, dy = self.x - x, self.y - y
         d = math.hypot(dx, dy) or 1
-        self.vx += dx / d * 120
-        self.vy += dy / d * 120 - 40
+        self.vx += dx / d * 70
+        self.vy += dy / d * 70 - 24
         self.heading = math.atan2(self.vy, self.vx)
         self.target = self.pick()
         self.flash = t
@@ -648,8 +656,7 @@ class Squid(Clock):
 
     def light(self, lm, t):
         st = 70 + 40 * getattr(self, "squeeze", 0)
-        if t - self.flash < 0.6:
-            st += 120 * (1 - (t - self.flash) / 0.6)
+        st += 90 * swell(t - self.flash, 0.4, 1.2, wait=0.1)
         glow(lm, self.x, self.y, int(48 * self.size), self.color, q(st))
 
     def shine(self, s, t):
@@ -696,8 +703,9 @@ class Squid(Clock):
             ex, ey = self.x + ux * 1.5 + px_ * 2.6 * sz * k, self.y + uy * 1.5 + py_ * 2.6 * sz * k
             pygame.draw.circle(s, (24, 16, 50), (round(ex), round(ey)), max(1, round(1.2 * sz)))
             s.set_at((round(ex - 0.5), round(ey - 0.5)), (255, 255, 255))
-        if t - self.flash < 0.6:
-            glow(s, self.x, self.y, int(30 * sz), (255, 255, 255), q(160 * (1 - (t - self.flash) / 0.6)))
+        k = swell(t - self.flash, 0.4, 1.2, wait=0.1)
+        if k > 0:
+            glow(s, self.x, self.y, int(30 * sz), mix(self.color, (255, 255, 255), 0.5), q(110 * k))
 
 
 class HollowSquid:

@@ -17,6 +17,7 @@ import pygame
 
 import art
 from art import H, W, mix
+from life import swell
 from lower import Lower
 from scenes import BUILDERS
 
@@ -517,9 +518,12 @@ class Glade:
                 info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
                 self.hint = self.signs.board(info, None, False)
             s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 4)))
-        if self.flash and self.flash[0] is view and t - self.flash[2] < 0.6:
-            k = 1 - (t - self.flash[2]) / 0.6
-            art.glow(s, *self.flash[1].mark, int(20 + 60 * (1 - k)), (255, 250, 220), int(160 * k) // 10 * 10)
+        if self.flash and self.flash[0] is view:
+            # what you opened glows softly for a moment, easing in and out
+            a = t - self.flash[2]
+            k = swell(a, 0.3, 0.9)
+            if k > 0:
+                art.glow(s, *self.flash[1].mark, int(24 + 30 * min(1.0, a)), (255, 250, 220), int(110 * k) // 10 * 10)
 
     def frame(self, dt):
         self.render(dt)
