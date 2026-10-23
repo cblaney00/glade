@@ -687,6 +687,93 @@ class Squid(Clock):
             glow(s, self.x, self.y, int(30 * sz), (255, 255, 255), q(160 * (1 - (t - self.flash) / 0.6)))
 
 
+class HollowSquid:
+    """A little glowing squid that has made its home in a tree hollow: its mantle pokes
+    up out of the hole, its eyes peek over the rim and two arms hang over the edge. It
+    breathes, blinks, and now and then waves. Poke it and it ducks down, then peeks out
+    again."""
+
+    def __init__(self, x, y, color=GLOW["cyan"]):
+        self.x, self.y, self.color = x, y, color  # (x, y): the middle of the hollow's rim
+        self.body = mix(color, (255, 255, 255), 0.35)
+        self.dark = mix(color, (30, 20, 70), 0.45)
+        self.ducked = -10.0
+
+    def poke(self, x, y, t):
+        return False  # it is a clickable spot (it opens the pictures); see scenes.py
+
+    def duck(self, t):
+        self.ducked = t
+
+    def out(self, t):
+        a = t - self.ducked
+        if a < 0.3:
+            return 1 - a / 0.3
+        if a < 1.6:
+            return 0.0
+        return min(1.0, (a - 1.6) / 0.8)
+
+    def light(self, lm, t):
+        glow(lm, self.x, self.y - 10, 56, self.color, q(100 + 20 * math.sin(t * 1.1)))
+
+    def shine(self, s, t):
+        x, y = self.x, self.y  # the middle of the hollow; the squid's head sits there
+        k = self.out(t)
+        rise = 22 * (1 - k)  # sinks into the hole when ducking
+        breathe = math.sin(t * 1.1)
+        glow(s, x, y - 12 + rise, 18, self.color, q(60 + 15 * breathe))
+        # two arms draped over the bottom lip and down the trunk; one waves now and then
+        if k > 0.3:
+            wave = max(0.0, math.sin(t * 0.5)) ** 8
+            for side, ph in ((-1, 0.0), (1, 1.3)):
+                pts = []
+                for i in range(11):
+                    f = i / 10
+                    lift = wave * 16 * f * f if side > 0 else 0
+                    pts.append((x + side * (3 + f * 5) + math.sin(t * 1.5 + ph + f * 3) * f * 2,
+                                y + 4 + f * 26 - lift + rise))
+                pygame.draw.lines(s, self.dark, False, [(px + 1, py) for px, py in pts], 2)
+                pygame.draw.lines(s, self.color, False, pts, 2)
+                for px, py in pts[3::3]:
+                    s.set_at((round(px), round(py)), self.body)
+            for side in (-1, 1):  # two short arms curling over the lip
+                pts = [(x + side * (2 + math.sin(f * 2.4) * 5), y + 5 + f * 11 + rise)
+                       for f in (i / 6 for i in range(7))]
+                pts[-1] = (pts[-1][0] - side * 3 + math.sin(t * 2 + side) * 1.2, pts[-1][1] - 2)
+                pygame.draw.lines(s, self.color, False, pts, 2)
+        # mantle, rising up out of the hollow and swaying a little
+        sway = math.sin(t * 0.7) * 2
+        ln = int(30 * k)
+        for i in range(ln):
+            f = i / 30
+            r = 6.5 * (1 - f ** 2.2) * (1 - 0.08 * breathe)
+            cx, cy = x + sway * f, y - 5 - i + rise
+            pygame.draw.circle(s, self.dark, (round(cx + 1), round(cy)), max(1, r))
+            pygame.draw.circle(s, self.body, (round(cx), round(cy)), max(1, r - 1))
+        if ln > 22:  # fins near the tip, and a lit stripe down the back
+            tx, ty = x + sway * 0.85, y - 5 - 26 + rise
+            flap = 7 + math.sin(t * 3) * 1.2
+            for side in (-1, 1):
+                pygame.draw.polygon(s, self.color, [(tx, ty - 5), (tx + side * flap, ty + 1), (tx, ty + 5)])
+            pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.5), (round(x - 2), round(y - 10 + rise)),
+                             (round(tx - 2), round(ty + 4)))
+            for j in range(3):  # spots that blink
+                if math.sin(t * 2 + j * 1.7) > 0:
+                    s.set_at((round(x + 2 + sway * 0.4), round(y - 12 - j * 6 + rise)), (255, 255, 255))
+        if k > 0.3:
+            # head and big eyes peeking out of the hollow; it blinks every few seconds
+            hy = round(y - 1 + rise * 0.5)
+            pygame.draw.ellipse(s, self.dark, (x - 9, hy - 4, 19, 11))
+            pygame.draw.ellipse(s, self.body, (x - 9, hy - 5, 18, 10))
+            blink = (t % 4.3) < 0.15
+            for ex in (x - 6, x + 2):
+                if blink:
+                    pygame.draw.line(s, (24, 16, 50), (ex, hy), (ex + 3, hy))
+                else:
+                    pygame.draw.rect(s, (24, 16, 50), (ex, hy - 2, 4, 4))
+                    s.set_at((ex + 1, hy - 1), (255, 255, 255))
+
+
 class Track:
     """A polyline something crawls along, measured by distance."""
 

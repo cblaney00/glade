@@ -33,6 +33,10 @@ from art import H, W  # noqa: E402
 
 FPS = 30
 
+# The pointer is the compositor's here (see Surface.set_cursor), so the scene must not
+# draw its own copy as well.
+CURSOR, main.CURSOR = main.CURSOR, pygame.Surface((1, 1), pygame.SRCALPHA)
+
 
 class Surface:
     """One monitor's layer-shell window, showing one View of the glade."""
@@ -67,14 +71,27 @@ class Surface:
         win.show_all()
 
     def hide_cursor(self, win):
-        # The glade draws its own little pixel cursor; hide the system one over it.
-        gw = win.get_window()
-        if gw is not None:
-            gw.set_cursor(Gdk.Cursor.new_from_name(gw.get_display(), "none"))
+        self.set_cursor()
+
+    def set_cursor(self):
+        # The glade's little pixel cursor, at the same scale as the scene, handed to the
+        # compositor as the real pointer. Drawn into the canvas it could only move when a
+        # whole frame was repainted, which made the mouse feel laggy.
+        gw = self.win.get_window()
+        if gw is None:
+            return
+        scale = max(1, self.view.rect.w // self.view.w)
+        img = pygame.transform.scale_by(CURSOR, scale)
+        w, h = img.get_size()
+        # The sprite is only fully opaque or fully clear, so it is already premultiplied.
+        data = bytearray(pygame.image.tobytes(img, "BGRA"))
+        surf = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_ARGB32, w, h, w * 4)
+        gw.set_cursor(Gdk.Cursor.new_from_surface(gw.get_display(), surf, 0, 0))
 
     def resized(self, area, alloc):
         v = self.view
         v.rect = main.fit(pygame.Rect(0, 0, alloc.width, alloc.height), v.w, v.h)
+        self.set_cursor()
 
     def motion(self, area, event):
         self.view.pointer = (event.x, event.y)

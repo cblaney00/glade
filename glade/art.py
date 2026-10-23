@@ -317,7 +317,8 @@ def foliage(s, rng, cx, cy, rx, ry, color, pal, density=1.0, leaf=(3, 6)):
 
 
 def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
-    """A tall, slightly leaning trunk that flares into roots, with bark streaks."""
+    """A tall, slightly leaning trunk that flares into roots, with bark streaks.
+    Returns its lean: at height y its middle is at x + (bottom - y) * lean."""
     lean = rng.uniform(-0.04, 0.04)
     pts_l, pts_r = [], []
     for y in list(range(top, bottom, 4)) + [bottom]:
@@ -351,6 +352,7 @@ def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
         pygame.draw.line(s, color, (cx, by), (cx + side * ln, by - ln // 2), max(1, w // 3))
         pygame.draw.line(s, color, (cx + side * ln * 0.6, by - ln * 0.3),
                          (cx + side * ln * 0.9, by - ln * 0.75), max(1, w // 5))
+    return lean
 
 
 def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):

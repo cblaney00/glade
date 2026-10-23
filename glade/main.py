@@ -31,6 +31,8 @@ APPS = {
     "browser": "flatpak run org.chromium.Chromium",
     "discord": "flatpak run com.discordapp.Discord",
     "code": "code",
+    # the pictures of the glade, saved on his Desktop (the squid in the tree hollow)
+    "pictures": "dolphin " + shlex.quote(os.path.expanduser("~/Desktop/The Glade")),
 }
 
 INK = (34, 24, 58)
@@ -137,9 +139,23 @@ def _code(s):
     pygame.draw.line(s, hi, (9, 1), (7, 12), 2)
 
 
+def _pictures(s):
+    """The logo every picture file has: a little framed landscape — here, the glade at
+    night: a moon over a hill."""
+    frame, sky, hill, hill2 = (236, 226, 236), (60, 52, 130), (110, 230, 170), (70, 170, 150)
+    pygame.draw.rect(s, (24, 14, 34), (0, 0, 16, 14))
+    pygame.draw.rect(s, frame, (1, 1, 14, 12))
+    pygame.draw.rect(s, sky, (2, 2, 12, 10))
+    pygame.draw.circle(s, (255, 244, 200), (11, 5), 2)
+    pygame.draw.polygon(s, hill2, [(6, 11), (10, 7), (14, 11)])
+    pygame.draw.polygon(s, hill, [(2, 11), (5, 6), (9, 11)])
+    s.set_at((4, 3), (255, 255, 255))
+    s.set_at((7, 2), (200, 220, 255))
+
+
 ICONS = {}
 ICON_PAINTERS = dict(files=_files, terminal=_terminal, music=_music, games=_games, browser=_browser,
-                     discord=_discord, code=_code)
+                     discord=_discord, code=_code, pictures=_pictures)
 
 
 def font_path():
@@ -187,7 +203,7 @@ class Signs:
         text = self.font.render(spot.label, False, (255, 255, 255) if hot else TEXT)
         shade = self.font.render(spot.label, False, EDGE)
         tw, th = text.get_size()
-        icon = ICONS.get(spot.target) if spot.kind == "app" else None
+        icon = getattr(spot, "icon", None) or (ICONS.get(spot.target) if spot.kind == "app" else None)
         lead = 0
         if icon:
             lead = 20
@@ -305,12 +321,13 @@ def keep_at_back(area):
         pass
 
 
-def launch(key):
+def launch(key, args=None):
+    """Open an app by its key in APPS, or run `args` (a fruit's own command)."""
     cmd = APPS.get(key)
-    if not cmd:
+    if not cmd and not args:
         return
     try:
-        subprocess.Popen(shlex.split(cmd), start_new_session=True,
+        subprocess.Popen(args or shlex.split(cmd), start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
         pass
@@ -405,8 +422,11 @@ class Glade:
             elif sp.kind == "go":
                 self.fade_to = sp.target
             else:
-                launch(sp.target)
+                launch(sp.target, getattr(sp, "cmd", None))
                 self.flash = (view, sp, t)
+                pet = getattr(content, "pet", None)
+                if pet and sp.target == "pictures":
+                    pet.duck(t)  # the squid ducks into its hollow
             return
 
     def overlay(self, view, content, t):

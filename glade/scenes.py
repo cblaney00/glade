@@ -13,7 +13,8 @@ import pygame
 
 import art
 from art import GLOW, H, W, at_depth, mix
-from life import (Blades, Critter, Fireflies, GlowThreads, Lantern, Millipede, Motes, Petals, Pulses, River,
+from orchard import Nibbler, Orchard
+from life import (Blades, Critter, Fireflies, GlowThreads, HollowSquid, Lantern, Millipede, Motes, Petals, Pulses, River,
                   Shafts, Slug, Squid, Stars, Track, Vines, Waterfall, make_rng)
 
 
@@ -238,8 +239,13 @@ def build_glade():
 
     # mid: forest edges framing left and right
     lay = art.plane()
-    for x, w in ((28, 20), (96, 16), (172, 14), (236, 12)):
-        art.trunk(lay, rng, x, 40, 392, w, sc.col("wood", 0.5), branches=2, pal=p)
+    leans = {}
+    for x, w in ((28, 20), (96, 16), (172, 14), (236, 24)):
+        leans[x] = art.trunk(lay, rng, x, 40, 392, w, sc.col("wood", 0.5), branches=2, pal=p)
+    # a hollow in the nearest of them, where a little squid lives (it opens his pictures)
+    hollow = (round(236 + (392 - 300) * leans[236]), 300)
+    pygame.draw.ellipse(lay, mix(sc.col("wood", 0.5), p["shade"], 0.55), (hollow[0] - 13, hollow[1] - 18, 26, 36))
+    pygame.draw.ellipse(lay, sc.col("shade", 0.1), (hollow[0] - 10, hollow[1] - 15, 20, 31))
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (0, 0, 280, 40))
     leaf_row(lay, rng, -20, 292, 52, 44, 32, sc.col("leaf3", 0.5), p, jitter=16)
     for x in (860, 932):
@@ -329,6 +335,9 @@ def build_glade():
             sc.emit.set_at((x, y), (120, 50, 100))
     sc.lamp(744, 200, 150, GLOW["pink"], 34)
     sc.live(Petals(rng, (620, 140, 260, 80), 460, 60, [(255, 200, 230), (255, 255, 255), (255, 150, 200)]))
+    # fruit in its canopy: what he used lately, and his new downloads up top (orchard.py)
+    sc.orchard = sc.live(Orchard(sc, Spot))
+    sc.live(Nibbler(rng, sc.orchard, (600, 80, 300, 200), GLOW["pink"]))
 
     sc.live(Shafts([(400, 40, 300, 130, 0.0), (450, 30, 590, 100, 2.4)], (150, 170, 255), alpha=18))
     sc.live(Blades(rng, (0, 412, W, 128), 520, [sc.col("leaf", 0.15), sc.col("leaf2", 0.12), sc.col("leaf3", 0.12)], 6, 18))
@@ -340,6 +349,7 @@ def build_glade():
                      spots=GLOW["cyan"]))
     sc.live(Slug(rng, Track([(758, 404), (757, 360), (756, 300)], up=(1, 0)), (220, 196, 180), size=1.1, speed=2.5,
                  shell=(232, 178, 140)))
+    sc.pet = sc.live(HollowSquid(hollow[0], hollow[1]))
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
@@ -355,6 +365,8 @@ def build_glade():
         Spot("go", (200, 476, 168, 64), "The Mossy Rocks", "rocks", (292, 516), direction=(0, 1), sign=(262, 512)),
         Spot("app", (720, 308, 48, 56), "Files", "files", (742, 336), sign=(744, 290)),
         Spot("app", (312, 380, 56, 68), "Terminal", "terminal", (340, 398), sign=(340, 356)),
+        Spot("app", (hollow[0] - 24, hollow[1] - 44, 48, 78), "Glade Pictures", "pictures", hollow,
+             sign=(hollow[0], hollow[1] - 66)),
     ]
     sc.lower = dict(ground=0.3, pond=(540, 256, 224, 132), paths=[dict(
         pts=[(202, -4), (180, 16), (160, 60), (156, 120), (172, 190), (204, 260), (220, 340), (208, 460)],
