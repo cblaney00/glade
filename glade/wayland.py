@@ -11,6 +11,10 @@ one shows the ground in front of it, exactly as under XFCE.
 """
 
 import os
+import re
+import socket
+import subprocess
+import threading
 import time
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")  # pygame draws off-screen only
@@ -104,6 +108,7 @@ class Surface:
     def press(self, area, event):
         if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
             self.view.pointer = (event.x, event.y)
+            KEYBOARD.clicked()
             self.glade.click(time.monotonic() - self.glade.t0)
         return True
 
@@ -120,6 +125,123 @@ class Surface:
         cr.get_source().set_filter(cairo.FILTER_NEAREST)
         cr.paint()
         return True
+
+
+class Keyboard:
+    """Letting the keyboard steer the glade.
+
+    A layer-shell surface at the back cannot count on getting the keyboard, so it is
+    done with a Hyprland submap called "glade" (see glade.nix): while it is on, the
+    arrows, Tab, Enter, Home, Backspace and Esc run `glade-ctl <command>`, which
+    writes the command into a pipe this reads. It goes on with Super+Home or a click
+    on the glade while no window has the focus, and off again with Esc, as soon as a
+    window takes the focus, when an app is opened, or after a few idle minutes —
+    so it can never keep those keys from a window."""
+
+    IDLE = 180
+
+    def __init__(self):
+        self.glade = None
+        self.window = None  # the focused window's address, if any
+        self.used = time.monotonic()
+        self.sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+        runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+        self.pipe = os.path.join(runtime, "glade.ctl")
+
+    def start(self, glade):
+        self.glade = glade
+        glade.on_launch = self.off
+        if not self.sig:
+            return
+        self.off()  # in case a previous glade left it on
+        try:
+            out = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True, timeout=3).stdout
+            self.window = re.search(r'"address": "(0x[0-9a-f]+)"', out).group(1)
+        except (OSError, subprocess.SubprocessError, AttributeError):
+            self.window = None
+        try:
+            if os.path.exists(self.pipe) and not os.path.isfile(self.pipe):
+                os.unlink(self.pipe)
+            os.mkfifo(self.pipe, 0o600)
+        except FileExistsError:
+            pass
+        fd = os.open(self.pipe, os.O_RDONLY | os.O_NONBLOCK)
+        os.open(self.pipe, os.O_WRONLY | os.O_NONBLOCK)  # held open so the pipe never reads as closed
+        GLib.io_add_watch(fd, GLib.IO_IN, self.read)
+        threading.Thread(target=self.events, daemon=True).start()
+        GLib.timeout_add_seconds(10, self.idle)
+
+    def dispatch(self, *args):
+        try:
+            subprocess.Popen(["hyprctl", "dispatch", *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            pass
+
+    def on(self):
+        self.used = time.monotonic()
+        self.dispatch("submap", "glade")
+
+    def off(self):
+        if self.sig:
+            self.dispatch("submap", "reset")
+
+    def clicked(self):
+        if self.sig and self.window is None and not self.glade.keys_on:
+            self.on()
+
+    def idle(self):
+        if self.glade.keys_on and time.monotonic() - self.used > self.IDLE:
+            self.off()
+        return True
+
+    def read(self, fd, cond):
+        try:
+            data = os.read(fd, 4096).decode(errors="replace")
+        except BlockingIOError:
+            return True
+        for cmd in data.split():
+            if cmd == "keys":
+                self.window = None  # Super+Home has just cleared the windows away
+                self.on()
+            elif self.glade.keys_on:
+                self.used = time.monotonic()
+                self.glade.key(cmd, time.monotonic() - self.glade.t0)
+        return True
+
+    def events(self):
+        """Follow Hyprland's event socket: which submap is on, and which window has focus."""
+        path = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "hypr", self.sig, ".socket2.sock")
+        while True:
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                    sock.connect(path)
+                    buf = b""
+                    while True:
+                        chunk = sock.recv(4096)
+                        if not chunk:
+                            break
+                        buf += chunk
+                        *lines, buf = buf.split(b"\n")
+                        for line in lines:
+                            GLib.idle_add(self.event, line.decode(errors="replace"))
+            except OSError:
+                pass
+            time.sleep(2)
+
+    def event(self, line):
+        name, _, data = line.partition(">>")
+        if name == "submap":
+            self.glade.keys_on = data == "glade"
+            if not self.glade.keys_on:
+                self.glade.picked = None
+        elif name == "activewindowv2":
+            self.window = data if re.fullmatch(r"(0x)?[0-9a-f]+", data) else None
+            if self.window and self.glade.keys_on:
+                self.off()  # a window has the focus: the keys are its again
+        return False
+
+
+KEYBOARD = Keyboard()
 
 
 def monitors():
@@ -142,6 +264,7 @@ def run():
         g1 = mons[1].get_geometry()
         lower = pygame.Rect(0, 0, g1.width, g1.height)
     glade = main.Glade(None, main.fit(pygame.Rect(0, 0, g0.width, g0.height), W, H), lower)
+    KEYBOARD.start(glade)
     surfaces = [Surface(glade, glade.top, mons[0])]
     if glade.bottom:
         surfaces.append(Surface(glade, glade.bottom, mons[1]))

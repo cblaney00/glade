@@ -253,13 +253,17 @@ class Signs:
         wide = hot.get_rect(midleft=rect.midleft)
         wide.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
         spot.boards = (cold, hot, rect, wide)
-        spot.hits = [spot.rect, rect.inflate(4, 4)]
+        # paths get a generous margin, so you can click through the places quickly
+        spot.hits = [spot.rect.inflate(40, 40) if spot.kind == "go" else spot.rect, rect.inflate(8, 8)]
 
     def draw(self, s, spot, hot, t):
         cold, warm, rect, wide = spot.boards
         if hot:
             art.glow(s, *wide.center, max(wide.w, wide.h) // 2 + 18, (255, 150, 220), 120)
         s.blit(warm if hot else cold, wide if hot else rect)
+
+
+KEYS_HINT = "Keyboard:  ← ↑ → ↓ walk  ·  Tab choose  ·  Enter open  ·  Home glade  ·  Esc stop"
 
 
 def sparkle(s, x, y, t, color=(255, 255, 240)):
@@ -391,6 +395,11 @@ class Glade:
         self.fade, self.fade_to = 0.0, None
         self.flash = None
         self.t0 = time.monotonic()
+        self.history = []  # the places you came from, for Backspace
+        self.picked = None  # (view, spot) chosen with Tab
+        self.keys_on = False  # the keyboard is steering the glade (shows the hint)
+        self.on_launch = None  # called whenever an app is opened
+        self.hint = None
 
     def scene(self, key):
         if key not in self.scenes:
@@ -408,6 +417,36 @@ class Glade:
         if self.bottom:
             yield self.bottom, self.lower()
 
+    def warm(self):
+        """Build the next place nobody has visited yet, so going there is instant."""
+        for key in BUILDERS:
+            if key not in self.scenes:
+                self.scene(key)
+                return True
+            if self.bottom and key not in self.lowers:
+                self.lowers[key] = Lower(self.scenes[key], self.bottom.w, self.bottom.h)
+                return True
+        return False
+
+    def go(self, key, remember=True):
+        if self.fade_to or key == self.here.key:
+            return
+        if remember:
+            self.history.append(self.here.key)
+        self.fade_to, self.picked = key, None
+
+    def activate(self, view, content, sp, t):
+        if sp.kind == "go":
+            self.go(sp.target)
+            return
+        launch(sp.target, getattr(sp, "cmd", None))
+        self.flash = (view, sp, t)
+        pet = getattr(content, "pet", None)
+        if pet and sp.target == "pictures":
+            pet.duck(t)  # the squid ducks into its hollow
+        if self.on_launch:
+            self.on_launch()
+
     def click(self, t):
         if self.fade_to:
             return
@@ -424,21 +463,48 @@ class Glade:
                         return
                 for b in content.bugs:
                     b.scatter(*m, t)
-            elif sp.kind == "go":
-                self.fade_to = sp.target
             else:
-                launch(sp.target, getattr(sp, "cmd", None))
-                self.flash = (view, sp, t)
-                pet = getattr(content, "pet", None)
-                if pet and sp.target == "pictures":
-                    pet.duck(t)  # the squid ducks into its hollow
+                self.activate(view, content, sp, t)
             return
+
+    # --- the keyboard ----------------------------------------------------------------
+    # Commands: left/right/up/down walk along the path that goes that way; next/prev
+    # choose the next board (Tab); open opens the chosen one; home and back go places.
+    def key(self, cmd, t):
+        if self.fade_to:
+            return
+        if cmd in ("left", "right", "up", "down"):
+            want = dict(left=(-1, 0), right=(1, 0), up=(0, -1), down=(0, 1))[cmd]
+            for view, content in self.views():
+                for sp in content.spots:
+                    if sp.kind == "go" and tuple(go_direction(sp, view.w, view.h)) == want:
+                        self.go(sp.target)
+                        return
+        elif cmd in ("next", "prev"):
+            choices = [(view, content, sp) for view, content in self.views()
+                       for sp in sorted(content.spots, key=lambda sp: (sp.sign[1] // 48, sp.sign[0]))]
+            if not choices:
+                return
+            now = [c[::2] for c in choices]
+            i = now.index(self.picked) if self.picked in now else (-1 if cmd == "next" else 0)
+            self.picked = now[(i + (1 if cmd == "next" else -1)) % len(now)]
+        elif cmd == "open" and self.picked:
+            view, sp = self.picked
+            for v, content in self.views():
+                if v is view and sp in content.spots:
+                    self.activate(view, content, sp, t)
+        elif cmd == "home":
+            self.go(HOME)
+        elif cmd == "back" and self.history:
+            self.go(self.history.pop(), remember=False)
 
     def overlay(self, view, content, t):
         s = view.canvas
         for sp in content.spots:
             self.signs.prepare(sp, view.w, view.h)
         hot = None if self.fade_to else view.hovered(content.spots)
+        if hot is None and self.picked and self.picked[0] is view and self.picked[1] in content.spots:
+            hot = self.picked[1]
         for sp in content.spots:
             if sp is not hot:
                 self.signs.draw(s, sp, False, t)
@@ -446,6 +512,11 @@ class Glade:
             self.signs.draw(s, hot, True, t)
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
+        if self.keys_on and view is (self.bottom or self.top):  # the lower screen has room at the bottom
+            if self.hint is None:
+                info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
+                self.hint = self.signs.board(info, None, False)
+            s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 4)))
         if self.flash and self.flash[0] is view and t - self.flash[2] < 0.6:
             k = 1 - (t - self.flash[2]) / 0.6
             art.glow(s, *self.flash[1].mark, int(20 + 60 * (1 - k)), (255, 250, 220), int(160 * k) // 10 * 10)
@@ -461,13 +532,16 @@ class Glade:
     def render(self, dt):
         """Advance everything by dt and paint each view's canvas (without showing it)."""
         t = time.monotonic() - self.t0
+        # a quick fade, so clicking through the places never feels slow
         if self.fade_to:
-            self.fade += dt / 0.45
+            self.fade += dt / 0.15
             if self.fade >= 1:
                 self.here = self.scene(self.fade_to)
                 self.fade_to = None
         elif self.fade > 0:
-            self.fade = max(0.0, self.fade - dt / 0.45)
+            self.fade = max(0.0, self.fade - dt / 0.15)
+        elif t > 2:
+            self.warm()
         self.here.update(dt)
         for view, content in self.views():
             if content is not self.here:
@@ -482,6 +556,12 @@ class Glade:
             m = view.mouse()
             if m:
                 view.canvas.blit(CURSOR, (int(m[0]), int(m[1])))
+
+
+KEYS = {pygame.K_LEFT: "left", pygame.K_a: "left", pygame.K_RIGHT: "right", pygame.K_d: "right",
+        pygame.K_UP: "up", pygame.K_w: "up", pygame.K_DOWN: "down", pygame.K_s: "down",
+        pygame.K_TAB: "next", pygame.K_RETURN: "open", pygame.K_KP_ENTER: "open", pygame.K_SPACE: "open",
+        pygame.K_HOME: "home", pygame.K_h: "home", pygame.K_BACKSPACE: "back"}
 
 
 def shots(out):
@@ -550,8 +630,11 @@ def main():
                 return
             if e.type == pygame.KEYDOWN and e.key == pygame.K_q and e.mod & pygame.KMOD_CTRL:
                 return
-            if e.type == pygame.KEYDOWN and e.key == pygame.K_HOME:
-                glade.fade_to = HOME
+            if e.type == pygame.KEYDOWN and e.key in KEYS:
+                cmd = KEYS[e.key]
+                if cmd == "next" and e.mod & pygame.KMOD_SHIFT:
+                    cmd = "prev"
+                glade.key(cmd, time.monotonic() - glade.t0)
             if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                 glade.click(time.monotonic() - glade.t0)
         glade.frame(min(dt, 0.1))

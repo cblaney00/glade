@@ -33,6 +33,7 @@ class Lower(art.Lighting):
         self.spots, self.bugs, self.creatures, self.pond = [], [], [], None
         self.init_light(p, (w, h), lower=True)
 
+        art.forget_paths()
         cur = art.solid()
         # ground: the upper screen's meadow colour, deepening toward you
         top, bottom = col("leaf2", d0), col("leaf2", 0.04)
@@ -48,7 +49,12 @@ class Lower(art.Lighting):
         lay = art.plane()
         earth, edge = col("earth", d0), col("earth_edge", d0)
         for path in spec.get("paths", []):
-            art.path(lay, path["pts"], path["widths"], earth, edge, rng=rng)
+            # carry the path on up past the top edge, so its end never shows there
+            pts, widths = path["pts"], path["widths"]
+            (x0, y0), (x1, y1) = pts[0], pts[1]
+            k = 48 / (math.hypot(x1 - x0, y1 - y0) or 1)
+            pts = [(x0 - (x1 - x0) * k, y0 - (y1 - y0) * k)] + pts
+            art.path(lay, pts, [widths[0]] + widths, earth, edge, rng=rng)
         cur.blit(lay, (0, 0))
 
         if spec.get("pond"):

@@ -42,6 +42,7 @@ class Scene(art.Lighting):
         self.critter = None
         self.bugs = []
         self.creatures = []
+        art.forget_paths()
         self.cur = art.solid()
         art.gradient(self.cur, (0, 0, W, H), pal["sky"], steps=10)
         self.init_light(pal)
@@ -215,7 +216,7 @@ def build_glade():
 
     # far: violet hills and a little cliff with the waterfall far away
     lay = art.plane()
-    art.ridge(lay, rng, 300, 68, sc.col("lav", 0.9), scales=(180, 62, 22))
+    art.mountains(lay, rng, 300, 68, sc.col("lav", 0.9), scales=(180, 62, 22), side=p["moon_side"])
     sc.add(lay, 0.9, veil=0.05)
     lay = art.plane()
     pygame.draw.polygon(lay, sc.col("stone", 0.78), [(392, 344), (408, 248), (440, 228), (472, 236), (524, 224),
@@ -386,7 +387,7 @@ def build_waterfall():
     moon(sc, 800, 70, 18)
 
     lay = art.plane()
-    art.ridge(lay, rng, 240, 80, sc.col("lav", 0.9), scales=(140, 50, 18))
+    art.mountains(lay, rng, 240, 80, sc.col("lav", 0.9), scales=(140, 50, 18), side=p["moon_side"])
     sc.add(lay, 0.9, veil=0.05)
     lay = art.plane()
     art.ridge(lay, rng, 300, 60, sc.col("leaf3", 0.72), scales=(100, 34, 12))
@@ -513,7 +514,7 @@ def build_river():
     moon(sc, 760, 96, 22)
 
     lay = art.plane()
-    art.ridge(lay, rng, 256, 60, sc.col("lav", 0.9), scales=(180, 60, 20))
+    art.mountains(lay, rng, 256, 60, sc.col("lav", 0.9), scales=(180, 60, 20), side=p["moon_side"])
     sc.add(lay, 0.9, veil=0.04)
     lay = art.plane()
     art.canopy(lay, rng, -20, 980, 280, sc.col("leaf3", 0.72), r=(12, 24))
@@ -710,7 +711,7 @@ def build_rocks():
     moon(sc, 180, 110, 18)
 
     lay = art.plane()
-    art.ridge(lay, rng, 280, 72, sc.col("lav", 0.9), scales=(160, 54, 18))
+    art.mountains(lay, rng, 280, 72, sc.col("lav", 0.9), scales=(160, 54, 18), side=p["moon_side"])
     sc.add(lay, 0.9, veil=0.04)
     lay = art.plane()  # distant stone spires, moss glowing on their tops
     for x, top, w in ((120, 140, 36), (220, 192, 24), (744, 120, 44), (840, 180, 28), (908, 220, 20)):

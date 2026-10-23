@@ -16,6 +16,7 @@ How the look is made:
 """
 
 import math
+import random
 
 import pygame
 
@@ -268,6 +269,54 @@ def ridge(s, rng, y, amp, color, scales=(140, 46, 18), bottom=H):
     return tops
 
 
+def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
+    """Far mountains: a ridge with rocky faces. Slopes facing the moon (`side` -1: it is
+    to the left) catch a little light and the others fall into shade; spurs run down
+    from every peak, lit on the moon's side and shadowed on the other, and the rock is
+    broken by ledges."""
+    tops = ridge(s, rng, y, amp, color, scales)
+    rng = random.Random(y * 1000 + amp)  # its own dice, so the rest of the scene stays put
+    lit, hi = mix(color, (255, 255, 255), 0.16), mix(color, (255, 255, 255), 0.26)
+    shade, deep = mix(color, (12, 10, 40), 0.24), mix(color, (12, 10, 40), 0.42)
+    depth = max(12, int(amp * 0.9))
+    for x in range(1, W):
+        slope = (tops[min(W, x + 3)] - tops[max(0, x - 3)]) * -side  # > 0: faces the moon
+        band = int(depth * (0.55 + 0.45 * wave(x, 3.1, (37, 13, 5))))
+        if slope > 1:
+            pygame.draw.line(s, lit, (x, tops[x] + 1), (x, tops[x] + int(band * min(1.0, slope / 4))))
+            s.set_at((x, tops[x]), hi)
+        elif slope < -1:
+            pygame.draw.line(s, shade, (x, tops[x] + 1), (x, tops[x] + band))
+    # spurs: ridgelines running down and out from each peak
+    peaks = []
+    for x in range(24, W - 24, 2):
+        if tops[x] == min(tops[x - 24:x + 25]) and (not peaks or x - peaks[-1] > 48):
+            peaks.append(x)
+    for px in peaks:
+        for d in (-1, 1):
+            for _ in range(1):
+                x, yy = float(px), tops[px] + 1
+                run = rng.uniform(0.9, 1.5) * d
+                for _ in range(rng.randint(depth // 3, depth * 2 // 3 + 4)):
+                    xi = int(x)
+                    if not (1 <= xi < W - 1) or yy <= tops[xi]:
+                        break
+                    s.set_at((xi - side, yy), hi if d == side else lit)  # the moon side of the spur
+                    s.set_at((xi, yy), deep)
+                    s.set_at((xi + 1 if side < 0 else xi - 1, yy), shade)
+                    x += run + rng.uniform(-0.8, 0.8)
+                    yy += 1
+    # ledges: short slabs of rock, lit on top with a dark lip under them
+    for _ in range(int(W * amp / 90)):
+        x = rng.randrange(4, W - 14)
+        yy = rng.randint(tops[x] + 4, max(tops[x] + 5, tops[x] + depth))
+        ln = rng.randint(3, 10)
+        if all(yy > tops[min(W, x + i)] + 3 for i in range(ln)):
+            pygame.draw.line(s, lit, (x, yy), (x + ln, yy))
+            pygame.draw.line(s, deep, (x + 1, yy + 1), (x + ln + 1, yy + 1))
+    return tops
+
+
 def canopy(s, rng, x0, x1, y, color, r=(14, 28), jitter=12, down=True):
     """A lumpy mass of foliage along a line, filled toward the bottom (or the top)."""
     x = x0
@@ -447,6 +496,28 @@ def flowers(s, rng, rect, colors, n, centre=(255, 236, 140)):
         s.set_at((x, y), centre)
 
 
+# Every path drawn since the last forget_paths(), so that swaying grass can be kept off
+# them: grass that grows out of a trodden path looks wrong.
+_TRODDEN = []
+_TRODDEN_MASK = [None, 0]
+
+
+def forget_paths():
+    _TRODDEN.clear()
+
+
+def on_path(x, y):
+    if not _TRODDEN:
+        return False
+    if _TRODDEN_MASK[1] != len(_TRODDEN):
+        s = plane()
+        for poly in _TRODDEN:
+            pygame.draw.polygon(s, (255, 255, 255), poly)
+        _TRODDEN_MASK[:] = [pygame.mask.from_surface(s), len(_TRODDEN)]
+    x, y = int(x), int(y)
+    return 0 <= x < W and 0 <= y < H and _TRODDEN_MASK[0].get_at((x, y))
+
+
 def path(s, pts, widths, color, edge, pebbles=None, rng=None):
     """A trodden path along a polyline whose width changes (wide = near)."""
     left, right = [], []
@@ -459,6 +530,8 @@ def path(s, pts, widths, color, edge, pebbles=None, rng=None):
         left.append((p[0] + nx * w / 2, p[1] + ny * w / 2 * 0.6))
         right.append((p[0] - nx * w / 2, p[1] - ny * w / 2 * 0.6))
     poly = left + right[::-1]
+    _TRODDEN.append(poly)
+    _TRODDEN.append([(x, y + 2) for x, y in poly])
     pygame.draw.polygon(s, edge, [(x, y + 2) for x, y in poly])
     pygame.draw.polygon(s, color, poly)
     # a worn, lighter strip down the middle and scattered pebbles

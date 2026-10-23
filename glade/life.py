@@ -16,7 +16,7 @@ import random
 
 import pygame
 
-from art import GLOW, H, W, glow, mix, scale, solid
+from art import GLOW, H, W, glow, mix, on_path, scale, solid
 
 
 def wind(t):
@@ -49,8 +49,10 @@ class Blades:
         for _ in range(n):
             y = y0 + rng.randrange(max(1, h))
             c = rng.choice(colors)
-            self.items.append((x0 + rng.randrange(w), y, rng.randint(hmin, hmax), c,
-                               rng.random() * math.tau, mix(c, (220, 236, 255), 0.25)))
+            x, bh, ph = x0 + rng.randrange(w), rng.randint(hmin, hmax), rng.random() * math.tau
+            if any(on_path(x + dx, y - dy) for dx in (-3, 0, 3) for dy in (0, bh // 2, bh)):
+                continue  # no grass growing out of a path
+            self.items.append((x, y, bh, c, ph, mix(c, (220, 236, 255), 0.25)))
         self.items.sort(key=lambda b: b[1])
         self.stiff, self.width = stiff, width
 
