@@ -23,6 +23,7 @@ from pond import Pond, Water
 
 class Lower(art.Lighting):
     def __init__(self, scene, w, h):
+        from scenes import Spot, heading  # here, not at the top: scenes is the module that describes us
         self.w, self.h = w, h
         self.key = scene.key
         spec = getattr(scene, "lower", {})
@@ -127,7 +128,7 @@ class Lower(art.Lighting):
                         glows.append((mx, my - sz - sz // 4, 40 + sz * 3, cap, 90, mx * 0.1))
         for path in spec.get("paths", []):
             sx, sy = path["sign"]
-            signpost(props, sx, sy, col("wood", 0.06), col("wood2", 0.06), path.get("arrow", (0, 1)), p)
+            signpost(props, sx, sy, col("wood", 0.06), col("wood2", 0.06), heading(self.key, path["spot"][2]), p)
             self.shadow(sx, sy + 2, 20, 6, 0.4)
         art.finish(props, p, 0.06, rng, texture=0.5)
         front.blit(props, (0, 0))
@@ -181,11 +182,10 @@ class Lower(art.Lighting):
         self.creatures = [c for c in self.parts if hasattr(c, "poke")]
         if self.pond:
             self.creatures.append(self.pond)
-        from scenes import Spot  # here, not at the top: scenes is the module that describes us
         for path in spec.get("paths", []):
             rect, label, target, mark = path["spot"]
             sx, sy = path["sign"]
-            self.spots.append(Spot("go", rect, label, target, mark, direction=path.get("arrow", (0, 1)),
+            self.spots.append(Spot("go", rect, label, target, mark, direction=heading(self.key, target),
                                    sign=(sx, sy - 92)))
 
     def moss(self, lay, x, y, w, h, color):

@@ -18,6 +18,27 @@ from life import (Blades, Critter, Fireflies, GlowThreads, HollowSquid, Lantern,
                   Shafts, Slug, Squid, Stars, Track, Vines, Waterfall, make_rng)
 
 
+# Where every place lies, on a grid: x grows to the right, y downwards. The Glade is in
+# the middle and every other place is one step from it, so a path always points the way
+# its place really lies (left only ever goes left), and the minimap is this drawn small.
+MAP = {
+    "glade": (0, 0),
+    "waterfall": (0, -1),
+    "rocks": (0, 1),
+    "forest": (-1, 0),
+    "river": (1, 0),
+}
+
+
+def heading(here, there):
+    """Which way you walk from one place to another, as (dx, dy) — one of the four arrows."""
+    (x0, y0), (x1, y1) = MAP[here], MAP[there]
+    dx, dy = x1 - x0, y1 - y0
+    if abs(dx) >= abs(dy):
+        return (1 if dx > 0 else -1, 0)
+    return (0, 1 if dy > 0 else -1)
+
+
 class Spot:
     """Somewhere you can click: `go` to another place, or `app` to open a program.
     `sign` is where its name board hangs (centre); it is clickable too."""
@@ -25,7 +46,7 @@ class Spot:
     def __init__(self, kind, rect, label, target, mark=None, direction=None, sign=None):
         self.kind, self.rect, self.label, self.target = kind, pygame.Rect(rect), label, target
         self.mark = mark or self.rect.center
-        self.direction = direction  # which way a path sign points; guessed from position if None
+        self.direction = direction  # which way a path sign points; paths get it from MAP
         self.sign = sign or (self.mark[0], self.mark[1] - 40)
         self.hits = [self.rect]
 
@@ -71,6 +92,9 @@ class Scene(art.Lighting):
         return thing
 
     def done(self):
+        for sp in self.spots:  # every path points the way its place lies on the map
+            if sp.kind == "go":
+                sp.direction = heading(self.key, sp.target)
         self.parts.append(("still", self.cur))
         self.cur = None
         parts = []
@@ -363,8 +387,8 @@ def build_glade():
     sc.spots = [
         Spot("go", (0, 352, 92, 92), "The Forest", "forest", (28, 400), sign=(78, 352)),
         Spot("go", (872, 376, 88, 88), "The River", "river", (932, 424), sign=(884, 380)),
-        Spot("go", (452, 300, 100, 84), "The Waterfall", "waterfall", (504, 352), direction=(0, -1), sign=(510, 300)),
-        Spot("go", (200, 476, 168, 64), "The Mossy Rocks", "rocks", (292, 516), direction=(0, 1), sign=(262, 512)),
+        Spot("go", (452, 300, 100, 84), "The Waterfall", "waterfall", (504, 352), sign=(510, 300)),
+        Spot("go", (200, 476, 168, 64), "The Mossy Rocks", "rocks", (292, 516), sign=(262, 512)),
         Spot("app", (720, 308, 48, 56), "Files", "files", (742, 336), sign=(744, 290)),
         Spot("app", (312, 380, 56, 68), "Terminal", "terminal", (340, 398), sign=(340, 356)),
         Spot("app", (hollow[0] - 24, hollow[1] - 44, 48, 78), "Glade Pictures", "pictures", hollow,
@@ -467,7 +491,6 @@ def build_waterfall():
     art.flowers(lay, rng, (0, 460, W, 80), p["flowers"], 70)
     earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
     art.path(lay, [(480, 456), (472, 492), (464, 556)], [60, 80, 108], earth, edge, rng=rng)
-    art.path(lay, [(720, 428), (840, 432), (984, 428)], [24, 32, 36], earth, edge, rng=rng)
     sc.add(lay, 0.2, texture=0.6)
     lay = art.plane()
     moss_pts = []
@@ -495,8 +518,7 @@ def build_waterfall():
 
     sc.spots = [
         Spot("app", (340, 380, 280, 64), "Music", "music", (480, 412), sign=(480, 360)),
-        Spot("go", (392, 480, 168, 60), "Back to the Glade", "glade", (468, 516), direction=(0, 1), sign=(470, 506)),
-        Spot("go", (864, 388, 96, 80), "The River", "river", (924, 428), sign=(866, 392)),
+        Spot("go", (392, 480, 168, 60), "Back to the Glade", "glade", (468, 516), sign=(470, 506)),
     ]
     sc.lower = dict(ground=0.2, props=["rocks"], fly=GLOW["cyan"], paths=[dict(
         pts=[(386, -4), (382, 60), (374, 160), (364, 280), (354, 460)], widths=[110, 118, 128, 140, 156],
@@ -591,7 +613,6 @@ def build_river():
     art.flowers(lay, rng, (0, 436, W, 104), p["flowers"], 80)
     earth, edge = sc.col("earth", 0.15), sc.col("earth_edge", 0.15)
     art.path(lay, [(-24, 476), (160, 484), (400, 480), (580, 456), (636, 440)], [40, 44, 44, 36, 28], earth, edge, rng=rng)
-    art.path(lay, [(192, 472), (120, 428), (80, 408)], [20, 12, 6], earth, edge, rng=rng)
     sc.add(lay, 0.15, texture=0.6)
     lay = art.plane()  # the post the boat is tied to
     pygame.draw.line(lay, sc.col("earth_edge", 0.1), (632, 386), (608, 428))
@@ -613,7 +634,6 @@ def build_river():
 
     sc.spots = [
         Spot("go", (0, 428, 88, 92), "Back to the Glade", "glade", (28, 476), sign=(104, 444)),
-        Spot("go", (44, 384, 92, 44), "The Waterfall", "waterfall", (84, 408), direction=(-1, 0), sign=(104, 384)),
         Spot("app", (620, 350, 156, 60), "Games", "games", (700, 388), sign=(700, 330)),
     ]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"])
@@ -661,7 +681,6 @@ def build_forest():
     art.flowers(lay, rng, (0, 440, W, 100), [(255, 255, 255), (196, 150, 255), (130, 226, 255)], 60)
     earth, edge = sc.col("earth", 0.2), sc.col("earth_edge", 0.2)
     art.path(lay, [(984, 488), (800, 476), (600, 448), (500, 428), (460, 412)], [48, 44, 36, 20, 10], earth, edge, rng=rng)
-    art.path(lay, [(600, 448), (400, 452), (180, 444), (-24, 440)], [36, 36, 32, 28], earth, edge, rng=rng)
     sc.add(lay, 0.2, texture=0.6)
 
     # a ring of glowing mushrooms, and more scattered about
@@ -694,7 +713,6 @@ def build_forest():
 
     sc.spots = [
         Spot("go", (872, 428, 88, 92), "Back to the Glade", "glade", (932, 480), sign=(864, 424)),
-        Spot("go", (0, 396, 88, 84), "The Mossy Rocks", "rocks", (28, 440), sign=(96, 404)),
         Spot("app", (232, 428, 140, 60), "Web Browser", "browser", (300, 460), sign=(300, 404)),
     ]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"])
@@ -772,10 +790,10 @@ def build_rocks():
     art.grass_bed(lay, rng, (0, 452, W, 88), sc.col("leaf", 0.12), 1200, 6)
     art.flowers(lay, rng, (0, 464, W, 76), p["flowers"], 60)
     earth, edge = sc.col("earth", 0.12), sc.col("earth_edge", 0.12)
-    art.path(lay, [(484, 556), (500, 500), (620, 476), (760, 456), (848, 444)], [92, 68, 44, 24, 12], earth, edge, rng=rng)
-    art.path(lay, [(500, 500), (300, 492), (120, 484), (-24, 480)], [60, 44, 36, 32], earth, edge, rng=rng)
+    # the way back up to the Glade, climbing away into the distance
+    art.path(lay, [(600, 556), (640, 504), (696, 470), (744, 450), (768, 438)], [112, 76, 46, 22, 10], earth, edge, rng=rng)
     near_moss = []
-    for x in (260, 720, 800, 320):
+    for x in (260, 860, 900, 360):  # clear of the path
         art.rock(lay, rng, x, 480 + rng.randint(0, 40), rng.randint(28, 52), rng.randint(12, 20),
                  sc.col("stone", 0.1), moss=sc.col("moss", 0.1), glow_pts=near_moss)
     sc.add(lay, 0.12, texture=0.6)
@@ -783,7 +801,7 @@ def build_rocks():
     lay = art.plane()
     glowmoss(sc, lay, 80, 500, 70, 16)
     glowmoss(sc, lay, 900, 500, 60, 16, GLOW["cyan"])
-    glowmoss(sc, lay, 640, 520, 50, 12, GLOW["lime"])
+    glowmoss(sc, lay, 460, 516, 50, 12, GLOW["lime"])
     sc.raw(lay)
     sc.live(Blades(rng, (0, 452, W, 88), 400, [sc.col("leaf", 0.08), sc.col("leaf2", 0.08)], 8, 24))
     # the slug capital of the glade: two on the boulders, a snail, one on the ground
@@ -810,14 +828,11 @@ def build_rocks():
     front_frame(sc, rng, left=False)
 
     sc.spots = [
-        Spot("go", (768, 412, 128, 64), "Back to the Glade", "glade", (840, 440), sign=(840, 404)),
-        Spot("go", (0, 436, 88, 84), "The Forest", "forest", (28, 480), sign=(96, 436)),
+        Spot("go", (700, 420, 120, 64), "Back to the Glade", "glade", (756, 446), sign=(780, 404)),
         Spot("app", (436, 384, 96, 76), "Discord", "discord", (484, 428), sign=(484, 372)),
         Spot("app", (140, 292, 76, 164), "Code Editor", "code", (178, 366), sign=(178, 270)),
     ]
-    sc.lower = dict(ground=0.14, props=["rocks"], fly=GLOW["pink"], paths=[dict(
-        pts=[(408, -4), (406, 60), (396, 180), (386, 300), (380, 460)], widths=[86, 96, 112, 128, 144],
-        sign=(504, 344), spot=((280, 220, 220, 230), "Back to the Glade", "glade", (384, 408)))])
+    sc.lower = dict(ground=0.14, props=["rocks"], fly=GLOW["pink"])
     return sc.done()
 
 

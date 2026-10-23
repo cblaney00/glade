@@ -20,7 +20,7 @@ from apex import Hunt, Listener
 from art import H, W, mix
 from life import swell
 from lower import Lower
-from scenes import BUILDERS
+from scenes import BUILDERS, MAP
 
 HOME = "glade"
 
@@ -265,6 +265,104 @@ class Signs:
         s.blit(warm if hot else cold, wide if hot else rect)
 
 
+class Minimap:
+    """A little carved board in the corner with every place laid out the way the paths
+    run (scenes.MAP): the place you are in glows, and its name is written underneath.
+    Pointing at another place shows its name; clicking it goes there."""
+
+    NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
+                 rocks="The Mossy Rocks")
+    COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
+                  forest=(160, 236, 140), rocks=(196, 160, 255))
+    CELL = 22  # canvas pixels between neighbouring places
+
+    def __init__(self, font):
+        self.font = font
+        xs = [x for x, _ in MAP.values()]
+        ys = [y for _, y in MAP.values()]
+        self.x0, self.y0 = min(xs), min(ys)
+        cols, rows = max(xs) - self.x0 + 1, max(ys) - self.y0 + 1
+        name_w = max(font.size(n)[0] for n in self.NAMES.values())
+        self.w = max(cols * self.CELL + 16, name_w + 16)
+        self.map_h = rows * self.CELL + 6
+        self.h = self.map_h + font.get_height() + 10
+        self.cache = {}
+        self.rect = None
+
+    def place(self, view):
+        """Bottom-right of the view, clear of the keyboard hint along the bottom edge."""
+        self.rect = pygame.Rect(0, 0, self.w + 4, self.h + 7)
+        self.rect.bottomright = (view.w - 6, view.h - 30)
+        return self.rect
+
+    def node(self, key):
+        """Centre of a place's stone, in board coordinates."""
+        gx, gy = MAP[key]
+        cols = max(x for x, _ in MAP.values()) - self.x0 + 1
+        left = 2 + (self.w - cols * self.CELL) // 2
+        return (left + (gx - self.x0) * self.CELL + self.CELL // 2, 4 + 3 + (gy - self.y0) * self.CELL + self.CELL // 2)
+
+    def at(self, m):
+        """The place under the pointer `m` (canvas coordinates), or None."""
+        if self.rect is None or m is None or not self.rect.collidepoint(m):
+            return None
+        bx, by = m[0] - self.rect.x, m[1] - self.rect.y
+        for key in MAP:
+            nx, ny = self.node(key)
+            if abs(bx - nx) <= self.CELL // 2 and abs(by - ny) <= self.CELL // 2:
+                return key
+        return None
+
+    def board(self, here, pointed):
+        key = (here, pointed)
+        if key in self.cache:
+            return self.cache[key]
+        s = pygame.Surface((self.w + 4, self.h + 7), pygame.SRCALPHA)
+        r = pygame.Rect(2, 4, self.w, self.h)
+        pygame.draw.rect(s, EDGE, r.inflate(2, 2), border_radius=3)
+        pygame.draw.rect(s, WOOD, r, border_radius=2)
+        pygame.draw.line(s, WOOD_HI, (r.x + 2, r.y), (r.right - 3, r.y))
+        pygame.draw.line(s, WOOD_LO, (r.x + 2, r.bottom - 1), (r.right - 3, r.bottom - 1))
+        for gx in range(r.x + 4, r.right - 3, 7):  # wood grain
+            s.set_at((gx, r.bottom - 5), WOOD_LO)
+        # the paths between places: every place is one step from the glade
+        trail = (150, 112, 150)
+        for k in MAP:
+            if k != "glade":
+                pygame.draw.line(s, trail, self.node("glade"), self.node(k), 3)
+        for k in MAP:
+            nx, ny = self.node(k)
+            c = self.COLORS[k]
+            stone = pygame.Rect(0, 0, 12, 10)
+            stone.center = (nx, ny)
+            if k == here:
+                pygame.draw.rect(s, (255, 255, 255), stone.inflate(4, 4), border_radius=3)
+                pygame.draw.rect(s, c, stone, border_radius=2)
+                s.set_at((stone.x + 2, stone.y + 2), (255, 255, 255))
+            else:
+                pygame.draw.rect(s, HOT if k == pointed else EDGE, stone.inflate(2, 2), border_radius=3)
+                pygame.draw.rect(s, mix(c, WOOD, 0.55), stone, border_radius=2)
+        label = self.NAMES[pointed or here]
+        text = self.font.render(label, False, HOT if pointed and pointed != here else TEXT)
+        shade = self.font.render(label, False, EDGE)
+        tx, ty = r.centerx - text.get_width() // 2, r.y + self.map_h + 2
+        s.blit(shade, (tx + 1, ty + 1))
+        s.blit(text, (tx, ty))
+        moss = (150, 255, 200)  # the same tuft of glowing moss as the name boards
+        for dx, dy in ((0, 0), (1, -1), (2, -1), (3, 0), (4, -1), (5, 0), (2, -2), (6, 0)):
+            s.set_at((r.x + 3 + dx, r.y + dy), moss if dy < 0 else (90, 190, 150))
+        self.cache[key] = s
+        return s
+
+    def draw(self, s, view, here, pointed, t):
+        rect = self.place(view)
+        s.blit(self.board(here, pointed), rect)
+        # you-are-here: a soft glow breathing slowly over the place you are in
+        nx, ny = self.node(here)
+        k = 0.5 + 0.5 * math.sin(t * 1.8)
+        art.glow(s, rect.x + nx, rect.y + ny, 11, self.COLORS[here], int(50 + 50 * k) // 10 * 10)
+
+
 KEYS_HINT = "Keyboard:  ← ↑ → ↓ walk  ·  Tab choose  ·  Enter open  ·  Home glade  ·  Esc stop"
 
 
@@ -398,6 +496,7 @@ class Glade:
             self.bottom = View(fit(lower, pw, ph), pw, ph)
         self.scenes, self.lowers = {}, {}
         self.signs = Signs()
+        self.minimap = Minimap(self.signs.font)
         self.here = self.scene(HOME)
         self.fade, self.fade_to = 0.0, None
         self.flash = None
@@ -423,6 +522,10 @@ class Glade:
         if key not in self.lowers:
             self.lowers[key] = Lower(self.here, self.bottom.w, self.bottom.h)
         return self.lowers[key]
+
+    def map_view(self):
+        """The minimap sits on the lower screen, which has room in its corner."""
+        return self.bottom or self.top
 
     def views(self):
         yield self.top, self.here
@@ -468,6 +571,13 @@ class Glade:
                 continue
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
+            if view is self.map_view():
+                place = self.minimap.at(m)
+                if place is not None:
+                    self.go(place)
+                    return
+                if self.minimap.rect and self.minimap.rect.collidepoint(m):
+                    return
             sp = view.hovered(content.spots)
             moon = getattr(content, "moon", None)
             if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
@@ -540,6 +650,9 @@ class Glade:
             self.signs.draw(s, hot, True, t)
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
+        if view is self.map_view():
+            pointed = None if self.fade_to else self.minimap.at(view.mouse())
+            self.minimap.draw(s, view, self.here.key, pointed, t)
         if self.keys_on and view is (self.bottom or self.top):  # the lower screen has room at the bottom
             if self.hint is None:
                 info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
@@ -614,6 +727,7 @@ def shots(out):
     os.makedirs(out, exist_ok=True)
     lw, lh, lx = 800, 450, 80
     signs = Signs()
+    minimap = Minimap(signs.font)
     only = os.environ.get("GLADE_ONLY")
     for key, build in BUILDERS.items():
         if only and key != only:
@@ -637,6 +751,7 @@ def shots(out):
             for spot in content.spots:
                 signs.prepare(spot, w, h)
                 signs.draw(s, spot, False, 5.0)
+        minimap.draw(bot, type("V", (), dict(w=lw, h=lh))(), key, None, 5.0)
         sheet = pygame.Surface((W, H + lh))
         sheet.fill((20, 16, 34))
         sheet.blit(top, (0, 0))

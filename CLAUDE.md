@@ -16,6 +16,14 @@ game *Putt-Putt Travels Through Time*. Places, each with paths to others:
 - **The Glade** (home, the centre): blossom tree, signpost, paths to everywhere else.
 - **The Waterfall**, **The River**, **The Forest**, **The Mossy Rocks**.
 
+They lie on a map (`MAP` in `glade/scenes.py`): Waterfall up, Mossy Rocks down, Forest
+left, River right of the Glade, each one step away with a single path back. **His rule
+(2026-10-23): left only ever goes left, down only down** — every path's arrow (and the
+keyboard) comes from `MAP`, never from where the board happens to sit, so a new place
+must go on the map and its path art must run that way. A **minimap** board in the lower
+screen's bottom-right corner (`Minimap` in `main.py`) shows the map with the place you
+are in glowing; pointing at a place shows its name, clicking it goes there.
+
 Objects in each place open his apps (tree hollow → Files, lantern → Terminal,
 waterfall pool → Music, boat → Steam, mushroom ring → Browser, cave → Discord,
 rune stone → Code editor). The mapping lives in `APPS` in `glade/main.py`; each one
