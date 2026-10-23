@@ -199,9 +199,10 @@ class Signs:
         pygame.draw.lines(s, color, False, pts, 2)
         return s
 
-    def board(self, spot, direction, hot):
-        text = self.font.render(spot.label, False, (255, 255, 255) if hot else TEXT)
-        shade = self.font.render(spot.label, False, EDGE)
+    def board(self, spot, direction, hot, label=None):
+        label = label or spot.label
+        text = self.font.render(label, False, (255, 255, 255) if hot else TEXT)
+        shade = self.font.render(label, False, EDGE)
         tw, th = text.get_size()
         icon = getattr(spot, "icon", None) or (ICONS.get(spot.target) if spot.kind == "app" else None)
         lead = 0
@@ -244,17 +245,21 @@ class Signs:
         if getattr(spot, "boards", None) is not None:
             return
         direction = go_direction(spot, w, h)
-        cold, hot = self.board(spot, direction, False), self.board(spot, direction, True)
+        # a board whose name is cut short shows all of it while you point at it
+        full = getattr(spot, "full", None)
+        cold, hot = self.board(spot, direction, False), self.board(spot, direction, True, full)
         rect = cold.get_rect(center=spot.sign)
         rect.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
-        spot.boards = (cold, hot, rect)
+        wide = hot.get_rect(midleft=rect.midleft)
+        wide.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
+        spot.boards = (cold, hot, rect, wide)
         spot.hits = [spot.rect, rect.inflate(4, 4)]
 
     def draw(self, s, spot, hot, t):
-        cold, warm, rect = spot.boards
+        cold, warm, rect, wide = spot.boards
         if hot:
-            art.glow(s, *rect.center, max(rect.w, rect.h) // 2 + 18, (255, 150, 220), 120)
-        s.blit(warm if hot else cold, rect)
+            art.glow(s, *wide.center, max(wide.w, wide.h) // 2 + 18, (255, 150, 220), 120)
+        s.blit(warm if hot else cold, wide if hot else rect)
 
 
 def sparkle(s, x, y, t, color=(255, 255, 240)):
@@ -435,7 +440,10 @@ class Glade:
             self.signs.prepare(sp, view.w, view.h)
         hot = None if self.fade_to else view.hovered(content.spots)
         for sp in content.spots:
-            self.signs.draw(s, sp, sp is hot, t)
+            if sp is not hot:
+                self.signs.draw(s, sp, False, t)
+        if hot is not None:  # last, so a long name is drawn over its neighbours
+            self.signs.draw(s, hot, True, t)
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
         if self.flash and self.flash[0] is view and t - self.flash[2] < 0.6:

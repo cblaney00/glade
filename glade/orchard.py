@@ -99,7 +99,7 @@ def recent_files():
             ts = time.mktime(time.strptime(when[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone
         except ValueError:
             continue
-        out.append(dict(kind="file", name=os.path.splitext(os.path.basename(path))[0], when=ts,
+        out.append(dict(kind="file", name=os.path.splitext(os.path.basename(path))[0], full=os.path.basename(path), when=ts,
                         cmd=["xdg-open", path]))
     return out
 
@@ -119,7 +119,7 @@ def new_downloads(now):
         except OSError:
             continue
         if now - ts < NEW_FOR:
-            out.append(dict(kind="new", name=os.path.splitext(n)[0] if os.path.isfile(path) else n, when=ts,
+            out.append(dict(kind="new", name=os.path.splitext(n)[0] if os.path.isfile(path) else n, full=n, when=ts,
                             cmd=["xdg-open", path]))
     return sorted(out, key=lambda e: -e["when"])[:NEW]
 
@@ -227,7 +227,7 @@ class Orchard:
         crown = [NEW_SLOTS[1]] if len(new) == 1 else NEW_SLOTS[::2] if len(new) == 2 else NEW_SLOTS
         for (sign, (x, y)), e in list(zip(crown, new)) + list(zip(RECENT_SLOTS, recent)):
             sp = self.Spot("app", (x - 10, y - 12, 20, 24), short(e["name"]), None, (x, y + 2), sign=sign)
-            sp.cmd, sp.icon = e["cmd"], self.icons[e["kind"]]
+            sp.cmd, sp.icon, sp.full = e["cmd"], self.icons[e["kind"]], e.get("full", e["name"])
             spots.append(sp)
             self.fruit.append((x, y, e["kind"], (x * 7 + y) % 10 / 10 * math.tau))
         self.bites = {}
