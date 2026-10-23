@@ -355,16 +355,10 @@ class View:
         # sets this (None when the pointer is elsewhere).
         self.external = False
         self.pointer = None
-        # the camera: which part of the canvas is shown, and how big. Normally all of it;
-        # during the apex easter egg it follows the creature (Glade.follow).
-        self.cam = [w / 2, h / 2, 1.0]
 
     def shown(self):
-        """The part of the canvas on screen right now."""
-        cx, cy, zoom = self.cam
-        r = pygame.Rect(0, 0, round(self.w / zoom), round(self.h / zoom))
-        r.center = (round(cx), round(cy))
-        return r.clamp(pygame.Rect(0, 0, self.w, self.h))
+        """The part of the canvas on screen: all of it (the picture never zooms)."""
+        return pygame.Rect(0, 0, self.w, self.h)
 
     def mouse(self):
         if self.external:
@@ -491,31 +485,6 @@ class Glade:
                 self.activate(view, content, sp, t)
             return
 
-    def follow(self, dt):
-        """Point each screen's camera: at the apex while it is about, so he never has to
-        look for it, and gently back to the whole picture once it has gone."""
-        for view in (self.top, self.bottom):
-            if view is None:
-                continue
-            want = [view.w / 2, view.h / 2, 1.0]
-            pts = self.hunt.focus(view is self.bottom) if self.hunt is not None else []
-            if pts:
-                # frame all the action, with room around it: as close as 2x, but never
-                # so close that the creature's target or its shot is out of the picture
-                x0, x1 = min(p[0] for p in pts) - 50, max(p[0] for p in pts) + 50
-                y0, y1 = min(p[1] for p in pts) - 40, max(p[1] for p in pts) + 40
-                zoom = max(1.0, min(2.0, view.w / (x1 - x0), view.h / (y1 - y0)))
-                want = [(x0 + x1) / 2, (y0 + y1) / 2, zoom]
-            # a slow, smooth glide — never a jump — that hurries (still smoothly) when
-            # something it should show is about to slip out of the picture
-            old = list(view.cam)
-            for speed in (1.6, 7.0):
-                k = min(1.0, dt * speed)
-                view.cam[:] = [old[i] + (want[i] - old[i]) * k for i in range(3)]
-                r = view.shown().inflate(-24, -24)
-                if all(r.collidepoint(p) for p in pts):
-                    break
-
     def typed(self, ch, t):
         """A letter typed while the moon is listening."""
         if self.listener.key(ch, t):
@@ -611,7 +580,6 @@ class Glade:
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
-        self.follow(dt)
         for view, content in self.views():
             if content is not self.here:
                 content.update(dt, t)

@@ -56,6 +56,10 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   above, in its palette; paths leaving the upper screen continue here (specs are
   `sc.lower` in each scene builder, in lower-screen coords = upper x - 80).
 - `glade/pond.py` — the Glade's lily pond on the lower screen (koi, lily pads, ripples).
+- `glade/apex.py` — his easter egg: click the moon, type "apex". A legless blob of violet
+  jelly (his ask: amorphous, not cat-like) eats every animal; what it eats keeps glowing
+  inside it so the eating is obvious; then a long, characterful waddle off. The picture
+  never zooms to follow it — he only wants it on screen.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; name boards, fades, app launching.

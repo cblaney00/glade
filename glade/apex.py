@@ -2,26 +2,31 @@
 
 Click the moon (its halo swells: it is listening) and type "apex". The moon dims, two
 glowing eyes open at the edge of the dark, and something small, quick and very hungry
-creeps in. In under a minute it hunts down every animal in the place and on the ground
+oozes in. In under a minute it hunts down every animal in the place and on the ground
 below it, gets visibly rounder with each one, then waddles off the edge, full. Within
 twenty seconds of it leaving, every animal glows gently back into being.
 
-It looks like nothing real: a dark violet dumpling on four stubby feet, with enormous
-eyes, a crest of three floppy feelers tipped with beads of fluorescent goo, and a short
-tail ending in a glowing bulb. It drips that goo wherever it goes. Its ways:
+It looks like nothing real: a soft, wobbling blob of dark violet jelly with two big eyes
+and nothing else — no legs, no ears, no tail. It oozes along the ground, stretching
+forward and catching up with itself, and drips fluorescent goo wherever it goes.
+Everything it eats stays visible inside it for a while, glowing through its skin in the
+animal's own colours, so its belly fills up with little lights as the hunt goes on.
+Its ways:
 
-- things in the air (squid): it puffs its cheeks and spits a homing glob of goo; the
-  squid, wrapped in a glowing cocoon, drops to the ground and it gulps it down;
-- things on the ground (slugs, snails, millipedes, the critter): it stalks in low, wiggles
-  its rear like a cat, pounces and bites;
-- the koi: it sits at the pond's edge disguised as a lily pad and dangles its glowing
-  tail in the water as bait, then snaps up each fish that comes close;
-- the fireflies, last: a quick spray of droplets that puts them out one by one.
+- things in the air (squid): it swells and spits a homing glob of goo; the squid,
+  wrapped in a glowing cocoon, drops to the ground; it flicks out a long sticky tongue,
+  reels the cocoon into its mouth, chews, and you see it go down;
+- things on the ground (slugs, snails, millipedes, the critter): it creeps in low,
+  flattens and quivers, springs, and comes down with the animal in its mouth;
+- the koi: it sits at the pond's edge disguised as a lily pad and dangles a glowing
+  bead of itself in the water as bait, then snaps up each fish that comes close;
+- the fireflies, last: a quick spray of droplets sticks them in goo, and then one huge
+  breath in sucks every one of them, still glowing, into its mouth.
 
 While stalking it mimics its target like a cuttlefish: it takes on its colours in
-rippling bands, half-closes its eyes, and grows a disguise to match — eye stalks for a
-slug, dangling tendrils for a squid, ears for the critter, a lily-pad green by the pond.
-After every kill it squints happily; sometimes it burps a little glowing bubble.
+slow ripples and half-closes its eyes (lily-pad green by the pond).
+When it is full it does not just leave: it sighs, waddles, hiccups, flops down for a
+rest, heaves itself up, burps an enormous bubble, winks back at you, and wobbles off.
 
 Everything here is in one shared coordinate space: the top screen's canvas as it is, and
 the lower screen's canvas below it, shifted by OFFSET (the scenes are drawn to that
@@ -42,12 +47,10 @@ GOO = (170, 255, 90)          # fluorescent acid green
 GOO_HI = (232, 255, 200)
 INK = (14, 8, 24)
 SKIN = (58, 38, 88)           # deep night violet
-SKIN_HI = (104, 76, 146)
-BELLY = (124, 98, 160)
 EYE = (238, 255, 226)
 LILY = (70, 150, 110)
 
-TIME_LIMIT = 40               # after this, whatever is left is finished off in a volley
+TIME_LIMIT = 30               # after this, whatever is left is finished off in a volley
 WORD = "apex"
 
 
@@ -63,12 +66,11 @@ class Prey:
 
     def __init__(self, obj, low, kind):
         self.obj, self.low, self.kind = obj, low, kind
-        name = type(obj).__name__
         if kind == "fish":
             self.color = obj.colors[0]
         else:
             self.color = getattr(obj, "color", None) or getattr(obj, "body", None) or (200, 200, 220)
-        self.mimic = {"Slug": "slug", "Millipede": "slug", "Critter": "ears", "Fish": "lily"}.get(name, "tendrils")
+        self.mimic = "lily" if kind == "fish" else None
         self.eaten = False
 
     def pos(self):
@@ -195,60 +197,112 @@ class Glob:
 
 
 class Cocoon:
-    """A squid wrapped in goo: it swells over the animal, then drops to the ground."""
+    """An animal wrapped in goo: it swells over the animal, which still shows through in
+    its own colours, then drops to the ground — and waits there to be eaten. Or, once
+    `aim` is set, it is sucked through the air into the mouth at aim()."""
 
     def __init__(self, prey, t, floor):
         self.prey, self.t0 = prey, t
         self.x, self.y = prey.pos()
         self.floor, self.vy = floor, 0.0
         self.landed = False
-        self.eaten_at = None
+        self.size = 1.0     # shrinks as it is pulled into the mouth
+        self.gone = False   # swallowed
+        self.aim, self.v = None, 0.0
 
     def update(self, dt, t):
         a = t - self.t0
         if a > 0.35 and not self.prey.eaten:
             self.prey.hide()  # covered by the goo by now
-        if a > 0.5 and not self.landed:
+        if self.aim is not None and a > 0.35:
+            tx, ty = self.aim()
+            dx, dy = tx - self.x, ty - self.y
+            d = math.hypot(dx, dy)
+            self.v = min(480.0, self.v + 650 * dt)
+            if d < max(4.0, self.v * dt):
+                self.gone = True
+                return False
+            step = max(0.0, self.v) * dt
+            self.x += (dx / d - dy / d * 0.3) * step   # a little swirl as it goes in
+            self.y += (dy / d + dx / d * 0.3) * step
+            self.size = max(0.5, min(1.0, d / 50))
+            self.landed = True
+        elif a > 0.5 and not self.landed:
             self.vy += 300 * dt
             self.y += self.vy * dt
             if self.y >= self.floor:
                 self.y, self.landed = self.floor, True
         elif a <= 0.5:
             self.x, self.y = self.prey.pos() if not self.prey.eaten else (self.x, self.y)
-        return self.eaten_at is None or t - self.eaten_at < 0.3
+        return not self.gone
 
     def draw(self, s, ox, oy, t):
         a = t - self.t0
-        r = 7 * ease(a / 0.35)
-        if self.eaten_at is not None:
-            r *= 1 - ease((t - self.eaten_at) / 0.3)
+        r = 7 * ease(a / 0.35) * self.size
         if r < 0.5:
             return
         x, y = self.x - ox, self.y - oy
         pygame.draw.circle(s, mix(GOO, (40, 60, 40), 0.35), (round(x), round(y)), round(r))
-        pygame.draw.circle(s, GOO, (round(x - r * 0.25), round(y - r * 0.25)), max(1, round(r * 0.6)))
+        # the animal inside, still in its own colours
+        pygame.draw.circle(s, mix(self.prey.color, GOO, 0.25), (round(x + r * 0.1), round(y + r * 0.1)),
+                           max(1, round(r * 0.55)))
         s.set_at((round(x - r * 0.4), round(y - r * 0.5)), (255, 255, 255))
         glow(s, x, y, int(r * 2.5) + 4, GOO, q(60 + 30 * math.sin(t * 6)))
 
 
-class Bubble:
-    """A little glowing burp that floats up, wobbling, and pops softly."""
+class Morsel:
+    """A firefly stuck in a speck of goo: it sinks slowly, still glowing, until the apex
+    breathes in — then it is sucked, faster and faster, into its mouth."""
 
-    def __init__(self, x, y, t):
-        self.x, self.y, self.t0 = x, y, t
+    def __init__(self, x, y, color, aim):
+        self.x, self.y, self.color, self.aim = x, y, color, aim
+        self.pull = False
+        self.v = 0.0
+        self.eaten = False
 
     def update(self, dt, t):
-        self.y -= 14 * dt
-        return t - self.t0 < 1.6
+        if not self.pull:
+            self.y += 6 * dt
+            self.x += math.sin(t * 3 + self.y) * 4 * dt
+            return True
+        tx, ty = self.aim()
+        dx, dy = tx - self.x, ty - self.y
+        d = math.hypot(dx, dy)
+        self.v = min(520.0, self.v + 700 * dt)
+        if d < max(3.0, self.v * dt):
+            self.eaten = True
+            return False
+        # a little swirl as it goes in
+        self.x += (dx / d - dy / d * 0.35) * self.v * dt
+        self.y += (dy / d + dx / d * 0.35) * self.v * dt
+        return True
+
+    def draw(self, s, ox, oy, t):
+        x, y = round(self.x - ox), round(self.y - oy)
+        s.set_at((x, y), mix(self.color, (255, 255, 255), 0.5))
+        glow(s, x, y, 5, self.color, 70)
+        glow(s, x, y, 3, GOO, 36)
+
+
+class Bubble:
+    """A glowing burp that floats up, wobbling, and pops softly."""
+
+    def __init__(self, x, y, t, size=2):
+        self.x, self.y, self.t0, self.size = x, y, t, size
+        self.life = 1.6 + size * 0.3
+
+    def update(self, dt, t):
+        self.y -= (14 - self.size) * dt
+        return t - self.t0 < self.life
 
     def draw(self, s, ox, oy, t):
         a = t - self.t0
-        k = swell(a, 0.3, 1.3)
+        k = swell(a, 0.3, self.life - 0.3)
         x, y = self.x - ox + math.sin(a * 6) * 1.5, self.y - oy
-        r = 2 + a
+        r = self.size + a * (1 + self.size * 0.4)
         pygame.draw.circle(s, mix((20, 30, 20), GOO, k), (round(x), round(y)), round(r), 1)
-        s.set_at((round(x - 1), round(y - 1)), GOO_HI)
-        glow(s, x, y, 6, GOO, q(50 * k))
+        s.set_at((round(x - r * 0.4), round(y - r * 0.4)), GOO_HI)
+        glow(s, x, y, round(r * 2 + 4), GOO, q(50 * k))
 
 
 class Sparkle:
@@ -280,162 +334,181 @@ class Sparkle:
 # --- the creature ----------------------------------------------------------------------
 
 class Apex:
+    """A wobbling blob of jelly with two eyes. Its shape is a ring of points around an
+    ellipse, each pushed in and out by slow ripples, with the bottom flattened onto the
+    ground — so it never quite holds still, and has no legs, ears or tail to read as a
+    cat."""
+
+    POINTS = 20
+
     def __init__(self, x, y):
-        self.x, self.y = x, y            # where its feet touch the ground
+        self.x, self.y = x, y            # where it touches the ground
         self.face = 1                    # 1: looking right
         self.fat = 1.0
         self.crouch = 0.0                # 0..1, low and flat when stalking
-        self.wiggle = 0.0                # 0..1, rear end wiggling before a pounce
-        self.puff = 0.0                  # 0..1, cheeks full of goo
+        self.coil = 0.0                  # 0..1, quivering, about to spring
+        self.puff = 0.0                  # 0..1, swollen with goo, about to spit
         self.mouth = 0.0                 # 0..1, how wide its mouth is open
         self.squint = 0.0                # 0..1, happy ^ ^ eyes
+        self.wink = False                # one eye shut, one open
         self.mimic = 0.0                 # 0..1, how far into its disguise it is
         self.mimic_color, self.mimic_kind = SKIN, None
-        self.lift = 0.0                  # height off the ground (leaps)
-        self.gait = 0.0
+        self.lift = 0.0                  # height off the ground (leaps, hiccups)
+        self.gait = 0.0                  # how far it has oozed (drives its rhythm)
+        self.stretch = 0.0               # 0..1, front reaching ahead as it moves
+        self.squash = 0.0                # -1 tall and thin .. 1 flat and wide
+        self.sway = 0.0                  # sideways lean (its top leans, its base stays)
         self.lurk = 0.0                  # 1: only its eyes show, in the dark
         self.look = 0.0                  # looking back over its shoulder
-        self.waddle = 0.0
+        self.waddle = 0.0                # 0..1, the heavy rocking walk of a full belly
         self.ground = None               # while leaping: where the ground is, for its shadow
+        self.tongue = None               # where the tip of its tongue is (shared coords)
+        self.bait = 0.0                  # 0..1, a dangling glowing bead of itself
+        self.held = None                 # the colour of what is in its mouth
+        self.lumps = []                  # meals glowing inside it: [time, colour, dx, dy]
 
     def size(self):
-        rx = 7 * self.fat * (1 + 0.15 * self.crouch)
-        ry = 5 * (1 + (self.fat - 1) * 0.55) * (1 - 0.3 * self.crouch)
-        return rx, ry
+        pulse = math.sin(self.gait * 0.45) * 0.1   # it oozes: squeeze, spread, squeeze
+        sq = self.squash + pulse + 0.15 * self.puff
+        rx = 9 * self.fat * (1 + 0.3 * self.crouch + 0.2 * sq + 0.15 * self.puff)
+        ry = 7 * (1 + (self.fat - 1) * 0.6) * (1 - 0.35 * self.crouch - 0.25 * sq + 0.15 * self.puff)
+        return rx, max(2.0, ry)
+
+    def centre(self):
+        rx, ry = self.size()
+        return self.x, self.y - self.lift - ry * 0.85
 
     def mouth_at(self):
         rx, ry = self.size()
-        return self.x + self.face * rx * 0.9, self.y - self.lift - 2 - ry * 0.7
+        cx, cy = self.centre()
+        return cx + self.face * rx * 0.85, cy + ry * 0.2
 
-    def beads(self, t):
-        """Where the three goo beads on its feelers hang (shared coordinates)."""
-        rx, ry = self.size()
-        cx, cy = self.x, self.y - self.lift - 2 - ry
-        fold = 1 - 0.6 * self.mimic
-        out = []
-        for i in range(3):
-            base = cx + self.face * (rx * 0.25 - i * 2.5)
-            sway = math.sin(t * 3 + i * 1.7) * 1.5
-            out.append((base - self.face * (4 + i * 2) * fold + sway, cy - ry - (5 - i) * fold + 2))
-        return out
+    def drips(self):
+        """Where goo can drip from (shared coordinates): along its underside."""
+        rx, _ = self.size()
+        base = self.y - self.lift
+        return [(self.x - rx * 0.6, base), (self.x + rx * 0.5, base), (self.x, base - 1)]
+
+    def outline(self, x, base, rx, ry, t):
+        f = self.face
+        cy = base - ry * 0.85
+        rock = self.sway + math.sin(self.gait * 0.22) * 0.45 * self.waddle
+        rock += math.sin(t * 40) * 0.25 * self.coil  # quivering
+        pts = []
+        for i in range(self.POINTS):
+            th = i / self.POINTS * math.tau
+            wob = 1 + 0.12 * math.sin(3 * th + t * 2.3) + 0.07 * math.sin(5 * th - t * 3.1 + 1)
+            px = math.cos(th) * rx * wob
+            py = math.sin(th) * ry * wob
+            if px * f > 0:   # the front reaches ahead as it moves, the back trails
+                px *= 1 + 0.35 * self.stretch
+            else:
+                px *= 1 - 0.1 * self.stretch
+            py = min(py, ry * 0.85)   # flat underneath: it sits on the ground like jelly
+            px += rock * (ry * 0.85 - py) * 0.5
+            pts.append((x + px, cy + py))
+        return pts
 
     def draw(self, s, ox, oy, t):
         f = self.face
         rx, ry = self.size()
-        bob = abs(math.sin(self.gait * 0.5)) * 1.0 + math.sin(t * 9) * 0.6 * self.waddle
-        x = self.x - ox + math.sin(t * 5) * 1.5 * self.waddle
-        foot = self.y - oy - self.lift
-        cy = foot - 2 - ry - bob
-        lean = math.sin(t * 22) * 2.2 * self.wiggle  # the rear wiggles before a pounce
+        x = self.x - ox
+        base = self.y - oy - self.lift
+        cy = base - ry * 0.85
         if self.lurk >= 1:
             self.draw_eyes(s, x, cy, rx, ry, t, glow_only=True)
             return
-        skin = mix(SKIN, mix(self.mimic_color, (20, 14, 40), 0.35), self.mimic)
+        skin = mix(SKIN, mix(self.mimic_color, (20, 14, 40), 0.35),
+                   self.mimic * (0.8 + 0.2 * math.sin(t * 6)))  # colour comes in slow ripples
         if self.mimic_kind == "lily":
             skin = mix(SKIN, LILY, self.mimic)
-        hi = mix(skin, (255, 255, 255), 0.22)
+        shade = mix(skin, INK, 0.5)
+        hi = mix(skin, (255, 255, 255), 0.25)
         # shadow
         gy = (self.ground if self.ground is not None else self.y) - oy
         pygame.draw.ellipse(s, (10, 8, 20), (round(x - rx), round(gy - 1), round(rx * 2), 3))
-        # tail with its glowing bulb
-        tx, ty = x - f * rx + lean, cy + ry * 0.2
-        sw = math.sin(t * 2.5) * 2
-        pts = [(tx, ty), (tx - f * 4, ty - 2 + sw * 0.3), (tx - f * 7, ty - 5 + sw), (tx - f * 8, ty - 9 + sw)]
-        pygame.draw.lines(s, INK, False, [(px, py + 1) for px, py in pts], 2)
-        pygame.draw.lines(s, skin, False, pts, 2)
-        bx, by = pts[-1]
-        pygame.draw.circle(s, GOO, (round(bx), round(by)), 2)
-        s.set_at((round(bx) - 1, round(by) - 1), GOO_HI)
-        glow(s, bx, by, 8, GOO, 60)
-        # four stubby feet
-        for i, lx in enumerate((-0.6, -0.2, 0.2, 0.6)):
-            up = max(0.0, math.sin(self.gait + i * math.pi)) * 1.5 if self.lift == 0 else 1.5
-            fx = x + lx * rx + (lean if lx * f < 0 else 0)
-            pygame.draw.rect(s, INK, (round(fx - 1), round(cy + ry - 1 - up), 3, 4))
-            pygame.draw.rect(s, skin, (round(fx - 1), round(cy + ry - 1 - up), 2, 3))
-        # body: an ink outline, the skin, a paler belly, a sheen
-        body = pygame.Rect(0, 0, round(rx * 2), round(ry * 2))
-        body.center = (round(x + lean * 0.4), round(cy))
-        pygame.draw.ellipse(s, INK, body.inflate(2, 2))
-        pygame.draw.ellipse(s, skin, body)
-        belly = pygame.Rect(0, 0, round(rx * 1.3), round(ry * 0.9))
-        belly.midbottom = (round(x + f * rx * 0.15), body.bottom - 1)
-        pygame.draw.ellipse(s, mix(BELLY, skin, 0.5 * self.mimic), belly)
-        pygame.draw.line(s, hi, (body.x + 3, body.y + 1), (body.right - 4, body.y + 1))
-        # chromatophore bands, rippling over it as it shifts colour
-        if self.mimic > 0.05:
-            band = mix(self.mimic_color, (255, 255, 255), 0.2)
-            for i in range(4):
-                bxp = body.x + 1 + ((i * 5 + t * 14) % max(1, body.w - 2))
-                h = ry * math.sqrt(max(0.0, 1 - ((bxp - body.centerx) / max(rx, 1)) ** 2))
-                if h > 1:
-                    c = mix(skin, band, self.mimic * (0.5 + 0.5 * math.sin(t * 7 + i)))
-                    pygame.draw.line(s, c, (bxp, body.centery - h + 1), (bxp, body.centery + h - 2))
-        # cheeks full of goo
-        if self.puff > 0.05:
-            pr = ry * 0.55 * self.puff
-            pygame.draw.circle(s, INK, (round(x + f * rx * 0.75), round(cy + 1)), round(pr + 1))
-            pygame.draw.circle(s, mix(skin, GOO, 0.25 * self.puff), (round(x + f * rx * 0.75), round(cy + 1)), round(pr))
-        # disguises
-        dk = ease((self.mimic - 0.4) / 0.6)
-        if dk > 0:
-            mc = mix(self.mimic_color, (255, 255, 255), 0.2)
-            if self.mimic_kind == "slug":
-                for dx in (0.45, 0.8):
-                    sx = x + f * rx * dx
-                    pygame.draw.line(s, mc, (sx, body.y + 1), (sx + f, body.y - 4 * dk))
-                    s.set_at((round(sx + f), round(body.y - 4 * dk)), (255, 255, 255))
-            elif self.mimic_kind == "ears":
-                for dx in (0.3, 0.75):
-                    ex = x + f * rx * dx
-                    pygame.draw.polygon(s, mc, [(ex - 2, body.y + 2), (ex + 2, body.y + 2), (ex, body.y - 4 * dk)])
-            elif self.mimic_kind == "tendrils":
-                for i in range(3):
-                    tx0 = x + f * rx * (0.2 + i * 0.25)
-                    pygame.draw.line(s, mc, (tx0, body.bottom - 1),
-                                     (tx0 + math.sin(t * 4 + i) * 2, body.bottom + 4 * dk))
-        # the crest: three floppy feelers, each tipped with a bead of goo
-        top = (x + f * rx * 0.25, cy - ry + 1)
-        for i, (bx_, by_) in enumerate(self.beads(t)):
-            bx_, by_ = bx_ - ox, by_ - oy
-            mid = ((top[0] + bx_) / 2 + f, min(top[1], by_) - 3)
-            pygame.draw.lines(s, skin if i else hi, False, [top, mid, (bx_, by_)])
-            pygame.draw.circle(s, GOO, (round(bx_), round(by_)), 1)
-            glow(s, bx_, by_, 5, GOO, 48)
+        # a glowing bead of itself, dangled behind it as bait
+        if self.bait > 0.05:
+            sx, sy = x - f * rx * 0.7, cy + ry * 0.3
+            ex = sx - f * 10 * self.bait + math.sin(t * 2) * 1.5
+            ey = base + 4 * self.bait
+            pygame.draw.lines(s, skin, False, [(sx, sy), ((sx + ex) / 2 - f * 2, sy + 1), (ex, ey)], 2)
+            pygame.draw.circle(s, GOO, (round(ex), round(ey)), 2)
+            glow(s, ex, ey, 9, GOO, q(70 * self.bait))
+        # the body: a shaded jelly, lit from above, no outline
+        pts = self.outline(x, base, rx, ry, t)
+        pygame.draw.polygon(s, shade, pts)
+        lit = [(px + (x - px) * 0.18, py + (cy - ry * 0.25 - py) * 0.22) for px, py in pts]
+        pygame.draw.polygon(s, skin, lit)
+        # a thin moonlit rim along its top, so it stands out from the dark ground
+        rim = [p for p in pts if p[1] < cy - ry * 0.35]
+        if len(rim) > 1:
+            pygame.draw.lines(s, mix(skin, (190, 200, 255), 0.35), False, rim)
+        hx, hy = x - f * rx * 0.2, cy - ry * 0.5
+        pygame.draw.line(s, hi, (round(hx - rx * 0.3), round(hy)), (round(hx + rx * 0.2), round(hy)))
+        # everything it has eaten, glowing through its skin
+        for lump in self.lumps:
+            self.draw_lump(s, lump, x, cy, rx, ry, t, skin)
         self.draw_eyes(s, x, cy, rx, ry, t)
         # mouth
-        mx, my = x + f * rx * 0.88, cy + ry * 0.3
+        mx, my = x + f * rx * 0.85, cy + ry * 0.2
         if self.mouth > 0.08:
-            o = 2 + 5 * self.mouth
-            pygame.draw.polygon(s, INK, [(mx - f * 3, my), (mx + f * 2, my - o * 0.5), (mx + f * 2, my + o * 0.5)])
-            s.set_at((round(mx), round(my - o * 0.4)), (255, 255, 255))   # tiny teeth
-            s.set_at((round(mx + f), round(my - o * 0.4)), (255, 255, 255))
-            s.set_at((round(mx), round(my + o * 0.4)), (255, 255, 255))
-            pygame.draw.line(s, GOO, (mx, my - o * 0.3), (mx - f, my + o * 0.3))
+            h = 2 + 6 * self.mouth
+            w = 3 + 2 * self.mouth
+            r = pygame.Rect(0, 0, round(w), round(h))
+            r.center = (round(mx), round(my))
+            pygame.draw.ellipse(s, INK, r)
+            glow(s, mx, my, round(h), GOO, 30)
+            if self.held is not None:
+                pygame.draw.circle(s, self.held, (round(mx), round(my)), max(1, round(h * 0.3)))
+                glow(s, mx, my, 6, self.held, 50)
         else:
-            pygame.draw.line(s, INK, (mx - f * 2, my), (mx, my + 1))
+            pygame.draw.line(s, shade, (round(mx - f * 2), round(my)), (round(mx), round(my)))
+            if self.held is not None:  # something still sticking out
+                pygame.draw.circle(s, self.held, (round(mx + f), round(my)), 1)
+        # the tongue: a long sticky strand of goo
+        if self.tongue is not None:
+            tx, ty = self.tongue[0] - ox, self.tongue[1] - oy
+            pygame.draw.line(s, mix(GOO, SKIN, 0.3), (round(mx), round(my)), (round(tx), round(ty)), 2)
+            pygame.draw.line(s, GOO_HI, (round(mx), round(my) - 1), (round(tx), round(ty) - 1))
+            glow(s, tx, ty, 7, GOO, 70)
+
+    def draw_lump(self, s, lump, x, cy, rx, ry, t, skin):
+        t0, color, dx, dy = lump
+        a = t - t0
+        k = ease(a / 0.8)   # slides from the mouth to its place in the belly
+        mx = x + self.face * rx * 0.75
+        lx = mx + (x + dx * rx - mx) * k
+        ly = cy + ry * 0.2 + (dy * ry - ry * 0.2) * k
+        fresh = 1 - 0.4 * ease((a - 1) / 5)  # bright going down, a softer glow after
+        r = 3 if k < 1 else 2.5
+        pygame.draw.circle(s, mix(skin, color, 0.85 * fresh), (round(lx), round(ly)), round(r))
+        s.set_at((round(lx) - 1, round(ly) - 1), mix(color, (255, 255, 255), 0.5 * fresh))
+        if a < 2.5:  # the big glow only while it goes down, or a full belly turns white
+            glow(s, lx, ly, 9, color, q(90 * (1 - ease((a - 1) / 1.5))))
+        glow(s, lx, ly, 4, color, 30)
 
     def draw_eyes(self, s, x, cy, rx, ry, t, glow_only=False):
         f = self.face if self.look < 0.5 else -self.face
         blink = (t % 3.7) < 0.12
-        for i, (dx, r) in enumerate(((0.38, 2), (0.72, 2))):
-            ex, ey = round(x + f * rx * dx), round(cy - ry * 0.25)
+        for i, dx in enumerate((0.15, 0.5)):
+            ex, ey = round(x + f * rx * dx), round(cy - ry * 0.3)
             glow(s, ex, ey, 5, GOO, 36 if not glow_only else q(70 * min(1.0, self.lurk)))
             if glow_only:
                 if not blink:
                     s.set_at((ex, ey), GOO_HI)
                 continue
-            if blink or self.squint > 0.5:
-                pts = [(ex - 2, ey), (ex, ey - 2), (ex + 2, ey)] if self.squint > 0.5 else [(ex - 2, ey), (ex + 2, ey)]
+            shut = self.squint > 0.5 or (self.wink and i == 0)
+            if blink or shut:
+                pts = [(ex - 2, ey), (ex, ey - 2), (ex + 2, ey)] if shut else [(ex - 2, ey), (ex + 2, ey)]
                 pygame.draw.lines(s, INK, False, pts, 1)
                 continue
-            pygame.draw.circle(s, INK, (ex, ey), r + 1)
-            pygame.draw.circle(s, EYE, (ex, ey), r)
-            pygame.draw.rect(s, INK, (ex + (f > 0), ey - 1, 1, 3))  # pupil, looking ahead
-            s.set_at((ex - 1, ey - 1), (255, 255, 255))
+            pygame.draw.circle(s, EYE, (ex, ey), 2)
+            pygame.draw.rect(s, INK, (ex + (f > 0) - (f < 0), ey - 1, 1, 2))  # pupil, looking ahead
             if self.mimic > 0.5:  # half-closed: innocent
-                pygame.draw.line(s, mix(SKIN, self.mimic_color, self.mimic), (ex - 2, ey - 2), (ex + 2, ey - 2))
-                pygame.draw.line(s, mix(SKIN, self.mimic_color, self.mimic), (ex - 2, ey - 1), (ex + 2, ey - 1))
+                lid = mix(SKIN, self.mimic_color if self.mimic_kind != "lily" else LILY, self.mimic)
+                pygame.draw.line(s, lid, (ex - 2, ey - 2), (ex + 2, ey - 2))
+                pygame.draw.line(s, lid, (ex - 2, ey - 1), (ex + 2, ey - 1))
 
 
 # --- the hunt --------------------------------------------------------------------------
@@ -453,11 +526,9 @@ class Hunt:
         self.dt = 0.0
         self.bits = []
         self.apex = Apex(-14, 470)
-        self.apex.lurk = 0.0
         self.firefly_out = {}   # (swarm index, firefly index) -> time it was put out
         self.firefly_back = {}  # same -> time it starts coming back
         self.done = False
-        self.target = None      # what it is going after right now (for the camera)
         self.script = self.run()
         self.next_drip = 0.0
 
@@ -476,7 +547,7 @@ class Hunt:
         return max(lx0, min(lx1, x)), max(OFFSET[1] + 10, min(OFFSET[1] + self.low_h - 10, y))
 
     def go(self, aim, speed=380.0, stalk=0.0, near=4.0):
-        """Scurry toward aim() in quick bursts; when stalking, the last stretch is slow,
+        """Ooze toward aim() in quick surges; when stalking, the last stretch is slow,
         low, and in disguise."""
         a = self.apex
         seam = OFFSET[1]
@@ -502,11 +573,14 @@ class Hunt:
                 return
             if abs(dx) > 1:
                 a.face = 1 if dx > 0 else -1
-            v = speed * (0.55 + 0.45 * abs(math.sin(self.t * 5.5)))
+            surge = abs(math.sin(self.t * 5.5))
+            v = speed * (0.55 + 0.45 * surge)
+            reach = 0.25 + 0.6 * surge if speed > 100 else 0.25
             if stalk and d < 70:
-                v = 90
+                v, reach = 90, 0.3
                 a.crouch += (1 - a.crouch) * min(1.0, self.dt * 4)
                 a.mimic += (stalk - a.mimic) * min(1.0, self.dt * 2.5)
+            a.stretch = max(a.stretch, reach)
             step = min(d, v * self.dt)
             if d > 0:
                 a.x += dx / d * step
@@ -523,7 +597,7 @@ class Hunt:
 
     def relax(self):
         a = self.apex
-        a.crouch, a.wiggle, a.puff, a.mouth = 0.0, 0.0, 0.0, 0.0
+        a.crouch, a.coil, a.puff, a.mouth, a.squash = 0.0, 0.0, 0.0, 0.0, 0.0
 
     # the moves ----------------------------------------------------------------------
     def arrive(self):
@@ -543,7 +617,6 @@ class Hunt:
 
     def pounce(self, p):
         a = self.apex
-        self.target = p
         self.start_mimic(p)
 
         def spot():
@@ -552,9 +625,10 @@ class Hunt:
             return gx + (-34 if a.x < x else 34), gy
         yield from self.go(spot, stalk=1.0, near=6)
         a.face = 1 if p.pos()[0] > a.x else -1
-        # the rear end wiggles, like a cat about to spring
-        yield from self.wait(0.45, lambda k: setattr(a, "wiggle", ease(k * 3) * (1 - ease((k - 0.8) * 5))))
-        a.wiggle, a.crouch = 0.0, 0.3
+        # it flattens right down and quivers, gathering itself to spring
+        yield from self.wait(0.5, lambda k: (setattr(a, "coil", ease(k * 3) * (1 - ease((k - 0.85) * 7))),
+                                             setattr(a, "squash", 0.5 * ease(k * 2))))
+        a.coil, a.crouch = 0.0, 0.2
         x0, y0 = a.x, a.y
         a.ground = y0
 
@@ -564,54 +638,93 @@ class Hunt:
             a.x = x0 + (tx - x0) * k
             a.y = y0 + (ty + 2 - y0) * k - math.sin(k * math.pi) * (16 + max(0.0, y0 - ty) * 0.25)
             a.mouth = k
+            a.squash = -0.6 * math.sin(k * math.pi)  # long and thin in the air
+            a.stretch = 0.8
         yield from self.wait(0.32, arc)
         p.hide()
         a.mimic = 0.0
+        a.held = p.color   # it has the animal in its mouth
+        a.mouth = 0.4
         for i in range(6):
             self.bits.append(Drop(a.x, a.y - 4, self.floor(a.x, y0), self.rng.uniform(-60, 60), self.rng.uniform(-90, -30)))
-        yield from self.wait(0.45, lambda k: setattr(a, "mouth", abs(math.sin(k * math.pi * 2))))
+        yield from self.wait(0.2, lambda k: setattr(a, "squash", 0.5 * (1 - k)))  # lands with a splat
         if a.y < y0 - 2:  # it was up the tree: drop back down
             y1 = a.y
             yield from self.wait(0.3, lambda k: setattr(a, "y", y1 + (y0 - y1) * k * k))
         a.y, a.ground = max(a.y, y0) if a.y < y0 else a.y, None
-        yield from self.gulp()
+        yield from self.gulp(p.color)
 
     def shoot(self, p):
         a = self.apex
-        self.target = p
         self.start_mimic(p)
         px, py = p.pos()
         spot = self.ground_spot(px + self.rng.uniform(-40, 40), py + (150 if py < 400 or p.low else 0))
         yield from self.go(lambda: spot, stalk=0.6)
         a.face = 1 if px > a.x else -1
-        yield from self.wait(0.3, lambda k: setattr(a, "puff", ease(k)))
+        yield from self.wait(0.35, lambda k: setattr(a, "puff", ease(k)))  # swells with goo
         hit = {}
         mx, my = a.mouth_at()
         self.bits.append(Glob(mx, my, p.pos, lambda t: hit.setdefault("t", t)))
-        a.puff, a.mouth, a.lift = 0.0, 1.0, 3.0  # recoil hop
+        a.puff, a.mouth, a.lift, a.squash = 0.0, 1.0, 3.0, -0.4  # recoil hop
         yield from self.wait(0.15)
-        a.lift, a.mouth = 0.0, 0.0
+        a.lift, a.mouth, a.squash = 0.0, 0.0, 0.0
         while "t" not in hit:
             yield
         a.mimic = 0.0
         x, y = p.pos()
         c = Cocoon(p, hit["t"], max(y + 4, self.ground_spot(x, y + 120)[1]))
         self.bits.append(c)
-        yield from self.wait(0.2)
-        side = -8 if a.x < c.x else 8
-        yield from self.go(lambda: self.ground_spot(c.x + side, c.floor), near=8)
+        yield from self.eat(c)
+
+    def eat(self, c):
+        """Eat a cocoon: get within reach, open wide, flick the tongue out, reel it in."""
+        a = self.apex
         while not c.landed:
             yield
-        yield from self.wait(0.25, lambda k: setattr(a, "mouth", ease(k)))
-        c.eaten_at = self.t
-        yield from self.gulp()
+        if math.dist((a.x, a.y), (c.x, c.floor)) > 60 or (a.y < OFFSET[1]) != (c.floor < OFFSET[1]):
+            side = -34 if a.x < c.x else 34
+            yield from self.go(lambda: self.ground_spot(c.x + side, c.floor), near=8)
+        a.face = 1 if c.x > a.x else -1
+        # it rears up and opens wide
+        yield from self.wait(0.35, lambda k: (setattr(a, "mouth", max(a.mouth, ease(k))), setattr(a, "squash", -0.3 * ease(k))))
+        # out goes the tongue...
+        x0, y0 = a.mouth_at()
+        yield from self.wait(0.15, lambda k: setattr(a, "tongue", (x0 + (c.x - x0) * ease(k), y0 + (c.y - y0) * ease(k))))
+        yield from self.wait(0.12)
+        # ...and in comes the cocoon, stretching as it goes
+        cx0, cy0 = c.x, c.y
 
-    def gulp(self):
+        def reel(k):
+            mx, my = a.mouth_at()
+            e = ease(k) ** 1.4
+            c.x, c.y = cx0 + (mx - cx0) * e, cy0 + (my - cy0) * e - math.sin(k * math.pi) * 6
+            c.size = 1 - 0.55 * e
+            a.tongue = (c.x, c.y)
+        yield from self.wait(0.5, reel)
+        c.gone = True
+        a.tongue = None
+        a.held = mix(c.prey.color, GOO, 0.3)
+        a.mouth = 0.0  # CHOMP
+        a.squash = 0.4
+        yield from self.wait(0.1)
+        yield from self.gulp(c.prey.color)
+
+    def gulp(self, color, chews=3, lump=True):
+        """Chew, then swallow: you see it go down, a glowing lump in its belly (`lump`
+        False: those went down already, this is just the chewing)."""
         a = self.apex
-        self.target = None
-        a.mouth = 0.0
-        self.relax()
-        yield from self.wait(0.2, lambda k: setattr(a, "fat", min(2.6, a.fat + 0.075 * self.dt / 0.2)))
+        a.crouch = a.coil = a.puff = 0.0
+        if chews:
+            yield from self.wait(0.22 * chews, lambda k: (setattr(a, "mouth", 0.55 * abs(math.sin(k * chews * math.pi))),
+                                                          setattr(a, "squash", 0.25 * math.sin(k * chews * math.pi * 2))))
+        a.mouth, a.held = 0.0, None
+        if lump:
+            a.lumps.append([self.t, color, self.rng.uniform(-0.45, 0.35), self.rng.uniform(-0.1, 0.45)])
+        fat0 = a.fat if lump else a.fat - 0.075
+        # a gulp ripples right through it, and it ends up a bit rounder
+        yield from self.wait(0.35, lambda k: (setattr(a, "fat", min(2.6, fat0 + 0.075 * ease(k))),
+                                              setattr(a, "squash", -0.3 * math.sin(k * math.pi * 2) * (1 - k))))
+        a.squash = 0.0
         a.squint = 1.0
         if self.rng.random() < 0.35:
             mx, my = a.mouth_at()
@@ -620,8 +733,8 @@ class Hunt:
         a.squint = 0.0
 
     def fishing(self, fish):
-        """By the pond, disguised as a lily pad, its back to the water and its glowing
-        tail dangling in as bait. When a koi comes close it whips round and snaps."""
+        """By the pond, disguised as a lily pad, its back to the water and a glowing bead
+        of itself dangling in as bait. When a koi comes close it whips round and snaps."""
         a = self.apex
         w = self.lower.pond.water
         cx, cy = w.cx + OFFSET[0], w.cy + OFFSET[1]
@@ -633,6 +746,8 @@ class Hunt:
         while any(not f.eaten for f in fish):
             a.face = -1 if cx > a.x else 1  # back to the pond
             a.mimic += (1 - a.mimic) * min(1.0, self.dt * 3)
+            a.crouch += (0.8 - a.crouch) * min(1.0, self.dt * 3)
+            a.bait += (1 - a.bait) * min(1.0, self.dt * 3)
             bait = (a.x - a.face * 12, a.y + 4)
             for f in fish:
                 if not f.eaten:
@@ -641,40 +756,42 @@ class Hunt:
             if close:
                 f = close[0]
                 a.face = -a.face  # whips round
+                a.bait = 0.0
                 x0, fx = a.x, f.pos()[0]
                 yield from self.wait(0.18, lambda k: (setattr(a, "x", x0 + (fx - x0) * 0.4 * math.sin(k * math.pi)),
-                                                      setattr(a, "mouth", math.sin(k * math.pi))))
+                                                      setattr(a, "mouth", math.sin(k * math.pi)),
+                                                      setattr(a, "stretch", 0.8)))
                 f.hide()
+                a.held = f.color
                 x, y = f.pos()
                 for i in range(4):
                     self.bits.append(Drop(x, y - 2, y + 1, self.rng.uniform(-40, 40), self.rng.uniform(-80, -40), life=1.2))
-                a.fat = min(2.6, a.fat + 0.06)
-                a.squint = 1.0
-                yield from self.wait(0.25)
-                a.squint = 0.0
+                yield from self.gulp(f.color, chews=1)
             elif self.t - start > 7:  # the shy ones get spat at instead
+                a.bait = 0.0
                 yield from self.volley([f for f in fish if not f.eaten])
                 break
             yield
-        a.mimic = 0.0
-        yield from self.gulp()
+        a.mimic = a.bait = 0.0
+        self.relax()
 
     def volley(self, rest):
-        """Out of time: finish them all in one breath."""
+        """Out of time: spit at them all in one breath, then one enormous breath in sucks
+        every cocoon through the air into its mouth, gulp after gulp."""
         a = self.apex
         a.mimic = 0.0
         yield from self.wait(0.3, lambda k: setattr(a, "puff", ease(k)))
+        cocoons = []
         for p in rest:
             mx, my = a.mouth_at()
             a.face = 1 if p.pos()[0] > a.x else -1
 
-            def splat(t, p=p):
-                p.hide()
+            def wrap(t, p=p):
                 x, y = p.pos()
-                for i in range(5):
-                    self.bits.append(Drop(x, y, self.ground_spot(x, y)[1] if y < 400 else y + 2,
-                                          self.rng.uniform(-50, 50), self.rng.uniform(-60, 0)))
-            self.bits.append(Glob(mx, my, p.pos, splat, speed=520))
+                c = Cocoon(p, t, max(y + 4, self.ground_spot(x, y + 120)[1]) if p.kind != "fish" else y + 1)
+                cocoons.append(c)
+                self.bits.append(c)
+            self.bits.append(Glob(mx, my, p.pos, wrap, speed=520))
             a.mouth = 1.0
             yield from self.wait(0.22)
             a.mouth = 0.0
@@ -682,15 +799,32 @@ class Hunt:
         a.puff = 0.0
         while any(isinstance(b, Glob) for b in self.bits):
             yield
-        a.fat += 0.05 * len(rest)
-        yield from self.gulp()
+        if not cocoons:
+            return
+        yield from self.wait(0.4)  # a moment to see them all wrapped up
+        yield from self.wait(0.35, lambda k: (setattr(a, "mouth", ease(k)), setattr(a, "squash", -0.35 * ease(k))))
+        for n, c in enumerate(sorted(cocoons, key=lambda c: math.dist((c.x, c.y), a.mouth_at()))):
+            c.aim, c.v = a.mouth_at, -160.0 * n  # nearest first, the rest one after another
+        waiting = list(cocoons)
+        while waiting:
+            for c in [c for c in waiting if c.gone]:  # in it goes: gulp
+                waiting.remove(c)
+                a.lumps.append([self.t, c.prey.color, self.rng.uniform(-0.45, 0.35), self.rng.uniform(-0.1, 0.45)])
+                a.fat = min(2.6, a.fat + 0.075)
+                a.squash = -0.1
+            a.squash += (-0.35 - a.squash) * min(1.0, self.dt * 6)
+            yield
+        a.mouth = 0.0  # CHOMP
+        yield from self.gulp(GOO, chews=4, lump=False)  # one big chew of the lot
 
     def fireflies(self):
-        """Last, the fireflies: a quick spray of droplets, putting them out one by one."""
+        """Last, the fireflies: a quick spray of droplets sticks each one in a speck of
+        goo, then one enormous breath in sucks them all into its mouth."""
         a = self.apex
         spot = self.ground_spot(480, 470)
         yield from self.go(lambda: spot)
         yield from self.wait(0.3, lambda k: setattr(a, "puff", ease(k)))
+        morsels = []
         for si, (swarm, low) in enumerate(self.swarms):
             for i in range(len(swarm.items)):
                 def where(swarm=swarm, i=i, low=low):
@@ -698,34 +832,96 @@ class Hunt:
                         x, y = swarm.now[i][:2]
                         return (x + OFFSET[0], y + OFFSET[1]) if low else (x, y)
                     return a.mouth_at()
+
+                def stuck(t, k=(si, i), where=where, swarm=swarm):
+                    self.firefly_out.setdefault(k, t)
+                    x, y = where()
+                    m = Morsel(x, y, swarm.color, a.mouth_at)
+                    morsels.append(m)
+                    self.bits.append(m)
                 mx, my = a.mouth_at()
                 a.face = 1 if where()[0] > a.x else -1
-                self.bits.append(Glob(mx, my, where, lambda t, k=(si, i): self.firefly_out.setdefault(k, t),
-                                      speed=560, small=True))
+                self.bits.append(Glob(mx, my, where, stuck, speed=560, small=True))
                 a.mouth = 1.0 if i % 2 else 0.5
-                yield from self.wait(0.05)
+                yield from self.wait(0.035)
         a.puff = a.mouth = 0.0
         while any(isinstance(b, Glob) for b in self.bits):
             yield
-        yield from self.gulp()
+        yield from self.wait(0.5)  # a moment to see them all hanging there, stuck
+        # the big breath in: it swells, mouth wide, and they all come streaming in
+        yield from self.wait(0.4, lambda k: (setattr(a, "mouth", ease(k)), setattr(a, "squash", -0.35 * ease(k))))
+        for n, m in enumerate(sorted(morsels, key=lambda m: math.dist((m.x, m.y), a.mouth_at()))):
+            m.pull = True
+            m.v = -40.0 * min(n, 12)  # nearest first, the rest close behind
+        while any(not m.eaten for m in morsels):
+            a.puff = min(1.0, a.puff + self.dt * 0.6)
+            yield
+        color = self.swarms[0][0].color if self.swarms else GOO
+        a.held = color
+        a.mouth = 0.0  # CHOMP
+        yield from self.gulp(color)
+        for _ in range(2):  # a few more little lights, settling in its belly
+            a.lumps.append([self.t, color, self.rng.uniform(-0.5, 0.3), self.rng.uniform(0.0, 0.5)])
 
     def leave(self):
-        """Full. It waddles off the nearest side, glancing back once on the way."""
+        """Full. It does not just walk away: it sighs, waddles, hiccups, flops down for a
+        rest, heaves itself up, burps a huge bubble, winks back at you, and wobbles off."""
         a = self.apex
         self.relax()
         a.mimic = 0.0
-        a.waddle = 1.0
         if a.y >= OFFSET[1]:
             left, right = OFFSET[0] - 24, OFFSET[0] + self.low_w + 24
         else:
             left, right = -30, 990
         exit_x = left if a.x - left < right - a.x else right
-        y, half = a.y, (a.x + exit_x) / 2
-        yield from self.go(lambda: (half, y), speed=55, near=3)
-        a.squint = 1.0  # a smug look back
-        yield from self.wait(0.9, lambda k: setattr(a, "look", 1.0 if k < 0.8 else 0.0))
+        y = a.y
+        d = exit_x - a.x
+
+        def sag(k):  # a deep breath in... and a long, contented sigh out
+            a.squash = -0.35 * ease(k / 0.4) if k < 0.4 else -0.35 + 0.8 * ease((k - 0.4) / 0.6)
+            a.squint = 1.0 if k > 0.4 else 0.0
+        yield from self.wait(1.2, sag)
+        yield from self.wait(0.3, lambda k: setattr(a, "squash", 0.45 * (1 - ease(k))))
         a.squint = 0.0
-        yield from self.go(lambda: (exit_x, y), speed=55, near=3)
+        a.waddle = 1.0
+        x0 = a.x
+        yield from self.go(lambda: (x0 + d * 0.3, y), speed=55, near=3)
+        # hic! ... hic!
+        for _ in range(2):
+            def hic(k):
+                a.lift = 6 * math.sin(k * math.pi)
+                a.squash = -0.5 * math.sin(k * math.pi)
+            yield from self.wait(0.25, hic)
+            a.lift = a.squash = 0.0
+            mx, my = a.mouth_at()
+            self.bits.append(Bubble(mx, my - 3, self.t, size=1))
+            yield from self.wait(0.55)
+        yield from self.go(lambda: (x0 + d * 0.55, y), speed=55, near=3)
+        # too full: it flops down for a rest, rocking gently
+        a.waddle = 0.0
+        yield from self.wait(0.3, lambda k: setattr(a, "squash", 0.65 * ease(k)))
+        a.squint = 1.0
+        yield from self.wait(1.1, lambda k: setattr(a, "sway", 0.35 * math.sin(k * math.tau * 1.5)))
+        a.sway, a.squint = 0.0, 0.0
+        # ...and heaves itself back up
+        yield from self.wait(0.35, lambda k: setattr(a, "squash", 0.65 - 1.05 * ease(k)))
+        yield from self.wait(0.2, lambda k: setattr(a, "squash", -0.4 * (1 - ease(k))))
+        # an enormous burp
+        a.face = 1 if d > 0 else -1
+        yield from self.wait(0.25, lambda k: (setattr(a, "mouth", ease(k)), setattr(a, "squash", -0.3 * ease(k))))
+        mx, my = a.mouth_at()
+        self.bits.append(Bubble(mx, my - 4, self.t, size=5))
+        yield from self.wait(0.5, lambda k: setattr(a, "squash", -0.3 + 0.5 * math.sin(k * math.pi)))
+        a.mouth, a.squash = 0.0, 0.0
+        a.squint = 1.0
+        yield from self.wait(0.6)
+        a.squint = 0.0
+        # a look back at you, and a wink
+        a.look, a.wink = 1.0, True
+        yield from self.wait(1.0, lambda k: setattr(a, "sway", -0.15 * math.sin(k * math.pi)))
+        a.look, a.wink, a.sway = 0.0, False, 0.0
+        a.waddle = 1.0
+        yield from self.go(lambda: (exit_x, y), speed=62, near=3)
         a.waddle = 0.0
         self.apex = None
 
@@ -781,6 +977,9 @@ class Hunt:
     # every frame --------------------------------------------------------------------
     def update(self, dt, t):
         self.dt, self.t = dt, t
+        a = self.apex
+        if a is not None:
+            a.stretch *= 1 - min(1.0, dt * 6)   # it catches up with itself when it stops
         if not self.done and t - self.t0 > 120:  # whatever happened, never let it linger
             self.apex = None
             self.finish()
@@ -793,7 +992,7 @@ class Hunt:
         a = self.apex
         if a is not None and a.lurk < 1 and t > self.next_drip:  # it drips as it goes
             self.next_drip = t + self.rng.uniform(0.12, 0.3)
-            bx, by = self.rng.choice(a.beads(t) + [(a.x, a.y - 2 - a.lift)])
+            bx, by = self.rng.choice(a.drips())
             self.bits.append(Drop(bx, by, self.floor(bx, a.y), self.rng.uniform(-6, 6), 0.0))
         if self.done:
             return
@@ -805,27 +1004,6 @@ class Hunt:
             if back is not None and t > back:
                 m = ease((t - back) / 2.0)
             swarm.mult[i] = m
-
-    def focus(self, low):
-        """What the camera on one screen should keep in frame: the creature, whatever it
-        is after, and any goo on its way there — so a long-range kill is never missed.
-        In that screen's own coordinates; empty if nothing is happening there."""
-        a = self.apex
-        if a is None:
-            return []
-        on_low = a.y >= OFFSET[1]
-        if on_low != low:
-            return []
-        ox, oy = OFFSET if low else (0, 0)
-        pts = [(a.x, a.y - 2 - a.lift), (a.x, a.y - 28 - a.lift)]  # its feet, the tip of its crest
-        if self.target is not None and not self.target.eaten:
-            pts.append(self.target.pos())
-        for b in self.bits:
-            if isinstance(b, (Glob, Cocoon)):
-                pts.append((b.x, b.y))
-            if isinstance(b, Glob):
-                pts.append(b.aim())  # and where it is going
-        return [(x - ox, y - oy) for x, y in pts if (y >= OFFSET[1]) == low]
 
     def finish(self):
         for p in self.prey:

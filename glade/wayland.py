@@ -116,7 +116,7 @@ class Surface:
         v = self.view
         cr.set_source_rgb(*(c / 255 for c in main.INK))
         cr.paint()
-        r = v.shown()  # all of the canvas, or the part the camera is following
+        r = v.shown()
         shown = v.canvas.subsurface(r)
         data = bytearray(pygame.image.tobytes(shown, "BGRA"))
         img = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_RGB24, r.w, r.h, r.w * 4)
