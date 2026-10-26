@@ -11,8 +11,9 @@ hit chances, accuracy stages, the type chart, whether a move is physical or spec
 its type, as in Gen 3), sleep/freeze/paralysis/poison/confusion, Protect, multi-hit,
 recoil and drain all work the way they do in those games.
 
-The animals and their base stats were chosen as if each were a first or second
-evolution (base stat totals of about 380-410).
+Every animal here is the first of three evolutions (the later ones don't exist yet), so
+its base stats total 300-320, like Bulbasaur or Treecko; a fully evolved one would total
+500-600, about 530 on average.
 """
 
 import math
@@ -142,28 +143,28 @@ MOVES = {
 }
 
 # --- the animals ---------------------------------------------------------------------
-# base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed
+# base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed — first stages, totals 300-320
 
 SPECIES = {
-    "Critter": dict(types=("Normal",), base=(70, 75, 60, 45, 60, 95), ability="Guts",
+    "Critter": dict(types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                           "Swords Dance", "Agility"]),
-    "Squid": dict(types=("Water", "Psychic"), base=(60, 50, 55, 90, 75, 85), ability="Levitate",
+    "Squid": dict(types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
                   pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                         "Hypnosis", "Recover", "Calm Mind"]),
-    "Slug": dict(types=("Poison",), base=(90, 60, 70, 60, 80, 20), ability="Liquid Ooze",
+    "Slug": dict(types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
                  pool=["Sludge Bomb", "Sludge", "Toxic", "Acid Armor", "Giga Drain", "Mud-Slap", "Rest", "Curse",
                        "Pain Split", "Haze", "Body Slam"]),
-    "Snail": dict(types=("Bug", "Rock"), base=(65, 60, 115, 40, 85, 15), ability="Shell Armor",
+    "Snail": dict(types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
                   pool=["Rock Slide", "Ancient Power", "Silver Wind", "Rock Tomb", "Iron Defense", "Withdraw",
                         "Protect", "Toxic", "Rest", "Leech Life", "Curse"]),
-    "Millipede": dict(types=("Bug", "Poison"), base=(55, 85, 70, 40, 55, 80), ability="Poison Point",
+    "Millipede": dict(types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
                       pool=["Poison Tail", "Pin Missile", "Signal Beam", "Sludge Bomb", "Toxic", "Swords Dance",
                             "Agility", "Screech", "Rock Tomb"]),
-    "Koi": dict(types=("Water",), base=(70, 80, 60, 55, 65, 80), ability="Swift Swim",
+    "Koi": dict(types=("Water",), base=(53, 60, 45, 42, 49, 61), ability="Swift Swim",
                 pool=["Waterfall", "Hydro Pump", "Surf", "Dragon Dance", "Return", "Bubble Beam", "Dragon Breath",
                       "Twister", "Ice Beam", "Body Slam"]),
-    "Tree Squid": dict(types=("Water", "Grass"), base=(65, 55, 65, 80, 85, 60), ability="Suction Cups",
+    "Tree Squid": dict(types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
                        pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
                              "Octazooka", "Synthesis", "Sleep Powder"]),
 }

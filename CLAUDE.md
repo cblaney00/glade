@@ -68,6 +68,17 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   jelly (his ask: amorphous, not cat-like) eats every animal; what it eats keeps glowing
   inside it so the eating is obvious; then a long, characterful waddle off. The picture
   never zooms to follow it — he only wants it on screen.
+- `glade/battle.py` — his second easter egg, Pokémon Showdown **Gen 3 OU** rules: click the
+  moon (it shines bright while it listens), type "battle", click two animals (anywhere on
+  the body; any place, any screen; not fireflies), and they walk onto a mossy field in the
+  top screen's bottom-right corner and fight. You click your moves in the board in the
+  bottom-left, and the foe picks its own. `Battle` is the rules engine (Gen 3 stat, damage, crit,
+  accuracy, status, Protect, multi-hit, recoil, drain, Leftovers; physical/special by
+  type). `Arena` is the picking, field and board. **Right-click any animal** for its base stats
+  (`Card`; a tree squid has "Battle stats" in its menu). His rules for it: every animal
+  is the **first of three evolutions** (base totals 300-320; a final stage would be 500-600,
+  ~530 average). The later evolutions are not made yet, so don't add them unless he asks. The big
+  violet slug lives in the middle strip of grass because the corner is the field.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; name boards, fades, app launching.
