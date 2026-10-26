@@ -844,6 +844,10 @@ class Glade:
             self.overlay(view, content, t)
             if self.arena is not None:
                 self.arena.draw(view.canvas, view is self.bottom, t)
+                if view is self.top:  # path signs stay on top of the battle board, and clickable
+                    m = view.mouse()
+                    for sp in self.arena.paths(content):
+                        self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)

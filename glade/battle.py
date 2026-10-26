@@ -761,14 +761,15 @@ class Arena:
     def click(self, glade, t):
         """True if the click was the battle's."""
         m = glade.top.mouse()
-        if self.leaving is not None:
-            return False
-        if m and self.rect.collidepoint(m):
+        cover = self.cover()
+        if m and cover and cover.collidepoint(m):
+            if any(sp.kind == "go" and sp.boards[2].collidepoint(m) for sp in self.paths(glade.here)):
+                return False  # a path sign drawn over the box: the glade takes him there
             for r, action in self.buttons:
                 if r.collidepoint(m):
                     action(t)
             return True
-        if self.phase != "pick":
+        if self.phase != "pick" or self.leaving is not None:
             return False
         for view, low in ((glade.top, False), (glade.bottom, True)):
             if view is None:
@@ -776,8 +777,7 @@ class Arena:
             m = view.mouse()
             if not m:
                 continue
-            x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
-            hit = self.animal_at(x, y)
+            hit = self.animal_at(m, low, t)
             if hit is not None:
                 self.picked.append((*hit, self.scene))
                 if len(self.picked) == 2:
@@ -785,19 +785,61 @@ class Arena:
                 return True
         return False
 
-    def animal_at(self, x, y):
-        best, near = None, 24.0
+    def cover(self):
+        """The part of the top screen the battle's board covers just now, if any."""
+        if self.leaving is not None:
+            return None
+        if self.phase == "pick":
+            return pygame.Rect(self.rect.x, self.rect.bottom - 48, self.rect.w, 48)
+        return self.rect
+
+    def paths(self, content):
+        """The path signs the board would hide: they are drawn again on top of it."""
+        cover = self.cover()
+        return [sp for sp in content.spots if cover and sp.kind == "go" and getattr(sp, "boards", None)
+                and sp.boards[2].colliderect(cover)]
+
+    def animal_at(self, m, low, t):
+        """The animal under the pointer `m` (in that screen's own pixels). Anywhere on its
+        body counts: each one nearby is drawn into a tiny patch round the pointer, and if it
+        puts any colour there, it was hit. Failing that, the nearest one close by."""
+        x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
         taken = [p[0] for p in self.picked]
+        near, hits = [], []
         for a, sp in animals(self.scene, self.lower):
-            if any(a.obj is b.obj for b in taken):
-                continue
-            if getattr(a.obj, "gone", False):
+            if a.low != low or getattr(a.obj, "gone", False) or any(a.obj is b.obj for b in taken):
                 continue
             ax, ay = a.pos()
             d = math.hypot(ax - x, ay - y)
-            if d < near:
-                best, near = (a, sp), d
-        return best
+            if d < 90:
+                near.append((d, a, sp))
+        for d, a, sp in sorted(near, key=lambda n: n[0]):
+            if self.touches(a, m, t):
+                hits.append((d, a, sp))
+        best = hits[0] if hits else min(near, default=None, key=lambda n: n[0])
+        if best is None or (not hits and best[0] > 24):
+            return None
+        return best[1], best[2]
+
+    KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
+
+    def touches(self, a, m, t):
+        box = pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 9, 9).clip(self.scratch.get_rect())
+        if box.w <= 0 or box.h <= 0:
+            return False
+        self.scratch.set_clip(box)
+        self.scratch.fill(self.KEY, box)
+        o = a.obj
+        if isinstance(a, Perched):
+            o.shine(self.scratch, t, 12)
+        else:
+            for part in ("draw", "shine"):
+                fn = getattr(o, part, None)
+                if fn:
+                    fn(self.scratch, t)
+        self.scratch.set_clip(None)
+        untouched = pygame.mask.from_threshold(self.scratch.subsurface(box), self.KEY, (1, 1, 1, 255))
+        return untouched.count() < box.w * box.h
 
     def start(self, t):
         self.battle = Battle(self.picked[0][1], self.picked[1][1])
