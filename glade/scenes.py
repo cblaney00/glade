@@ -820,7 +820,7 @@ def build_rocks():
         return [pt for pt in pts if pt[1] < top + 16]
 
     for lo, hi, body, spots, shell, sz in ((380, 470, (130, 120, 220), GLOW["cyan"], None, 1.4),
-                                          (520, 620, (236, 190, 120), None, None, 1.5),
+                                          (528, 606, (236, 190, 120), None, None, 1.5),  # its own boulder only
                                           (300, 400, (210, 190, 200), None, (180, 150, 230), 1.3)):
         pts = crest(lo, hi)
         if len(pts) > 3:
