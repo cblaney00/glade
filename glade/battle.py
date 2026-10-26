@@ -620,6 +620,56 @@ def animals(scene, lower):
     return out
 
 
+# --- finding the animal under the pointer -------------------------------------------
+
+KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
+_patch = []
+
+
+def animal_under(scene, lower, m, low, t, skip=()):
+    """The (animal, species) under the pointer `m` (in that screen's own pixels; `low`: the
+    lower screen). Anywhere on its body counts: each one nearby is drawn into a tiny patch
+    round the pointer, and if it puts any colour there, it was hit. Failing that, the
+    nearest one close by."""
+    x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
+    near, hits = [], []
+    for a, sp in animals(scene, lower):
+        if a.low != low or getattr(a.obj, "gone", False) or any(a.obj is o for o in skip):
+            continue
+        ax, ay = a.pos()
+        d = math.hypot(ax - x, ay - y)
+        if d < 90:
+            near.append((d, a, sp))
+    near.sort(key=lambda n: n[0])
+    hits = [n for n in near if touches(n[1], m, t)]
+    best = hits[0] if hits else (near[0] if near else None)
+    if best is None or (not hits and best[0] > 24):
+        return None
+    return best[1], best[2]
+
+
+def touches(a, m, t):
+    if not _patch:
+        _patch.append(art.solid())
+    patch = _patch[0]
+    box = pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 9, 9).clip(patch.get_rect())
+    if box.w <= 0 or box.h <= 0:
+        return False
+    patch.set_clip(box)
+    patch.fill(KEY, box)
+    o = a.obj
+    if isinstance(a, Perched):
+        o.shine(patch, t, 12)
+    else:
+        for part in ("draw", "shine"):
+            fn = getattr(o, part, None)
+            if fn:
+                fn(patch, t)
+    patch.set_clip(None)
+    untouched = pygame.mask.from_threshold(patch.subsurface(box), KEY, (1, 1, 1, 255))
+    return untouched.count() < box.w * box.h
+
+
 # --- the battle box ------------------------------------------------------------------
 
 EDGE = (24, 14, 34)
@@ -634,6 +684,20 @@ WALK = 1.6                # seconds to walk onto the field (and home again)
 # its opponent further back, as in the games) and the size of its mossy platform
 SPOTS = ((690, 498), (862, 452))
 PADS = ((112, 26), (86, 20))
+
+
+def cloth(s, r, tint, hot=False, alpha=200):
+    """A panel of the glade's glowing spirit-cloth, lit from above."""
+    surf = pygame.Surface(r.size, pygame.SRCALPHA)
+    pygame.draw.rect(surf, (*mix(tint, EDGE, 0.72), alpha), surf.get_rect(), border_radius=4)
+    light = pygame.Surface(r.size, pygame.SRCALPHA)  # drawn apart, then laid on top, so it blends
+    for i in range(r.h - 4):
+        a = round((80 if hot else 46) * (1 - i / r.h))
+        pygame.draw.line(light, (*tint, a), (2, 2 + i), (r.w - 3, 2 + i))
+    surf.blit(light, (0, 0))
+    rim = (255, 255, 255) if hot else mix(tint, (255, 255, 255), 0.45)
+    pygame.draw.rect(surf, (*rim, 230 if hot else 160), surf.get_rect(), 1, border_radius=4)
+    s.blit(surf, r)
 
 
 class Fighter:
@@ -800,46 +864,7 @@ class Arena:
                 and sp.boards[2].colliderect(cover)]
 
     def animal_at(self, m, low, t):
-        """The animal under the pointer `m` (in that screen's own pixels). Anywhere on its
-        body counts: each one nearby is drawn into a tiny patch round the pointer, and if it
-        puts any colour there, it was hit. Failing that, the nearest one close by."""
-        x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
-        taken = [p[0] for p in self.picked]
-        near, hits = [], []
-        for a, sp in animals(self.scene, self.lower):
-            if a.low != low or getattr(a.obj, "gone", False) or any(a.obj is b.obj for b in taken):
-                continue
-            ax, ay = a.pos()
-            d = math.hypot(ax - x, ay - y)
-            if d < 90:
-                near.append((d, a, sp))
-        for d, a, sp in sorted(near, key=lambda n: n[0]):
-            if self.touches(a, m, t):
-                hits.append((d, a, sp))
-        best = hits[0] if hits else min(near, default=None, key=lambda n: n[0])
-        if best is None or (not hits and best[0] > 24):
-            return None
-        return best[1], best[2]
-
-    KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
-
-    def touches(self, a, m, t):
-        box = pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 9, 9).clip(self.scratch.get_rect())
-        if box.w <= 0 or box.h <= 0:
-            return False
-        self.scratch.set_clip(box)
-        self.scratch.fill(self.KEY, box)
-        o = a.obj
-        if isinstance(a, Perched):
-            o.shine(self.scratch, t, 12)
-        else:
-            for part in ("draw", "shine"):
-                fn = getattr(o, part, None)
-                if fn:
-                    fn(self.scratch, t)
-        self.scratch.set_clip(None)
-        untouched = pygame.mask.from_threshold(self.scratch.subsurface(box), self.KEY, (1, 1, 1, 255))
-        return untouched.count() < box.w * box.h
+        return animal_under(self.scene, self.lower, m, low, t, skip=[p[0].obj for p in self.picked])
 
     def start(self, t):
         self.battle = Battle(self.picked[0][1], self.picked[1][1])
@@ -932,17 +957,8 @@ class Arena:
         return r.w + 3
 
     def cloth(self, s, r, tint, hot=False, alpha=200):
-        """A panel of the glade's glowing spirit-cloth, lit from above."""
-        surf = pygame.Surface(r.size, pygame.SRCALPHA)
-        pygame.draw.rect(surf, (*mix(tint, EDGE, 0.72), alpha), surf.get_rect(), border_radius=4)
-        light = pygame.Surface(r.size, pygame.SRCALPHA)  # drawn apart, then laid on top, so it blends
-        for i in range(r.h - 4):
-            a = round((80 if hot else 46) * (1 - i / r.h))
-            pygame.draw.line(light, (*tint, a), (2, 2 + i), (r.w - 3, 2 + i))
-        surf.blit(light, (0, 0))
-        rim = (255, 255, 255) if hot else mix(tint, (255, 255, 255), 0.45)
-        pygame.draw.rect(surf, (*rim, 230 if hot else 160), surf.get_rect(), 1, border_radius=4)
-        s.blit(surf, r)
+        cloth(s, r, tint, hot, alpha)
+
 
     def bar(self, s, x, y, w, hp, maxhp):
         f = max(0.0, min(1.0, hp / maxhp))
@@ -1101,3 +1117,67 @@ class Arena:
                 if b > 0.45:
                     s.set_at((round(x + math.cos(a) * w / 2), round(y + math.sin(a) * h / 2)),
                              mix(c, (255, 255, 255), b * 0.6))
+
+
+# --- right-click an animal: its base stats ---------------------------------------------
+
+def stat_color(v):
+    """Showdown-style: the higher the stat, the cooler the colour."""
+    return ((255, 110, 120) if v < 30 else (255, 170, 110) if v < 60 else (255, 226, 110) if v < 90
+            else (150, 240, 130) if v < 120 else (110, 230, 220))
+
+
+class Card:
+    """A small board next to an animal with what it would be in a battle: its kind, types,
+    ability and base stats. Any click closes it."""
+
+    W = 200
+    ROWS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
+
+    def __init__(self, font, view, at, species, t):
+        self.font, self.view, self.species, self.t = font, view, species, t
+        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18
+        self.rect = pygame.Rect(round(at[0]) + 12, round(at[1]) - h // 2, self.W, h)
+        if self.rect.right > view.w - 4:  # no room on the right: open on the left
+            self.rect.right = round(at[0]) - 12
+        self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
+
+    def text(self, s, words, x, y, color=TEXT, right=False):
+        img = self.font.render(words, False, color)
+        s.blit(img, (x - img.get_width() if right else x, y))
+        return img.get_width()
+
+    def draw(self, s, t):
+        k = ease((t - self.t) / 0.2)
+        if k <= 0:
+            return
+        sp = SPECIES[self.species]
+        surf = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+        cloth(surf, surf.get_rect(), CLOTH, alpha=240)
+        y = 5
+        self.text(surf, self.species, 8, y, (255, 255, 255))
+        y += 16
+        x = 8
+        for kind in sp["types"]:
+            c = TYPE_COLOR.get(kind, (200, 200, 200))
+            img = self.font.render(kind.upper(), False, EDGE)
+            pygame.draw.rect(surf, c, (x, y, img.get_width() + 6, img.get_height() + 1), border_radius=3)
+            surf.blit(img, (x + 3, y))
+            x += img.get_width() + 9
+        y += 16
+        self.text(surf, "Ability", 8, y, DIM)
+        self.text(surf, sp["ability"], self.W - 8, y, TEXT, right=True)
+        y += 16
+        for label, v in zip(self.ROWS, sp["base"]):
+            self.text(surf, label, 8, y, DIM)
+            self.text(surf, str(v), 92, y, TEXT, right=True)
+            bw = round(92 * min(1.0, v / 150))
+            pygame.draw.rect(surf, (20, 12, 30), (100, y + 4, 92, 5), border_radius=2)
+            pygame.draw.rect(surf, stat_color(v), (100, y + 4, bw, 5), border_radius=2)
+            y += 13
+        y += 3
+        pygame.draw.line(surf, mix(CLOTH, EDGE, 0.4), (8, y - 2), (self.W - 8, y - 2))
+        self.text(surf, "Total", 8, y, DIM)
+        self.text(surf, str(sum(sp["base"])), 92, y, (255, 255, 255), right=True)
+        surf.set_alpha(round(255 * k))
+        s.blit(surf, self.rect)

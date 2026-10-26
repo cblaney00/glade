@@ -17,7 +17,7 @@ import pygame
 
 import art
 from apex import Hunt, Listener
-from battle import Arena
+from battle import Arena, Card, animal_under
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -574,6 +574,7 @@ class Glade:
         self.arena = None  # the battle (battle.py): click the moon, type "battle"
         self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
         self.popup = None  # the right-click menu, while it is open
+        self.card = None   # an animal's battle stats (battle.py), from a right-click
 
     def scene(self, key):
         if key not in self.scenes:
@@ -632,6 +633,9 @@ class Glade:
     def click(self, t):
         if self.fade_to:
             return
+        if self.card is not None:  # a click just closes the stats card
+            self.card = None
+            return
         if self.popup is not None:  # a click chooses from the open menu, or just closes it
             pop, self.popup = self.popup, None
             i = pop.at(pop.view.mouse())
@@ -675,32 +679,41 @@ class Glade:
             return
 
     def right_click(self, t):
-        """Right-click a squid to open or remove it; right-click a tree he grew to take
-        it away."""
-        self.popup = None
+        """Right-click an animal to see its battle stats; right-click a squid to open or
+        remove it (or see its stats); right-click a tree he grew to take it away."""
+        self.popup, self.card = None, None
         if self.fade_to:
             return
         for view, content in self.views():
             m = view.mouse()
-            colony = getattr(content, "colony", None)
-            if not m or colony is None:
+            if not m:
                 continue
+            colony = getattr(content, "colony", None)
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
             sp = view.hovered(content.spots)
             choices = []
-            if sp is not None and getattr(sp, "squid", None):
+            if sp is not None and getattr(sp, "squid", None) and colony is not None:
                 sq = sp.squid
                 gone = "Remove (to Trash)" if sq.item.get("path") else "Remove from the trees"
                 choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
-                           (gone, lambda t, sq=sq: colony.remove(sq))]
+                           (gone, lambda t, sq=sq: colony.remove(sq)),
+                           ("Battle stats", lambda t, v=view, m=m: self.show_card(v, m, "Tree Squid", t))]
             elif sp is None:
-                tree = colony.tree_at(m)
+                low = self.lower() if self.bottom else None
+                found = animal_under(self.here, low, m, view is self.bottom, t)
+                if found is not None:
+                    self.show_card(view, m, found[1], t)
+                    return
+                tree = colony.tree_at(m) if colony is not None else None
                 if tree is not None:
                     choices = [("Remove this tree", lambda t, g=tree: colony.cut(g, t))]
             if choices:
                 self.popup = Popup(self.signs.font, view, m, choices, t)
             return
+
+    def show_card(self, view, m, species, t):
+        self.card = Card(self.signs.font, view, m, species, t)
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that
@@ -848,6 +861,8 @@ class Glade:
                     m = view.mouse()
                     for sp in self.arena.paths(content):
                         self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
+            if self.card is not None and self.card.view is view:
+                self.card.draw(view.canvas, t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
