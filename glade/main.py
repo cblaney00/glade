@@ -680,7 +680,7 @@ class Glade:
                     return
                 if self.minimap.rect and self.minimap.rect.collidepoint(m):
                     return
-            sp = view.hovered(content.spots)
+            sp = self.unless_animal(view, view.hovered(content.spots), m, t)
             moon = getattr(content, "moon", None)
             if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
                 self.listener.start(t)  # the moon listens...
@@ -717,7 +717,7 @@ class Glade:
             colony = getattr(content, "colony", None)
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
-            sp = view.hovered(content.spots)
+            sp = self.unless_animal(view, view.hovered(content.spots), m, t)
             choices = []
             if sp is not None and getattr(sp, "squid", None) and colony is not None:
                 sq = sp.squid
@@ -738,6 +738,14 @@ class Glade:
             if choices:
                 self.popup = Popup(self.signs.font, view, m, choices, t)
             return
+
+    def unless_animal(self, view, sp, m, t):
+        """A path's wide clickable area gives way to an animal drawn right under the
+        pointer (the Moss Mole lives inside the Mossy Rocks path's); its sign never does."""
+        if sp is None or sp.kind != "go" or sp.boards[2].collidepoint(m):
+            return sp
+        low = self.lower() if self.bottom else None
+        return None if animal_under(self.here, low, m, view is self.bottom, t, exact=True) else sp
 
     def storm_view(self):
         """Where the Thunderstorm button is, while it is shown (else None)."""

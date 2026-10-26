@@ -751,11 +751,11 @@ KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
 _patch = []
 
 
-def animal_under(scene, lower, m, low, t, skip=()):
+def animal_under(scene, lower, m, low, t, skip=(), exact=False):
     """The (animal, species) under the pointer `m` (in that screen's own pixels; `low`: the
     lower screen). Anywhere on its body counts: each one nearby is drawn into a tiny patch
     round the pointer, and if it puts any colour there, it was hit. Failing that, the
-    nearest one close by."""
+    nearest one close by (not when `exact`)."""
     x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
     near, hits = [], []
     for a, sp in animals(scene, lower):
@@ -767,7 +767,7 @@ def animal_under(scene, lower, m, low, t, skip=()):
             near.append((d, a, sp))
     near.sort(key=lambda n: n[0])
     hits = [n for n in near if touches(n[1], m, t)]
-    best = hits[0] if hits else (near[0] if near else None)
+    best = hits[0] if hits else (near[0] if near and not exact else None)
     if best is None or (not hits and best[0] > 24):
         return None
     return best[1], best[2]
