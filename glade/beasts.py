@@ -134,9 +134,20 @@ class Flier(Clock):
             pygame.draw.ellipse(s, wing, (x + (0 if side > 0 else -w1), y - 8 * z, w1, 9 * z))
             w2 = 7 * z * open_
             pygame.draw.ellipse(s, mix(wing, INK, 0.2), (x + (0 if side > 0 else -w2), y - 1 * z, w2, 6 * z))
+        big = getattr(self, "stage", 1) > 1  # Beacon Moth, its evolution (evolve.py)
+        if big:  # bands of colour across the wings
+            for side in (-1, 1):
+                w1 = 10 * z * open_
+                band = (x + (w1 * 0.35 if side > 0 else -w1 * 0.65), y - 6 * z, w1 * 0.3, 6 * z)
+                pygame.draw.ellipse(s, mix(wing, (200, 90, 80), 0.45), band)
         pygame.draw.ellipse(s, self.body, (x - 2 * z, y - 5 * z, 4 * z, 10 * z))
         for side in (-1, 1):  # feathery antennae
-            pygame.draw.line(s, mix(self.body, INK, 0.3), (x, y - 5 * z), (x + side * 4 * z, y - 10 * z))
+            tip = (x + side * (5 if big else 4) * z, y - (12 if big else 10) * z)
+            pygame.draw.line(s, mix(self.body, INK, 0.3), (x, y - 5 * z), tip)
+            if big:  # plumed: little barbs along them
+                for k in (0.4, 0.6, 0.8):
+                    bx, by = x + (tip[0] - x) * k, y - 5 * z + (tip[1] - y + 5 * z) * k
+                    pygame.draw.line(s, mix(self.body, INK, 0.2), (bx, by), (bx + side * 1.5 * z, by + 1 * z))
 
     # the dragonfly: a long glinting body and four wings, a blur when it hovers
     def draw_drake(self, s, t):
@@ -171,6 +182,12 @@ class Flier(Clock):
                 s.set_at((round(x + ex * z), round(y - 1 * z)), self.color)
         elif self.kind == "moth":
             glow(s, x, y, int(10 * z), self.color, q(70 + 50 * k))
+            if getattr(self, "stage", 1) > 1:  # a lantern of a belly, and embers trailing behind
+                b = 0.7 + 0.3 * math.sin(t * 3 + self.phase)
+                glow(s, x, y + 3 * z, int(9 * z), (255, 170, 90), q(140 * b))
+                pygame.draw.ellipse(s, (255, 214, 140), (x - 1.5 * z, y + 1 * z, 3 * z, 4 * z))
+                for i, (px, py) in enumerate(self.trail[2::2]):
+                    s.set_at((round(px), round(py + 3 * z + i)), mix((255, 170, 90), (60, 30, 50), i / 4))
             for side in (-1, 1):  # eye-spots on the wings glow like embers
                 s.set_at((round(x + side * 5 * z), round(y - 4 * z)), (255, 210, 120))
         elif self.kind == "drake":
@@ -297,6 +314,24 @@ class Walker(Clock):
         pygame.draw.line(s, (230, 80, 90), (hx - 4 * z, y - 8 * z), (hx + 4 * z, y - 8 * z), max(1, round(z)))
         pygame.draw.line(s, (230, 80, 90), (hx - f * 4 * z, y - 8 * z), (hx - f * 7 * z, y - 6 * z), 1)
         pygame.draw.line(s, dark, (hx + f * z, y - 5 * z), (hx + f * 4 * z, y - 5 * z))
+        if getattr(self, "stage", 1) > 1:  # Bruiser Toad, its evolution (evolve.py)
+            for i in range(3):  # stripes down its back
+                bx = x - f * (3 - i * 2.5) * z
+                pygame.draw.line(s, dark, (bx, y - 9 * z), (bx - f * z, y - 6 * z))
+            for side in (-1, 1):  # fierce brows
+                ex = hx + side * 2 * z
+                pygame.draw.line(s, INK, (ex - 1.5 * z, y - (13 if side * f < 0 else 12.5) * z),
+                                 (ex + 1.5 * z, y - (12.5 if side * f < 0 else 13) * z))
+            for i in range(2):  # the headband's tails stream out behind
+                wave = math.sin(t * 6 + i * 1.5) * 1.5 * z
+                pygame.draw.line(s, (230, 80, 90), (hx - f * 4 * z, y - 8 * z), (hx - f * 10 * z, y - (8 - i * 2) * z + wave))
+            punch = max(0.0, math.sin(t * 2 + self.phase)) ** 8 * 3 * z  # a jab now and then
+            for side, c in ((-1, dark), (1, self.body)):  # burly arms with bandaged fists
+                sx, sy = x + f * 3 * z, y - (4 if side > 0 else 5) * z
+                fx, fy = x + f * (9 * z + (punch if side > 0 else 0)), y - (3 if side > 0 else 5) * z
+                pygame.draw.line(s, c, (sx, sy), (fx, fy), max(2, round(1.6 * z)))
+                pygame.draw.circle(s, (238, 226, 206), (round(fx), round(fy)), max(2, round(2.2 * z)))
+                pygame.draw.line(s, (200, 186, 170), (fx - z, fy), (fx + z, fy))
 
     # the mole: velvet, with a pink star of a nose that glows, by its hole
     def draw_mole(self, s, t):
@@ -318,16 +353,35 @@ class Walker(Clock):
     # the sporeling: a mushroom cap on a little stem, waddling, its spots aglow
     def draw_sporeling(self, s, t):
         z, x, y, f = self.size, self.x, self.y, self.facing
+        big = getattr(self, "stage", 1) > 1  # Sporestride, its evolution (evolve.py): up on longer legs
         moving = self.wait <= 0
         tilt = math.sin(self.step) * 1.5 * z if moving else 0
-        for k in (0, math.pi):  # feet
+        for k in (0, math.pi):  # feet (and, grown, long thin legs)
             lift = max(0.0, math.sin(self.step + k)) * 2 * z if moving else 0
-            pygame.draw.rect(s, mix(self.body, INK, 0.3), (x - 2 * z + (2 * z if k else -2 * z), y - 2 * z - lift, 3 * z, 2 * z))
+            fx = x - 2 * z + (2 * z if k else -2 * z)
+            if big:
+                pygame.draw.line(s, mix(self.body, INK, 0.2), (fx + 1.5 * z, y - 2 * z - lift), (fx + 1.5 * z, y - 6 * z), max(1, round(z)))
+            pygame.draw.rect(s, mix(self.body, INK, 0.3), (fx, y - 2 * z - lift, 3 * z, 2 * z))
+        if big:
+            y -= 4 * z
+            for side in (-1, 1):  # little root arms, forked at the ends
+                ax, ay = x + side * 3 * z, y - 6 * z
+                hx, hy = ax + side * 4 * z, ay + 3 * z + math.sin(t * 3 + side) * z
+                pygame.draw.line(s, mix(self.body, INK, 0.25), (ax, ay), (hx, hy))
+                pygame.draw.line(s, mix(self.body, INK, 0.25), (hx, hy), (hx + side * z, hy + 1.5 * z))
+                pygame.draw.line(s, mix(self.body, INK, 0.25), (hx, hy), (hx + side * 1.5 * z, hy))
         pygame.draw.rect(s, self.body, (x - 3 * z, y - 10 * z, 6 * z, 9 * z), border_radius=max(1, round(2 * z)))
         cap = [(x - 9 * z + tilt, y - 9 * z), (x + 9 * z + tilt, y - 9 * z)]
         pygame.draw.ellipse(s, mix(self.color, INK, 0.35), (cap[0][0], y - 17 * z + 1, 18 * z, 10 * z))
         pygame.draw.ellipse(s, mix(self.color, (255, 255, 255), 0.15), (cap[0][0], y - 17 * z, 18 * z, 10 * z))
         pygame.draw.line(s, mix(self.color, INK, 0.5), cap[0], cap[1])
+        if big:
+            for i in range(-3, 4, 2):  # gills under the cap
+                pygame.draw.line(s, mix(self.color, INK, 0.55), (x + i * 2 * z + tilt, y - 9 * z), (x + i * 1.6 * z + tilt, y - 8 * z))
+            sx = x - f * 7 * z + tilt  # a second, smaller cap sprouting from the first
+            pygame.draw.ellipse(s, mix(self.color, INK, 0.35), (sx - 4 * z, y - 21 * z + 1, 8 * z, 5 * z))
+            pygame.draw.ellipse(s, mix(self.color, (255, 255, 255), 0.25), (sx - 4 * z, y - 21 * z, 8 * z, 5 * z))
+            pygame.draw.line(s, mix(self.body, INK, 0.2), (sx, y - 16.5 * z), (sx + f * 2 * z, y - 15 * z))
         self.eyes(s, x - 1.5 * z + f * z, y - 6 * z, 3 * z)
 
     # the newt: an icy-blue body and long tail, a pale belly, frost spikes down its back,
@@ -393,7 +447,14 @@ class Walker(Clock):
         z, x, y, f = self.size, self.x, self.y, self.facing
         k = swell(t - self.poked, 0.1, 0.8)
         if self.kind == "sporeling":
-            for i, (sx, sy) in enumerate(((-5, -14), (0, -15), (4, -13), (-2, -12), (6, -11))):
+            big = getattr(self, "stage", 1) > 1
+            if big:
+                y -= 4 * z
+                sx0 = x - f * 7 * z
+                for i in range(3):
+                    b = 0.5 + 0.5 * math.sin(t * 2.4 + i * 2 + self.phase)
+                    s.set_at((round(sx0 + (i - 1) * 2 * z), round(y - 19.5 * z)), mix(self.color, (255, 255, 255), 0.4 + 0.5 * b))
+            for i, (sx, sy) in enumerate(((-5, -14), (0, -15), (4, -13), (-2, -12), (6, -11), (-6, -11), (2, -16))[:7 if big else 5]):
                 b = 0.5 + 0.5 * math.sin(t * 2 + i * 1.3 + self.phase)
                 s.set_at((round(x + sx * z), round(y + sy * z)), mix(self.color, (255, 255, 255), 0.4 + 0.5 * b))
             glow(s, x, y - 13 * z, int(10 * z), self.color, q(40 + 90 * k))

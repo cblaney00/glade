@@ -37,6 +37,11 @@ NIGHT = (22, 16, 42)
 def specimen(species):
     """One of the species made just to be drawn here, standing in the middle of a picture.
     Trees' dwellers come back as ("perch", kind)."""
+    from evolve import EVOLVED_FROM, set_stage
+    if species in EVOLVED_FROM:  # an evolved one: its first stage, grown
+        thing = specimen(EVOLVED_FROM[species])
+        set_stage(thing, 2)
+        return thing
     rng = random.Random(7)
     cx, cy = PW // 2, PH - 12
     if species == "Critter":

@@ -99,6 +99,14 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   second wave: `scenes.second_wave`, plus all five walkers and four fliers on each lower screen).
   The trees always hold a mix of squid and owlets (each one is either), re-mixed by a storm. Places
   not on screen are re-shuffled at once. Animals in a battle are left alone.
+- `glade/evolve.py` — **evolution** (his test, 2026-10-26): only the middle stages of his five
+  best designs so far — Critter → Glowtail, Squid → Nimbusquid, Lantern Moth → Beacon Moth,
+  Brawl Toad → Bruiser Toad, Sporeling → Sporestride. They have base totals of about 410 and are
+  numbered right after their first stage. An evolved animal is the same object with `stage = 2`
+  (`set_stage`), and each class draws its extras for it, growing on the old look the way
+  Pokémon does. The stats card's gold "Evolve into …" button plays a ~4 s evolution: dim, a
+  white shape flickering faster between forms, a flash, and a banner. It does not persist
+  across restarts yet. Final stages are not made yet: don't add them unless he asks.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; name boards, fades, app launching.

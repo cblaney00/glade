@@ -20,6 +20,7 @@ from apex import Hunt, Listener
 from battle import Arena, Card, animal_under
 from dex import Dex
 import storm
+from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -580,6 +581,7 @@ class Glade:
         self.dex = None    # the Forest Dex (dex.py), opened from that card
         self.storm = None  # a thunderstorm (storm.py): the animals take turns
         self.storm_scratch = art.solid()
+        self.evolution = None  # an animal evolving (evolve.py), from its stats card
 
     def scene(self, key):
         if key not in self.scenes:
@@ -653,11 +655,14 @@ class Glade:
             else:
                 self.dex = None
             return
-        if self.card is not None:  # a click closes the stats card, or opens the dex
+        if self.card is not None:  # a click closes the stats card, opens the dex, or evolves it
             card, self.card = self.card, None
             m = card.view.mouse()
             if m and card.button.collidepoint(m):
                 self.dex = Dex(self.signs.font, card.species, t)
+            elif m and card.evolve is not None and card.evolve.collidepoint(m) and self.evolution is None:
+                self.evolution = Evolution(card.animal, card.species, t)
+                self.evolution.font, self.evolution.scene = self.signs.font, self.here
             return
         if self.popup is not None:  # a click chooses from the open menu, or just closes it
             pop, self.popup = self.popup, None
@@ -730,7 +735,7 @@ class Glade:
                 low = self.lower() if self.bottom else None
                 found = animal_under(self.here, low, m, view is self.bottom, t)
                 if found is not None:
-                    self.show_card(view, m, found[1], t)
+                    self.show_card(view, m, found[1], t, found[0])
                     return
                 tree = colony.tree_at(m) if colony is not None else None
                 if tree is not None:
@@ -749,12 +754,13 @@ class Glade:
 
     def storm_view(self):
         """Where the Thunderstorm button is, while it is shown (else None)."""
-        if self.storm is not None or (self.card is None and self.dex is None):
+        if self.storm is not None or self.evolution is not None or (self.card is None and self.dex is None):
             return None
         return self.bottom or self.top
 
-    def show_card(self, view, m, species, t):
-        self.card = Card(self.signs.font, view, m, species, t)
+    def show_card(self, view, m, species, t, animal=None):
+        evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
+        self.card = Card(self.signs.font, view, m, species, t, animal, evolves)
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that
@@ -879,6 +885,14 @@ class Glade:
                 self.storm = None
             else:
                 self.storm.update(t)
+        if self.evolution is not None:
+            if self.evolution.scene is not self.here:
+                self.evolution.finish()  # he walked off: it has simply evolved
+                self.evolution = None
+            elif self.evolution.done:
+                self.evolution = None
+            else:
+                self.evolution.update(t)
         if self.arena is not None:
             if self.arena.done:
                 self.arena.finish()  # closed: everyone is home
@@ -916,6 +930,8 @@ class Glade:
                 self.card.draw(view.canvas, t)
             if self.dex is not None and view is self.top:
                 self.dex.draw(view.canvas, view.mouse(), t)
+            if self.evolution is not None:
+                self.evolution.draw(view.canvas, view is self.bottom, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
             if self.fade > 0:

@@ -175,6 +175,11 @@ MOVES = {
     "Metal Claw": mv("Steel", 50, 95, 35, c=1, sec=(10, ("self", {"atk": 1}))),
     "Harden": mv("Normal", 0, None, 30, up={"def": 1}),
     "Confusion": mv("Psychic", 50, 100, 25, sec=(10, "confuse")),
+    "Slash": mv("Normal", 70, 100, 20, c=1, highcrit=1),
+    "Hyper Fang": mv("Normal", 80, 90, 15, c=1, sec=(10, "flinch")),
+    "Cross Chop": mv("Fighting", 100, 80, 5, c=1, highcrit=1),
+    "Spore": mv("Grass", 0, 100, 15, st="slp"),
+    "Heat Wave": mv("Fire", 100, 90, 10, sec=(10, "brn")),
     "Struggle": mv("???", 50, None, 1, c=1, recoil=4),
 }
 
@@ -235,6 +240,23 @@ SPECIES = {
     "Moon Owlet": dict(num=49, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
                        pool=["Peck", "Wing Attack", "Aerial Ace", "Air Cutter", "Hypnosis", "Confusion", "Return",
                              "Quick Attack"]),
+    # middle evolutions (evolve.py): base totals about 410 (Ivysaur 405), same shape, a few
+    # stronger moves; numbered right after their first stage
+    "Glowtail": dict(num=2, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",
+                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
+                           "Swords Dance", "Agility", "Slash", "Hyper Fang"]),
+    "Nimbusquid": dict(num=5, types=("Water", "Psychic"), base=(59, 50, 54, 88, 74, 84), ability="Levitate",
+                       pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
+                             "Hypnosis", "Recover", "Calm Mind", "Hydro Pump"]),
+    "Beacon Moth": dict(num=23, types=("Bug", "Fire"), base=(58, 45, 51, 96, 70, 90), ability="Shield Dust",
+                        pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
+                              "Morning Sun", "Gust", "Heat Wave"]),
+    "Bruiser Toad": dict(num=35, types=("Fighting",), base=(79, 92, 73, 40, 59, 66), ability="Thick Fat",
+                         pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
+                               "Rock Tomb", "Bubble Beam", "Cross Chop"]),
+    "Sporestride": dict(num=41, types=("Grass", "Poison"), base=(79, 59, 73, 86, 79, 33), ability="Effect Spore",
+                        pool=["Absorb", "Mega Drain", "Giga Drain", "Sludge Bomb", "Stun Spore", "Sleep Powder",
+                              "Poison Powder", "Leech Seed", "Synthesis", "Spore"]),
 }
 
 STATS = ("atk", "def", "spa", "spd", "spe")
@@ -1270,14 +1292,18 @@ class Card:
     W = 200
     ROWS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 
-    def __init__(self, font, view, at, species, t):
+    def __init__(self, font, view, at, species, t, animal=None, evolves=None):
+        """`animal`: the one right-clicked; `evolves`: what it can evolve into, if anything
+        (evolve.py) — then the card has an Evolve button too."""
         self.font, self.view, self.species, self.t = font, view, species, t
-        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + 24
+        self.animal, self.evolves = animal, evolves
+        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + 24 + (22 if evolves else 0)
         self.rect = pygame.Rect(round(at[0]) + 12, round(at[1]) - h // 2, self.W, h)
         if self.rect.right > view.w - 4:  # no room on the right: open on the left
             self.rect.right = round(at[0]) - 12
         self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
         self.button = pygame.Rect(self.rect.x + 8, self.rect.bottom - 24, self.W - 16, 18)
+        self.evolve = self.button.move(0, -22) if evolves else None
 
     def text(self, s, words, x, y, color=TEXT, right=False):
         img = self.font.render(words, False, color)
@@ -1324,3 +1350,8 @@ class Card:
         cloth(s, self.button, MINE if hot else mix(CLOTH, EDGE, 0.2), hot=hot, alpha=round(220 * k))
         img = self.font.render("Open in Forest Dex", False, (255, 255, 255) if hot else TEXT)
         s.blit(img, img.get_rect(center=self.button.center))
+        if self.evolve is not None:  # glowing gold: something special
+            hot = bool(m) and self.evolve.collidepoint(m)
+            cloth(s, self.evolve, (255, 214, 120), hot=hot, alpha=round(225 * k))
+            img = self.font.render(f"Evolve into {self.evolves}", False, (255, 255, 255) if hot else (255, 240, 200))
+            s.blit(img, img.get_rect(center=self.evolve.center))

@@ -540,7 +540,8 @@ class Critter(Clock):
             self.blink = 0.15
 
     def draw(self, s, t):
-        radii = [6.6, 7.2, 6.4, 5.0, 4.0, 3.2, 2.6, 2.1, 1.7, 1.4, 1.2]
+        big = getattr(self, "stage", 1) > 1  # Glowtail, its evolution (evolve.py)
+        radii = [r * (1.25 if big else 1.0) for r in (6.6, 7.2, 6.4, 5.0, 4.0, 3.2, 2.6, 2.1, 1.7, 1.4, 1.2)]
         for (x, y), r in reversed(list(zip(self.pts, radii))):
             pygame.draw.circle(s, self.belly, (round(x), round(y + 2)), r)
         for (x, y), r in reversed(list(zip(self.pts, radii))):
@@ -549,12 +550,27 @@ class Critter(Clock):
             pygame.draw.circle(s, self.fur, (round(x - 1), round(y - r * 0.5)), max(1, r * 0.45))
         hx, hy = self.pts[0]
         f = self.facing
+        if big:  # a golden ruff round its neck, pink markings down its back, beads on its tail
+            ruff = mix(self.tail_glow, (255, 255, 255), 0.45)
+            nx, ny = self.pts[1]
+            for i in range(11):
+                a = math.tau * i / 11 + t * 0.4
+                sway = math.sin(t * 3 + i) * 0.7
+                pygame.draw.circle(s, mix(ruff, self.belly, 0.3 if math.sin(a) > 0 else 0.0),
+                                   (round(nx + math.cos(a) * 8 + sway), round(ny + math.sin(a) * 7)), 3)
+            pygame.draw.circle(s, ruff, (round(nx), round(ny - 1)), 6)
+            for i in (2, 3, 4):
+                mx, my = self.pts[i]
+                pygame.draw.line(s, (255, 160, 200), (round(mx), round(my - radii[i] * 0.9)), (round(mx - f), round(my - radii[i] * 0.3)), 2)
+            for i in (-4, -7):
+                bx, by = self.pts[i]
+                pygame.draw.circle(s, ruff, (round(bx), round(by)), 3)
         for i, k in ((0, 0.0), (2, math.pi)):  # little legs while walking
             x, y = self.pts[i]
             lift = max(0, math.sin(self.step + k)) * 3 if self.wait <= 0 else 0
             pygame.draw.line(s, self.belly, (round(x - 1), round(y + 5 - lift)), (round(x - 1), round(y + 8 - lift)), 2)
         # ears: two soft points
-        for ex_, h_ in ((-2, 9), (2, 10)):
+        for ex_, h_ in ((-2, 13), (2, 14)) if big else ((-2, 9), (2, 10)):
             pygame.draw.polygon(s, self.body, [(hx + ex_ * f - 2, hy - 4), (hx + ex_ * f + 2, hy - 4),
                                                (hx + ex_ * f + f, hy - h_)])
             s.set_at((round(hx + ex_ * f), round(hy - 6)), (255, 190, 214))
@@ -575,6 +591,17 @@ class Critter(Clock):
         x, y = self.pts[-1]
         glow(s, x, y, 6, self.tail_glow, 150)
         pygame.draw.circle(s, mix(self.tail_glow, (255, 255, 255), 0.5), (round(x), round(y)), 2)
+        if getattr(self, "stage", 1) > 1:  # Glowtail: three beads down the tail, and glowing ear tufts
+            for i in (-4, -7):
+                bx, by = self.pts[i]
+                b = 0.6 + 0.4 * math.sin(t * 3 + i)
+                glow(s, bx, by, 5, self.tail_glow, q(130 * b))
+                s.set_at((round(bx), round(by)), mix(self.tail_glow, (255, 255, 255), 0.6))
+            hx, hy = self.pts[0]
+            for ex_, h_ in ((-2, 13), (2, 14)):
+                tx, ty = hx + ex_ * self.facing + self.facing, hy - h_
+                glow(s, tx, ty, 4, self.tail_glow, 90)
+                s.set_at((round(tx), round(ty)), (255, 236, 180))
 
 
 class Squid(Clock):
@@ -707,10 +734,24 @@ class Squid(Clock):
                                          (tipx, tipy)])
         pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.5), (round(self.x + ux * 4 - px_), round(self.y + uy * 4 - py_)),
                          (round(self.x + ux * ln * 0.8 - px_), round(self.y + uy * ln * 0.8 - py_)))
+        big = getattr(self, "stage", 1) > 1  # Nimbusquid, its evolution (evolve.py)
+        if big:  # a frilled crest down both sides of the mantle
+            for j, i in enumerate(range(4, int(ln) - 1, 3)):
+                cx, cy = self.x + ux * (i + 2), self.y + uy * (i + 2)
+                f = i / ln
+                r = wd / 2 * (math.sin(min(1.0, f * 1.25 + 0.1) * math.pi * 0.5) * (1 - f ** 2.5))
+                for k in (-1, 1):
+                    w = r + 2 + (j % 2) + math.sin(t * 4 + j) * 0.6
+                    pygame.draw.line(s, fin, (round(cx + px_ * r * k), round(cy + py_ * r * k)),
+                                     (round(cx + px_ * w * k - ux * 2), round(cy + py_ * w * k - uy * 2)))
+            for arm in self.arms[6:]:  # the two long hunting tentacles end in glowing clubs
+                x, y = arm[-1]
+                glow(s, x, y, int(6 * sz), self.color, q(120 + 40 * math.sin(t * 3)))
+                pygame.draw.circle(s, self.spots, (round(x), round(y)), max(1, round(1.4 * sz)))
         # blinking spots down the back, and eyes on the head
-        for j in range(4):
+        for j in range(7 if big else 4):
             if math.sin(t * 2.5 + j * 1.3 + self.phase * 9) > -0.2:
-                f = 0.25 + j * 0.17
+                f = (0.2 + j * 0.1) if big else (0.25 + j * 0.17)
                 s.set_at((round(self.x + ux * (2 + ln * f)), round(self.y + uy * (2 + ln * f))), self.spots)
         for k in (-1, 1):  # big dark eyes with a glint
             ex, ey = self.x + ux * 1.5 + px_ * 2.6 * sz * k, self.y + uy * 1.5 + py_ * 2.6 * sz * k
