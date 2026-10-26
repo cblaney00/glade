@@ -644,8 +644,8 @@ class Fighter:
 
     R = 56  # how far round the animal to copy (a millipede is long)
 
-    def __init__(self, animal, side, t):
-        self.a, self.side, self.t0 = animal, side, t
+    def __init__(self, animal, side, t, scene):
+        self.a, self.side, self.t0, self.scene = animal, side, t, scene
         self.home = animal.pos()
         self.going_home, self.fainted, self.lunge = None, None, -9.0
         self.saved = None
@@ -669,10 +669,13 @@ class Fighter:
                 o.trail = []
             self.saved = None
 
-    def where(self, t):
+    def where(self, t, here):
         """Where it is now, in shared coordinates: walking out in a little hop, standing
-        on its platform, lunging when it attacks, or walking home."""
-        (hx, hy), (sx, sy) = self.home, SPOTS[self.side]
+        on its platform, lunging when it attacks, or walking home. `here`: the place on
+        screen; an animal from another place comes in over the edge (yours on the left,
+        its foe on the right) and leaves that way."""
+        sx, sy = SPOTS[self.side]
+        hx, hy = self.home if here is self.scene else (-40 if self.side == 0 else 1000, sy)
         if self.going_home is not None:
             k = 1 - ease((t - self.going_home) / WALK)
         else:
@@ -690,11 +693,11 @@ class Fighter:
             return 255
         return round(255 * max(0.0, 1 - (t - self.fainted) / 0.9))
 
-    def draw(self, s, ox, oy, t, scratch):
+    def draw(self, s, ox, oy, t, scratch, here):
         al = self.alpha(t)
         if al <= 0:
             return
-        x, y = self.where(t)
+        x, y = self.where(t, here)
         x, y = x - ox, y - oy
         if self.fainted is not None:
             y += 6 * (1 - al / 255)  # it sinks as it fades
@@ -727,7 +730,10 @@ class Fighter:
 
 
 class Arena:
-    """The whole egg: choosing two animals, then the battle box."""
+    """The whole egg: choosing two animals, then the battle box. It goes with him from place
+    to place: he can pick an animal in one and its opponent in another, and the field
+    and fighters are in whichever place he is looking at (`scene`/`lower`, kept up to date
+    by the glade)."""
 
     W, H = 380, 206
 
@@ -735,7 +741,7 @@ class Arena:
         self.scene, self.lower, self.font = scene, lower, font
         self.rect = pygame.Rect(10, 540 - 10 - self.H, self.W, self.H)
         self.phase = "pick"
-        self.picked = []          # [(animal, species)]
+        self.picked = []          # [(animal, species, the place it lives)]
         self.battle = None
         self.queue, self.log = [], []
         self.next_at = t
@@ -773,7 +779,7 @@ class Arena:
             x, y = (m[0] + OFFSET[0], m[1] + OFFSET[1]) if low else m
             hit = self.animal_at(x, y)
             if hit is not None:
-                self.picked.append(hit)
+                self.picked.append((*hit, self.scene))
                 if len(self.picked) == 2:
                     self.start(t)
                 return True
@@ -781,7 +787,7 @@ class Arena:
 
     def animal_at(self, x, y):
         best, near = None, 24.0
-        taken = [a for a, _ in self.picked]
+        taken = [p[0] for p in self.picked]
         for a, sp in animals(self.scene, self.lower):
             if any(a.obj is b.obj for b in taken):
                 continue
@@ -800,7 +806,7 @@ class Arena:
         self.phase = "fight"
         self.log, self.queue = [], []
         if not self.fighters:  # they walk out onto the field, then the battle begins
-            self.fighters = [Fighter(animal, side, t) for side, (animal, _) in enumerate(self.picked)]
+            self.fighters = [Fighter(animal, side, t, home) for side, (animal, _, home) in enumerate(self.picked)]
             self.next_at = t + WALK
         for f in self.fighters:
             f.fainted = None
@@ -926,10 +932,10 @@ class Arena:
             self.field(s, t)
         ox, oy = OFFSET if low else (0, 0)
         for f in self.fighters:
-            f.draw(s, ox, oy, t, self.scratch)
+            f.draw(s, ox, oy, t, self.scratch, self.scene)
             for side, h in self.hits:
                 if side == f.side:
-                    x, y = f.where(t)
+                    x, y = f.where(t, self.scene)
                     glow(s, x - ox, y - oy, 26, (255, 255, 255), q(140 * (1 - (t - h) / 0.6)))
         self.rings(s, low, t)
         if low or self.leaving is not None:
@@ -1014,7 +1020,9 @@ class Arena:
         if self.fighters:
             return
         ox, oy = OFFSET if low else (0, 0)
-        for n, (a, _) in enumerate(self.picked):
+        for n, (a, _, home) in enumerate(self.picked):
+            if home is not self.scene:
+                continue
             x, y = a.pos()
             if (y >= OFFSET[1]) != low:
                 continue

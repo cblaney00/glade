@@ -1059,8 +1059,12 @@ class Listener:
             return
         x, y, r = moon
         if self.listening(t):
-            k = 0.6 + 0.4 * math.sin(t * 2.2)
-            glow(s, x, y, r * 3, (200, 210, 255), q(60 * k))
+            # lit up and pulsing while it listens, so it is clear a word can be typed
+            k = 0.75 + 0.25 * math.sin(t * 2.2)
+            glow(s, x, y, r * 6, (180, 200, 255), q(70 * k))
+            glow(s, x, y, r * 3, (220, 230, 255), q(150 * k))
+            pygame.draw.circle(s, (250, 250, 255), (x, y), r)
+            pygame.draw.circle(s, mix((250, 250, 255), (200, 220, 255), k), (x, y), r + 2, 1)
         k = swell(t - self.heard_at, 0.6, 1.6)
         if k > 0:
             # the moon goes dark for a moment
