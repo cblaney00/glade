@@ -426,8 +426,6 @@ class Minimap:
         art.glow(s, rect.x + nx, rect.y + ny, 11, self.COLORS[here], int(50 + 50 * k) // 10 * 10)
 
 
-
-
 def sparkle(s, x, y, t, color=(255, 255, 240)):
     """Twinkling little stars circling a spot you are pointing at."""
     for i in range(6):
