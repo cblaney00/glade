@@ -26,7 +26,7 @@ from urllib.parse import unquote, urlparse
 
 import pygame
 
-from art import glow, mix
+from art import glow
 from life import Squid, q
 
 HOME = os.path.expanduser("~")
@@ -208,7 +208,7 @@ class Orchard:
 
     def __init__(self, scene, spot_type):
         self.scene, self.Spot = scene, spot_type
-        self.base = list(scene.spots)
+        self.mine = []  # the fruit's spots in the scene
         self.watch = Watcher()
         self.shown = None
         self.fruit = []  # (x, y, kind, phase)
@@ -216,8 +216,6 @@ class Orchard:
         self.icons = {k: fruit_icon(k) for k in KINDS}
 
     def refresh(self):
-        if not self.base:  # the scene's own spots are set after the orchard is made
-            self.base = list(self.scene.spots)
         result = self.watch.result
         if result == self.shown:
             return
@@ -231,7 +229,9 @@ class Orchard:
             spots.append(sp)
             self.fruit.append((x, y, e["kind"], (x * 7 + y) % 10 / 10 * math.tau))
         self.bites = {}
-        self.scene.spots[:] = self.base + spots
+        # only its own spots are swapped, so the squid's (squids.py) stay
+        self.scene.spots[:] = [sp for sp in self.scene.spots if sp not in self.mine] + spots
+        self.mine = spots
 
     def where(self, i, t):
         x, y, _, ph = self.fruit[i]

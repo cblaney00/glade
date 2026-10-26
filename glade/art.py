@@ -238,7 +238,7 @@ def glowmoss(lit, lay, x, y, w, h, color=None, strength=80, specks=1.0):
     for i in range(n):
         lx = x - w / 2 + (i + 0.5) * w / n + rng.uniform(-w / n * 0.3, w / n * 0.3)
         lumps.append((lx, y + rng.uniform(-h * 0.25, h * 0.25), w / n * rng.uniform(0.7, 1.05), h * rng.uniform(0.45, 0.75)))
-    lumps.sort(key=lambda l: l[1])
+    lumps.sort(key=lambda lump: lump[1])
     shadow = mix(tone["shade"], (30, 40, 60), 0.3)
     pygame.draw.ellipse(lay, shadow, (x - w / 2 - 2, y - 1, w + 4, h * 0.6 + 3))
     for lx, ly, rw, rh in lumps:

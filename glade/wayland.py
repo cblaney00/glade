@@ -63,12 +63,14 @@ class Surface:
         GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
         area = self.area = Gtk.DrawingArea()
         area.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
+                        | Gdk.EventMask.BUTTON_RELEASE_MASK
                         | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK)
         area.connect("draw", self.draw)
         area.connect("motion-notify-event", self.motion)
         area.connect("enter-notify-event", self.motion)
         area.connect("leave-notify-event", self.leave)
         area.connect("button-press-event", self.press)
+        area.connect("button-release-event", self.release)
         area.connect("size-allocate", self.resized)
         win.add(area)
         win.connect("realize", self.hide_cursor)
@@ -110,6 +112,12 @@ class Surface:
             self.view.pointer = (event.x, event.y)
             KEYBOARD.clicked()
             self.glade.click(time.monotonic() - self.glade.t0)
+        return True
+
+    def release(self, area, event):
+        if event.button == 1:
+            self.view.pointer = (event.x, event.y)
+            self.glade.release(time.monotonic() - self.glade.t0)
         return True
 
     def draw(self, area, cr):

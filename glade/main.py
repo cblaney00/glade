@@ -33,8 +33,6 @@ APPS = {
     "browser": "flatpak run org.chromium.Chromium",
     "discord": "flatpak run com.discordapp.Discord",
     "code": "code",
-    # the pictures of the glade, saved on his Desktop (the squid in the tree hollow)
-    "pictures": "dolphin " + shlex.quote(os.path.expanduser("~/Desktop/The Glade")),
 }
 
 INK = (34, 24, 58)
@@ -141,23 +139,9 @@ def _code(s):
     pygame.draw.line(s, hi, (9, 1), (7, 12), 2)
 
 
-def _pictures(s):
-    """The logo every picture file has: a little framed landscape — here, the glade at
-    night: a moon over a hill."""
-    frame, sky, hill, hill2 = (236, 226, 236), (60, 52, 130), (110, 230, 170), (70, 170, 150)
-    pygame.draw.rect(s, (24, 14, 34), (0, 0, 16, 14))
-    pygame.draw.rect(s, frame, (1, 1, 14, 12))
-    pygame.draw.rect(s, sky, (2, 2, 12, 10))
-    pygame.draw.circle(s, (255, 244, 200), (11, 5), 2)
-    pygame.draw.polygon(s, hill2, [(6, 11), (10, 7), (14, 11)])
-    pygame.draw.polygon(s, hill, [(2, 11), (5, 6), (9, 11)])
-    s.set_at((4, 3), (255, 255, 255))
-    s.set_at((7, 2), (200, 220, 255))
-
-
 ICONS = {}
 ICON_PAINTERS = dict(files=_files, terminal=_terminal, music=_music, games=_games, browser=_browser,
-                     discord=_discord, code=_code, pictures=_pictures)
+                     discord=_discord, code=_code)
 
 
 def font_path():
@@ -511,6 +495,7 @@ class Glade:
         self.on_listen = None  # called when the moon starts listening for typing
         self.on_heard = None   # ... and when it has heard the word
         self.hunt = None
+        self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
 
     def scene(self, key):
         if key not in self.scenes:
@@ -556,9 +541,9 @@ class Glade:
             return
         launch(sp.target, getattr(sp, "cmd", None))
         self.flash = (view, sp, t)
-        pet = getattr(content, "pet", None)
-        if pet and sp.target == "pictures":
-            pet.duck(t)  # the squid ducks into its hollow
+        colony = getattr(content, "colony", None)
+        if colony and getattr(sp, "squid", None):
+            colony.clicked(sp.squid, t)  # it counts towards the squid's spot
         if self.on_launch:
             self.on_launch()
 
@@ -592,8 +577,26 @@ class Glade:
                 for b in content.bugs:
                     b.scatter(*m, t)
             else:
-                self.activate(view, content, sp, t)
+                colony = getattr(content, "colony", None)
+                if colony and colony.grab(sp, t):
+                    self.held = (view, content, sp, m)  # a click or a drag: the release decides
+                else:
+                    self.activate(view, content, sp, t)
             return
+
+    def release(self, t):
+        """The mouse button comes up. A squid that was barely moved was clicked; one that
+        was carried somewhere is put down there."""
+        if self.held is None:
+            return
+        view, content, sp, start = self.held
+        self.held = None
+        m = view.mouse()
+        if m and math.hypot(m[0] - start[0], m[1] - start[1]) > 6:
+            content.colony.drop(m)
+        else:
+            content.colony.dragging = None
+            self.activate(view, content, sp, t)
 
     def typed(self, ch, t):
         """A letter typed while the moon is listening."""
@@ -693,6 +696,14 @@ class Glade:
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
+        if self.held is not None:
+            view, content, _, start = self.held
+            if content is not self.here:
+                content.colony.dragging, self.held = None, None
+            else:
+                m = view.mouse()
+                if m and math.hypot(m[0] - start[0], m[1] - start[1]) > 6:
+                    content.colony.drag(m)  # the held squid follows the pointer
         for view, content in self.views():
             if content is not self.here:
                 content.update(dt, t)
@@ -796,6 +807,8 @@ def main():
                 glade.key(cmd, time.monotonic() - glade.t0)
             if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                 glade.click(time.monotonic() - glade.t0)
+            if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
+                glade.release(time.monotonic() - glade.t0)
         glade.frame(min(dt, 0.1))
 
 

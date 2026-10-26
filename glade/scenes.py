@@ -14,7 +14,8 @@ import pygame
 import art
 from art import GLOW, H, W, at_depth, mix
 from orchard import Nibbler, Orchard
-from life import (Blades, Critter, Fireflies, GlowThreads, HollowSquid, Lantern, Millipede, Motes, Petals, Pulses, River,
+from squids import Colony
+from life import (Blades, Critter, Fireflies, GlowThreads, Lantern, Millipede, Motes, Petals, Pulses, River,
                   Shafts, Slug, Squid, Stars, Track, Vines, Waterfall, make_rng)
 
 
@@ -268,14 +269,14 @@ def build_glade():
     leans = {}
     for x, w in ((28, 20), (96, 16), (172, 14), (236, 24)):
         leans[x] = art.trunk(lay, rng, x, 40, 392, w, sc.col("wood", 0.5), branches=2, pal=p)
-    # a hollow in the nearest of them, where a little squid lives (it opens his pictures)
+    # a hollow in the nearest of them
     hollow = (round(236 + (392 - 300) * leans[236]), 300)
     pygame.draw.ellipse(lay, mix(sc.col("wood", 0.5), p["shade"], 0.55), (hollow[0] - 13, hollow[1] - 18, 26, 36))
     pygame.draw.ellipse(lay, sc.col("shade", 0.1), (hollow[0] - 10, hollow[1] - 15, 20, 31))
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (0, 0, 280, 40))
     leaf_row(lay, rng, -20, 292, 52, 44, 32, sc.col("leaf3", 0.5), p, jitter=16)
     for x in (860, 932):
-        art.trunk(lay, rng, x, 60, 392, 16, sc.col("wood", 0.5), pal=p)
+        leans[x] = art.trunk(lay, rng, x, 60, 392, 16, sc.col("wood", 0.5), pal=p)
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (808, 0, 160, 60))
     leaf_row(lay, rng, 808, 980, 72, 40, 32, sc.col("leaf3", 0.5), p, jitter=16)
     art.canopy(lay, rng, -20, 300, 388, sc.col("leaf", 0.5), r=(12, 24))
@@ -339,7 +340,7 @@ def build_glade():
 
     # the big blossom tree, its blossoms faintly glowing
     lay = art.plane()
-    art.trunk(lay, rng, 744, 192, 412, 26, sc.col("wood", 0.28), branches=3, pal=p)
+    blossom_lean = art.trunk(lay, rng, 744, 192, 412, 26, sc.col("wood", 0.28), branches=3, pal=p)
     pygame.draw.ellipse(lay, sc.col("shade", 0.1), (732, 320, 22, 32))  # the hollow
     sc.add(lay, 0.28, texture=0.8)
     glowmoss(sc, lay, 728, 412, 50, 12)
@@ -375,7 +376,12 @@ def build_glade():
                      spots=GLOW["cyan"]))
     sc.live(Slug(rng, Track([(758, 404), (757, 360), (756, 300)], up=(1, 0)), (220, 196, 180), size=1.1, speed=2.5,
                  shell=(232, 178, 140)))
-    sc.pet = sc.live(HollowSquid(hollow[0], hollow[1]))
+    # his desktop icons: a squid on the tree trunks for every app and Desktop item (squids.py)
+    trunk = lambda x, w, lo, hi, bottom=392, lean=None: dict(  # noqa: E731
+        x=x, w=w, lo=lo, hi=hi, bottom=bottom, lean=leans[x] if lean is None else lean)
+    sc.colony = sc.live(Colony(sc, Spot, [
+        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330),
+        trunk(744, 24, 272, 372, bottom=412, lean=blossom_lean), trunk(860, 15, 252, 340), trunk(932, 15, 100, 340)]))
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
@@ -389,10 +395,6 @@ def build_glade():
         Spot("go", (872, 376, 88, 88), "The River", "river", (932, 424), sign=(884, 380)),
         Spot("go", (452, 300, 100, 84), "The Waterfall", "waterfall", (504, 352), sign=(510, 300)),
         Spot("go", (200, 476, 168, 64), "The Mossy Rocks", "rocks", (292, 516), sign=(262, 512)),
-        Spot("app", (720, 308, 48, 56), "Files", "files", (742, 336), sign=(744, 290)),
-        Spot("app", (312, 380, 56, 68), "Terminal", "terminal", (340, 398), sign=(340, 356)),
-        Spot("app", (hollow[0] - 24, hollow[1] - 44, 48, 78), "Glade Pictures", "pictures", hollow,
-             sign=(hollow[0], hollow[1] - 66)),
     ]
     sc.lower = dict(ground=0.3, pond=(540, 256, 224, 132), paths=[dict(
         pts=[(202, -4), (180, 16), (160, 60), (156, 120), (172, 190), (204, 260), (220, 340), (208, 460)],
@@ -517,7 +519,6 @@ def build_waterfall():
     front_frame(sc, rng, top=False)
 
     sc.spots = [
-        Spot("app", (340, 380, 280, 64), "Music", "music", (480, 412), sign=(480, 360)),
         Spot("go", (392, 480, 168, 60), "Back to the Glade", "glade", (468, 516), sign=(470, 506)),
     ]
     sc.lower = dict(ground=0.2, props=["rocks"], fly=GLOW["cyan"], paths=[dict(
@@ -634,7 +635,6 @@ def build_river():
 
     sc.spots = [
         Spot("go", (0, 428, 88, 92), "Back to the Glade", "glade", (28, 476), sign=(104, 444)),
-        Spot("app", (620, 350, 156, 60), "Games", "games", (700, 388), sign=(700, 330)),
     ]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"])
     return sc.done()
@@ -713,7 +713,6 @@ def build_forest():
 
     sc.spots = [
         Spot("go", (872, 428, 88, 92), "Back to the Glade", "glade", (932, 480), sign=(864, 424)),
-        Spot("app", (232, 428, 140, 60), "Web Browser", "browser", (300, 460), sign=(300, 404)),
     ]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"])
     return sc.done()
@@ -829,8 +828,6 @@ def build_rocks():
 
     sc.spots = [
         Spot("go", (700, 420, 120, 64), "Back to the Glade", "glade", (756, 446), sign=(780, 404)),
-        Spot("app", (436, 384, 96, 76), "Discord", "discord", (484, 428), sign=(484, 372)),
-        Spot("app", (140, 292, 76, 164), "Code Editor", "code", (178, 366), sign=(178, 270)),
     ]
     sc.lower = dict(ground=0.14, props=["rocks"], fly=GLOW["pink"])
     return sc.done()
