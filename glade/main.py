@@ -353,7 +353,7 @@ class Minimap:
         self.rect = None
 
     def place(self, view):
-        """Bottom-right of the view, clear of the keyboard hint along the bottom edge."""
+        """Bottom-right of the view."""
         self.rect = pygame.Rect(0, 0, self.w + 4, self.h + 7)
         self.rect.bottomright = (view.w - 6, view.h - 30)
         return self.rect
@@ -426,7 +426,6 @@ class Minimap:
         art.glow(s, rect.x + nx, rect.y + ny, 11, self.COLORS[here], int(50 + 50 * k) // 10 * 10)
 
 
-KEYS_HINT = "Keyboard:  ← ↑ → ↓ walk  ·  Tab choose  ·  Enter open  ·  Home glade  ·  Esc stop"
 
 
 def sparkle(s, x, y, t, color=(255, 255, 240)):
@@ -566,9 +565,8 @@ class Glade:
         self.t0 = time.monotonic()
         self.history = []  # the places you came from, for Backspace
         self.picked = None  # (view, spot) chosen with Tab
-        self.keys_on = False  # the keyboard is steering the glade (shows the hint)
+        self.keys_on = False  # the keyboard is steering the glade (the dock shows the hint)
         self.on_launch = None  # called whenever an app is opened
-        self.hint = None
         # the easter egg (apex.py): click the moon, type the word
         self.listener = Listener()
         self.on_listen = None  # called when the moon starts listening for typing
@@ -774,12 +772,6 @@ class Glade:
         if view is self.map_view():
             pointed = None if self.fade_to else self.minimap.at(view.mouse())
             self.minimap.draw(s, view, self.here.key, pointed, t)
-        if self.keys_on and view is (self.bottom or self.top):  # the lower screen has room at the bottom
-            if self.hint is None:
-                info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
-                self.hint = self.signs.board(info, None, False)
-            # above the dock, which takes the bottom 85px of this screen
-            s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 96)))
         if self.popup is not None and self.popup.view is view:
             self.popup.draw(s, view.mouse(), t)
         if self.flash and self.flash[0] is view:
