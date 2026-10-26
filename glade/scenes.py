@@ -386,14 +386,16 @@ def build_glade():
     trunk = lambda x, w, lo, hi, bottom=392, lean=None: dict(  # noqa: E731
         x=x, w=w, lo=lo, hi=hi, bottom=bottom, lean=leans[x] if lean is None else lean)
     sc.colony = sc.live(Colony(sc, Spot, [
-        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330), trunk(306, 14, 110, 340),
-        trunk(744, 24, 272, 372, bottom=412, lean=blossom_lean), trunk(676, 14, 236, 330), trunk(860, 15, 252, 316), trunk(932, 15, 100, 340)]))
+        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330),
+        trunk(306, 14, 110, 340)]))  # only the trees on the left, as he asked
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 440), 40, GLOW["cyan"]))
-    squids(sc, rng, (120, 60, 720, 260), [GLOW["cyan"], GLOW["pink"], GLOW["violet"]])
+    # no squid in the air here (the glade's squid are on its left trees), but their random
+    # numbers are still drawn, so the rest of the glade looks the same
+    [Squid(rng, (120, 60, 720, 260), c, size=1.5 * rng.uniform(0.85, 1.15)) for c in (GLOW["cyan"], GLOW["pink"], GLOW["violet"])]
     front_frame(sc, rng)
 
     sc.spots = [

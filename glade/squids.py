@@ -1,8 +1,9 @@
 """The tree squid: his desktop icons.
 
 Every app, and everything in his Desktop folder, is a little glowing squid holding on
-to one of the Glade's tree trunks, its name on a wooden board underneath. Clicking one
-opens what it stands for.
+to one of the trees on the left of the Glade, its name on a glowing banner underneath.
+Only one squid shows on each tree; the other banners float by the trunk on their own.
+Clicking a banner opens what it stands for.
 
 - The more he clicks a squid, the better its spot: the most-used squid sit nearest the
   middle of the picture (clicks are counted in ~/.local/state/glade/squids.json).
@@ -127,7 +128,8 @@ class TreeSquid:
         self.slot = None
         self.phase = (hash(item["id"]) % 1000) / 1000 * math.tau
         self.poked = -10.0
-        self.fade = 1.0
+        self.fade = 1.0  # 0..1: how much of the squid is there (only one per tree shows)
+        self.shown = True
 
     def go(self, slot, size, trunk_of):
         """Make its way to `slot` (trunk, x, y)."""
@@ -150,6 +152,7 @@ class TreeSquid:
 
     def update(self, dt, t):
         self.size += (getattr(self, "target_size", self.size) - self.size) * min(1.0, dt * 2)
+        self.fade += ((1.0 if self.shown else 0.0) - self.fade) * min(1.0, dt * 3)
         if not self.route:
             return
         tx, ty, how = self.route[0]
@@ -168,10 +171,14 @@ class TreeSquid:
             self.y += dy / d * step
 
     def light(self, lm, t):
-        glow(lm, self.x, self.y - 8 * self.size, int(34 * self.size), self.color, q(70 + 15 * math.sin(t * 1.1 + self.phase)))
+        if self.fade < 0.05:
+            return
+        glow(lm, self.x, self.y - 8 * self.size, int(34 * self.size * self.fade), self.color, q(70 + 15 * math.sin(t * 1.1 + self.phase)))
 
     def shine(self, s, t, trunk_w):
-        sz, x, y = self.size, self.x, self.y
+        if self.fade < 0.05:
+            return
+        sz, x, y = self.size * self.fade, self.x, self.y
         how = self.moving()
         breathe = math.sin(t * 1.1 + self.phase)
         k = swell(t - self.poked, 0.35, 1.2, wait=0.15)  # opening it: a gentle wiggle and glow
@@ -337,6 +344,10 @@ class Colony:
         byid = {it["id"]: it for it in items}
         for gone in [i for i in self.squid if i not in byid or i not in placed]:
             del self.squid[gone]
+        firsts = {}
+        for sl in self.slots(self.gap):
+            firsts.setdefault(sl[0], sl)
+        held = self.dragging[0] if self.dragging else None
         spots = []
         for iid, slot in placed.items():
             it = byid[iid]
@@ -347,6 +358,9 @@ class Colony:
                     sq.x, sq.y = slot[1], 20
                     sq.slot = (None, slot[1], 20)
             sq.item = it
+            sq.shown = sq is held or firsts.get(slot[0]) == slot
+            if self.clock is None:
+                sq.fade = 1.0 if sq.shown else 0.0
             sq.go(slot, size, self.trunk_of)
             _, x, y = slot
             sp = self.Spot("app", (x - 13 * size, y - 30 * size, 26 * size, 48 * size), short(it["name"], chars),
@@ -369,6 +383,7 @@ class Colony:
         if sq is None or sp not in self.mine:
             return False
         self.dragging = (sq, (sq.x, sq.y))
+        sq.shown = True
         return True
 
     def drag(self, m):

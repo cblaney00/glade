@@ -161,10 +161,12 @@ WOOD_LO = (36, 22, 48)
 EDGE = (24, 14, 34)
 TEXT = (255, 238, 214)
 HOT = (255, 172, 228)
+# the glow inside each kind of banner: paths to other places, and apps / files
+MIST = dict(go=(110, 255, 180), app=(196, 140, 255))
 
 
 class Signs:
-    """Carved wooden boards with each target's name (and its picture, for apps). They
+    """Glowing banners with each target's name (and its picture, for apps). They
     are always shown and never move, so they are easy to click; the board itself is
     part of what you can click. Hovering lights it up."""
 
@@ -186,9 +188,13 @@ class Signs:
         return s
 
     def board(self, spot, direction, hot, label=None):
+        """A banner of glowing spirit-cloth, not wood: see-through, softly lit from
+        inside, its lower edge frayed into wisps. Paths are a mossy mint green, apps
+        and files a soft violet, so the two kinds are easy to tell apart."""
         label = label or spot.label
+        tint = MIST["go"] if spot.kind == "go" else MIST["app"]
         text = self.font.render(label, False, (255, 255, 255) if hot else TEXT)
-        shade = self.font.render(label, False, EDGE)
+        shade = self.font.render(label, False, mix(tint, EDGE, 0.75))
         tw, th = text.get_size()
         icon = getattr(spot, "icon", None) or (ICONS.get(spot.target) if spot.kind == "app" else None)
         lead = 0
@@ -197,16 +203,22 @@ class Signs:
         elif spot.kind == "go":
             lead = 12
         w, h = tw + lead + 12, max(th, 14) + 8
-        top = 4  # room for the moss tuft above the board
-        s = pygame.Surface((w + 4, h + top + 3), pygame.SRCALPHA)
+        top = 3  # room for the motes above the banner
+        s = pygame.Surface((w + 4, h + top + 6), pygame.SRCALPHA)
         r = pygame.Rect(2, top, w, h)
-        pygame.draw.rect(s, HOT if hot else EDGE, r.inflate(2, 2), border_radius=3)
-        pygame.draw.rect(s, (92, 60, 104) if hot else WOOD, r, border_radius=2)
-        pygame.draw.line(s, WOOD_HI, (r.x + 2, r.y), (r.right - 3, r.y))
-        pygame.draw.line(s, WOOD_LO, (r.x + 2, r.bottom - 1), (r.right - 3, r.bottom - 1))
-        for gy in (r.y + 4, r.bottom - 5):  # wood grain
-            for gx in range(r.x + 3, r.right - 3, 7):
-                s.set_at((gx, gy), WOOD_LO if not hot else (70, 44, 82))
+        rim = (255, 255, 255) if hot else mix(tint, (255, 255, 255), 0.45)
+        pygame.draw.rect(s, (*mix(tint, EDGE, 0.6), 200 if hot else 165), r, border_radius=4)
+        cloth = pygame.Surface(s.get_size(), pygame.SRCALPHA)
+        for i in range(h):  # brighter at the top, fading into the dark below
+            a = round((90 if hot else 60) * (1 - i / h))
+            pygame.draw.line(cloth, (*tint, a), (r.x + 2, r.y + i), (r.right - 3, r.y + i))
+        # the lower edge frays into little wisps
+        for gx in range(r.x + 3, r.right - 3, 5):
+            ln = 2 + (gx * 7) % 4
+            for dy in range(ln):
+                cloth.set_at((gx, r.bottom + dy), (*tint, round(130 * (1 - dy / ln))))
+        s.blit(cloth, (0, 0))
+        pygame.draw.rect(s, (*rim, 230 if hot else 170), r, 1, border_radius=4)
         x = r.x + 6
         cy = r.centery
         if icon:
@@ -218,12 +230,9 @@ class Signs:
         ty = cy - th // 2
         s.blit(shade, (x + 1, ty + 1))
         s.blit(text, (x, ty))
-        # a tuft of glowing moss on the top-left corner, and a strand hanging off the right
-        moss = (150, 255, 200)
-        for dx, dy in ((0, 0), (1, -1), (2, -1), (3, 0), (4, -1), (5, 0), (2, -2), (6, 0)):
-            s.set_at((r.x + 3 + dx, r.y + dy), moss if dy < 0 else (90, 190, 150))
-        for dy in range(1, 5):
-            s.set_at((r.right - 5 + (dy == 4), r.bottom + dy - 2), (90, 190, 150))
+        # a few motes of light caught along the top
+        for dx, dy in ((4, -1), (9, -2), (w - 8, -1), (w // 2, -2)):
+            s.set_at((r.x + dx, r.y + dy), (255, 255, 255))
         return s
 
     def prepare(self, spot, w, h):
@@ -241,6 +250,8 @@ class Signs:
         spot.boards = (cold, hot, rect, wide)
         # paths get a generous margin, so you can click through the places quickly
         spot.hits = [spot.rect.inflate(40, 40) if spot.kind == "go" else spot.rect, rect.inflate(8, 8)]
+        if getattr(spot, "squid", None):  # a tree squid's banner is what he clicks, not the squid
+            spot.hits = [rect.inflate(8, 8)]
 
     def draw(self, s, spot, hot, t):
         cold, warm, rect, wide = spot.boards
