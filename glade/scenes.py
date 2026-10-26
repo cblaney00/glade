@@ -278,7 +278,7 @@ def build_glade():
     leaf_row(lay, rng, -20, 292, 52, 44, 32, sc.col("leaf3", 0.5), p, jitter=16)
     for x in (860, 932):
         leans[x] = art.trunk(lay, rng, x, 60, 392, 16, sc.col("wood", 0.5), pal=p)
-    # two more trees at the forest edges, so the tree squid have room; their own random
+    # two more trees at the forest edges (the left one holds tree squid); their own random
     # numbers, so the rest of the glade still looks the same
     more = random.Random(117)
     for x, top in ((306, 70), (676, 110)):
@@ -346,7 +346,7 @@ def build_glade():
 
     # the big blossom tree, its blossoms faintly glowing
     lay = art.plane()
-    blossom_lean = art.trunk(lay, rng, 744, 192, 412, 26, sc.col("wood", 0.28), branches=3, pal=p)
+    art.trunk(lay, rng, 744, 192, 412, 26, sc.col("wood", 0.28), branches=3, pal=p)
     pygame.draw.ellipse(lay, sc.col("shade", 0.1), (732, 320, 22, 32))  # the hollow
     sc.add(lay, 0.28, texture=0.8)
     glowmoss(sc, lay, 728, 412, 50, 12)
