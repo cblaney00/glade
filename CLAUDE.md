@@ -81,7 +81,8 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   violet slug lives in the middle strip of grass because the corner is the field.
 - `glade/dex.py` — the **Forest Dex** (his Pokédex), opened from the stats card's "Open in
   Forest Dex" button. It has room for **260**. Each line of 3 evolutions takes 3 numbers in a row
-  (`num` in `battle.SPECIES`; Critter #001, Squid #004 … Tree Squid #019, next new one #022),
+  (`num` in `battle.SPECIES`; Critter #001 … Moon Owlet #049, next new one #052), each with a
+  picture (`dex.specimen`: one made just to be drawn; the entry's moves, the slots' are still),
   and the rest are "?" slots. Dex tab: pages of 48 slots. Compare tab: a table of everything
   found so far, sorted by clicking a column. On the right, the chosen one's stats and moves.
 - `glade/beasts.py` — the **second wave** of animals (2026-10-26, his ask: 10 more first-stage
@@ -94,7 +95,9 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   `gone` (`storm.newcomer`). While a stats card or the Forest Dex is open, a **Thunderstorm**
   button shows in the lower screen's top-right corner. It brings rain and lightning, everyone
   in sight shelters (diggers sink into a hole, fliers fly off, koi dive), and the same number
-  come back out, sheltering ones first. The trees switch between squid and owlets. Places
+  come back out, a random mix of everyone who lives there (every place has one of each of the
+  second wave: `scenes.second_wave`, plus all five walkers and four fliers on each lower screen).
+  The trees switch between squid and owlets. Places
   not on screen are re-shuffled at once. Animals in a battle are left alone.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"

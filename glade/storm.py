@@ -6,8 +6,8 @@ screen) has a roster; most of the second wave (beasts.py) starts out sheltering
 **Thunderstorm** button shows in the lower screen's top-right corner. Click it and the
 sky darkens, rain sets in and lightning flashes: every animal in sight shelters —
 crawlers and walkers sink into a hole in the ground, anything in the air flies off, the
-koi dive — then, under a flash, a new mix comes out (as many as were out before, the ones
-that sheltered longest first). The trees' dwellers change too: tree squid or Moon Owlets,
+koi dive — then, under a flash, a new mix comes out (as many as were out before, picked at
+random from everyone who lives there). The trees' dwellers change too: tree squid or Moon Owlets,
 holding the same icons. The places not on screen are re-shuffled at the same moment.
 Animals in a battle (battle.py) stay out of it.
 """
@@ -49,18 +49,11 @@ def roster(content):
 
 
 def choose(animals, rng, n=None, before=None):
-    """Who comes out after a storm: `n` of them (as many as were out before), the ones
-    that were sheltering (not in `before`) first."""
-    if before is None:
-        before = [o for o in animals if not getattr(o, "gone", False)]
-    out = [o for o in animals if any(o is b for b in before)]
-    hid = [o for o in animals if not any(o is b for b in before)]
-    n = len(out) if n is None else n
-    rng.shuffle(hid)
-    pick = hid[:n]
-    if len(pick) < n:
-        pick += rng.sample(out, n - len(pick))
-    return pick
+    """Who comes out after a storm: `n` of them (as many as were out before), a random mix
+    of everyone who lives there, old and new alike."""
+    if n is None:
+        n = sum(1 for o in animals if not getattr(o, "gone", False))
+    return rng.sample(animals, min(n, len(animals)))
 
 
 def dwellers(colony, rng):

@@ -5,13 +5,20 @@ It has room for 260 animals. Each animal here is the first of three evolutions, 
 line takes three numbers in a row (SPECIES[...]["num"] in battle.py): the later two are
 "?" until they are made. Two tabs: the Dex (every slot, in pages) and Compare (every
 animal found so far in one table, sorted by whichever stat you click). The panel on the
-right shows the chosen one in full.
+right shows the chosen one in full, with a living picture of it.
 """
+
+import random
 
 import pygame
 
+import art
 from apex import ease
+from art import GLOW, glow
 from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, mix, stat_color
+from beasts import FLIERS, WALKERS, Flier, Walker, owlet
+from life import Critter, Millipede, Slug, Squid, Track
+from pond import KOI, Fish, Water
 
 TOTAL = 260
 PER_PAGE = 48          # 8 x 6 slots
@@ -19,6 +26,92 @@ STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 WHITE = (255, 255, 255)
 MINT = (110, 255, 180)
+
+
+# --- pictures --------------------------------------------------------------------------
+
+PW, PH = 72, 52            # a picture, in canvas pixels (shown at 2x in the entry)
+NIGHT = (22, 16, 42)
+
+
+def specimen(species):
+    """One of the species made just to be drawn here, standing in the middle of a picture.
+    Trees' dwellers come back as ("perch", kind)."""
+    rng = random.Random(7)
+    cx, cy = PW // 2, PH - 12
+    if species == "Critter":
+        return Critter(rng, lambda x: cy + 8, (cx + 18, cx + 18))
+    if species == "Squid":
+        return Squid(rng, (cx, cy - 12, 0, 0), GLOW["cyan"], size=1.1)
+    if species in ("Slug", "Snail"):
+        snail = species == "Snail"
+        o = Slug(rng, Track([(2, cy + 4), (PW - 2, cy + 4)]), (220, 196, 180) if snail else (214, 170, 222),
+                 size=1.3, speed=0, shell=(226, 170, 140) if snail else None)
+        o.dir, o.d = 1, o.track.length * 0.78
+        return o
+    if species == "Millipede":
+        o = Millipede(rng, Track([(-10, cy + 4), (PW - 4, cy + 4)]), (150, 110, 184), GLOW["cyan"], n=14, speed=0)
+        o.dir, o.d = 1, o.track.length - 6
+        return o
+    if species == "Koi":
+        f = Fish(rng, Water(cx, cy, 20, 8), KOI[1], (78, 138, 228))
+        f.pts = [[cx + 16 - i * Fish.SEG * 0.8, cy - 6 + (i % 2) * 0.5] for i in range(7)]
+        return f
+    if species in ("Tree Squid", "Moon Owlet"):
+        return ("perch", "owlet" if species == "Moon Owlet" else "squid")
+    for kind, spec in FLIERS.items():
+        if spec["species"] == species:
+            return Flier(rng, (cx, cy - 14, 0, 0), kind, 1.4)
+    for kind, spec in WALKERS.items():
+        if spec["species"] == species:
+            return Walker(rng, lambda x: cy + 6, (cx, cx), kind, 1.4)
+    return None
+
+
+def paint(pic, thing, t):
+    """Draw `thing` (a specimen) onto the picture `pic` at time t."""
+    pic.fill(NIGHT)
+    glow(pic, PW // 2, PH - 8, 30, (90, 200, 150), 36)
+    pygame.draw.ellipse(pic, (34, 58, 62), (PW // 2 - 26, PH - 12, 52, 10))  # a mossy mound to stand on
+    pygame.draw.ellipse(pic, (54, 96, 92), (PW // 2 - 22, PH - 12, 44, 5))
+    if thing is None:
+        return
+    if isinstance(thing, tuple):  # a tree's dweller on a bit of trunk, holding an icon
+        x, y = PW // 2, PH - 26
+        pygame.draw.rect(pic, (96, 70, 110), (x - 7, 0, 14, PH))
+        pygame.draw.rect(pic, (120, 92, 136), (x - 7, 0, 3, PH))
+        pad = pygame.Rect(0, 0, 13, 13)
+        pad.center = (x, y + 15)
+        pygame.draw.rect(pic, mix(GLOW["violet"], EDGE, 0.5), pad, border_radius=3)
+        pygame.draw.rect(pic, mix(GLOW["violet"], (255, 255, 255), 0.4), pad, 1, border_radius=3)
+        if thing[1] == "owlet":
+            owlet(pic, x, y, 0.8, GLOW["violet"], t, 1.0, None, -10)
+        else:
+            from squids import TreeSquid
+            sq = TreeSquid({"kind": "app", "id": "dex"}, x, y, 0.8)
+            sq.shine(pic, t, 14)
+        return
+    if isinstance(thing, Squid):  # keep it from swimming out of the picture
+        thing.x += (PW // 2 - thing.x) * 0.2
+        thing.y += (PH // 2 - 4 - thing.y) * 0.2
+    for part in ("draw", "shine"):
+        fn = getattr(thing, part, None)
+        if fn:
+            fn(pic, t)
+
+
+_still = {}
+
+
+def picture(species):
+    """A still picture of a species, made once."""
+    if species not in _still:
+        pic = art.solid((PW, PH))
+        thing = specimen(species)
+        for i in range(12):  # let it settle into a natural pose first
+            paint(pic, thing, 1.0 + i * 0.1)
+        _still[species] = pic
+    return _still[species]
 
 
 def by_number():
@@ -36,6 +129,8 @@ class Dex:
         self.sort, self.desc = "No.", False
         self.buttons = []  # (rect, action), rebuilt every frame
         self.closed = False
+        self.live = None  # (species, specimen, picture): the one shown in the entry, moving
+        self.now = t
 
     # --- clicks ---
     def click(self, m):
@@ -77,6 +172,7 @@ class Dex:
     # --- the whole board ---
     def draw(self, s, m, t):
         self.buttons = []
+        self.now = t
         r = self.rect
         k = ease((t - self.t) / 0.2)
         cloth(s, r, CLOTH, alpha=round(248 * k))
@@ -111,11 +207,17 @@ class Dex:
             on = num == self.pick
             tint = TYPE_COLOR[SPECIES[name]["types"][0]] if name else mix(CLOTH, EDGE, 0.45)
             cloth(s, cell, tint if name else mix(CLOTH, EDGE, 0.3), hot=hot or on, alpha=200 if name else 150)
+            if name:
+                pic = picture(name)
+                w = cell.w - 12
+                h = round(PH * w / PW)
+                s.blit(pygame.transform.scale(pic, (w, h)), (cell.x + 6, cell.y + 3))
             self.text(s, f"#{num:03}", cell.x + 4, cell.y + 3, WHITE if on else DIM)
             if name:
                 words = name.split()  # "Tree Squid" goes on two lines
-                for j, word in enumerate(words):
-                    self.text(s, word, cell.centerx, cell.bottom - 16 - 13 * (len(words) - 1 - j),
+                lines = [name] if self.font.size(name)[0] <= cell.w - 4 else words  # long names: two lines
+                for j, line in enumerate(lines):
+                    self.text(s, line, cell.centerx, cell.bottom - 14 - 12 * (len(lines) - 1 - j),
                               WHITE if hot or on else TEXT, center=True)
             else:
                 self.text(s, "?", cell.centerx, cell.centery - 4, DIM, center=True)
@@ -203,6 +305,15 @@ class Dex:
             bx += self.badge(s, kind, bx, y)
         self.text(s, f"Stage {stage} of 3", area.right - 12, y, DIM, right=True)
         y += 20
+        if self.live is None or self.live[0] != name:
+            self.live = (name, specimen(name), art.solid((PW, PH)))
+        _, thing, pic = self.live
+        paint(pic, thing, self.now)
+        big = pygame.transform.scale(pic, (PW * 2, PH * 2))
+        frame = big.get_rect(midtop=(area.centerx, y))
+        s.blit(big, frame)
+        pygame.draw.rect(s, mix(CLOTH, (255, 255, 255), 0.3), frame.inflate(2, 2), 1, border_radius=3)
+        y = frame.bottom + 8
         self.text(s, "Ability", x, y, DIM)
         self.text(s, sp["ability"], area.right - 12, y, TEXT, right=True)
         y += 20
