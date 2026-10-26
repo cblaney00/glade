@@ -778,7 +778,8 @@ class Glade:
             if self.hint is None:
                 info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
                 self.hint = self.signs.board(info, None, False)
-            s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 4)))
+            # above the dock, which takes the bottom 85px of this screen
+            s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 96)))
         if self.popup is not None and self.popup.view is view:
             self.popup.draw(s, view.mouse(), t)
         if self.flash and self.flash[0] is view:
