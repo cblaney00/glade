@@ -325,7 +325,7 @@ class TreeSquid:
             return
         sz, x, y = self.size * self.fade, self.x, self.y
         how = self.moving()
-        if getattr(self, "kind", "squid") == "owlet":  # a storm swapped the dwellers (storm.py)
+        if getattr(self, "kind", "squid") == "owlet":  # a Moon Owlet holds this one (beasts.py)
             owlet(s, x, y, sz, self.color, t, self.phase, how, self.poked)
             return
         breathe = math.sin(t * 1.1 + self.phase)
@@ -575,7 +575,7 @@ class Colony:
             sq = self.squid.get(iid)
             if sq is None:
                 sq = self.squid[iid] = TreeSquid(it, slot[1], slot[2], SIZE)
-                sq.kind = getattr(self, "dweller", "squid")
+                sq.kind = random.choice(("squid", "owlet"))  # the trees' dwellers are a mix (storm.py)
                 if self.clock is not None:  # someone new: it swims down from the canopy
                     sq.x, sq.y = slot[1], 20
                     sq.slot = (None, slot[1], 20)

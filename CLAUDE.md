@@ -97,7 +97,7 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   in sight shelters (diggers sink into a hole, fliers fly off, koi dive), and the same number
   come back out, a random mix of everyone who lives there (every place has one of each of the
   second wave: `scenes.second_wave`, plus all five walkers and four fliers on each lower screen).
-  The trees switch between squid and owlets. Places
+  The trees always hold a mix of squid and owlets (each one is either), re-mixed by a storm. Places
   not on screen are re-shuffled at once. Animals in a battle are left alone.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"

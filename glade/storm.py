@@ -7,8 +7,8 @@ screen) has a roster; most of the second wave (beasts.py) starts out sheltering
 sky darkens, rain sets in and lightning flashes: every animal in sight shelters —
 crawlers and walkers sink into a hole in the ground, anything in the air flies off, the
 koi dive — then, under a flash, a new mix comes out (as many as were out before, picked at
-random from everyone who lives there). The trees' dwellers change too: tree squid or Moon Owlets,
-holding the same icons. The places not on screen are re-shuffled at the same moment.
+random from everyone who lives there). The trees' dwellers are re-mixed too: tree squid and Moon
+Owlets side by side, holding the same icons. The places not on screen are re-shuffled at the same moment.
 Animals in a battle (battle.py) stay out of it.
 """
 
@@ -57,10 +57,14 @@ def choose(animals, rng, n=None, before=None):
 
 
 def dwellers(colony, rng):
-    """Which kind holds the icons in the trees next."""
-    now = getattr(colony, "dweller", "squid")
-    other = "owlet" if now == "squid" else "squid"
-    return other if rng.random() < 0.7 else now
+    """Mix up who holds the icons in the trees: each one is a tree squid or a Moon Owlet,
+    with always some of both when there are two or more."""
+    squid = list(colony.squid.values())
+    for sq in squid:
+        sq.kind = rng.choice(("squid", "owlet"))
+    if len(squid) > 1 and len({sq.kind for sq in squid}) == 1:
+        sq = rng.choice(squid)
+        sq.kind = "owlet" if sq.kind == "squid" else "squid"
 
 
 def reshuffle(content, rng, keep):
@@ -71,9 +75,7 @@ def reshuffle(content, rng, keep):
         o.gone = not any(o is p for p in pick)
     colony = getattr(content, "colony", None)
     if colony is not None:
-        colony.dweller = dwellers(colony, rng)
-        for sq in colony.squid.values():
-            sq.kind = colony.dweller
+        dwellers(colony, rng)
 
 
 class Shelter:
@@ -195,9 +197,7 @@ class Storm:
             for f in getattr(pond, "fish", []) if pond is not None else []:
                 self.moves.append(Shelter(f, low, False, t + 1.6 + self.rng.uniform(0, 1.2), self.rng))
         if self.colony is not None:
-            self.colony.dweller = dwellers(self.colony, self.rng)
-            for sq in self.colony.squid.values():
-                sq.kind = self.colony.dweller
+            dwellers(self.colony, self.rng)
 
     @property
     def done(self):
