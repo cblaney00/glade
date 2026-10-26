@@ -36,7 +36,7 @@ LOOK_EVERY = 5  # seconds between looks at the Desktop folder
 RERANK_EVERY = 60  # seconds: clicks reorder the squid at most this often, so nothing jumps away mid-click
 
 # His apps, in the order they get a spot before he has clicked anything. The keys are
-# main.APPS's (the board shows that app's little picture).
+# main.APPS's (the banner shows that app's little picture).
 APPS = [("files", "Files"), ("browser", "Web Browser"), ("terminal", "Terminal"), ("music", "Music"),
         ("games", "Games"), ("discord", "Discord"), ("code", "Code Editor")]
 SKIP = {"The Glade"}  # the glade's own pictures folder: he asked for its squid to go
@@ -44,7 +44,7 @@ SKIP = {"The Glade"}  # the glade's own pictures folder: he asked for its squid 
 COLORS = dict(app=GLOW["violet"], shortcut=GLOW["cyan"], folder=GLOW["amber"], file=GLOW["pink"])
 
 # How big the squid are, how far apart they sit on a trunk, and how much of a name fits
-# on a board: the first that has room for everyone is used.
+# on a banner: the first that has room for everyone is used.
 LEVELS = [(0.7, 58, 7), (0.6, 52, 6), (0.52, 47, 6), (0.46, 42, 5)]
 
 CLIMB, SWIM = 34.0, 80.0  # pixels a second
@@ -287,7 +287,7 @@ class Colony:
         out = []
         for i, tr in enumerate(self.trunks):
             mine = []
-            y = tr["lo"] + (gap / 2 if i % 2 else 0)  # neighbouring trees take turns, so boards don't meet
+            y = tr["lo"] + (gap / 2 if i % 2 else 0)  # neighbouring trees take turns, so banners don't meet
             while y <= tr["hi"]:
                 mine.append((i, round(self.x_at(i, y)), round(y)))
                 y += gap

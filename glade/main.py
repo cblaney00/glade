@@ -167,8 +167,8 @@ MIST = dict(go=(110, 255, 180), app=(196, 140, 255))
 
 class Signs:
     """Glowing banners with each target's name (and its picture, for apps). They
-    are always shown and never move, so they are easy to click; the board itself is
-    part of what you can click. Hovering lights it up."""
+    are always shown and never move, so they are easy to click; the banner itself is
+    part of what you can click (for a tree squid, all of it). Hovering lights it up."""
 
     def __init__(self):
         pygame.font.init()
@@ -343,7 +343,7 @@ class Minimap:
         tx, ty = r.centerx - text.get_width() // 2, r.y + self.map_h + 2
         s.blit(shade, (tx + 1, ty + 1))
         s.blit(text, (tx, ty))
-        moss = (150, 255, 200)  # the same tuft of glowing moss as the name boards
+        moss = (150, 255, 200)  # a tuft of glowing moss on the top-left corner
         for dx, dy in ((0, 0), (1, -1), (2, -1), (3, 0), (4, -1), (5, 0), (2, -2), (6, 0)):
             s.set_at((r.x + 3 + dx, r.y + dy), moss if dy < 0 else (90, 190, 150))
         self.cache[key] = s

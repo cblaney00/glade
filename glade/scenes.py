@@ -393,10 +393,7 @@ def build_glade():
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 440), 40, GLOW["cyan"]))
-    # no squid in the air here (the glade's squid are on its left trees), but their random
-    # numbers are still drawn, so the rest of the glade looks the same
-    [Squid(rng, (120, 60, 720, 260), c, size=1.5 * rng.uniform(0.85, 1.15)) for c in (GLOW["cyan"], GLOW["pink"], GLOW["violet"])]
-    front_frame(sc, rng)
+    front_frame(sc, rng)  # no squid in the air here: the glade's squid are on its left trees
 
     sc.spots = [
         Spot("go", (0, 352, 92, 92), "The Forest", "forest", (28, 400), sign=(78, 352)),
