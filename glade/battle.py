@@ -139,6 +139,42 @@ MOVES = {
     "Magical Leaf": mv("Grass", 60, None, 20),
     "Synthesis": mv("Grass", 0, None, 5, st="recover"),
     "Sleep Powder": mv("Grass", 0, 75, 15, st="slp"),
+    "Ember": mv("Fire", 40, 100, 25, sec=(10, "brn")),
+    "Flamethrower": mv("Fire", 95, 100, 15, sec=(10, "brn")),
+    "Will-O-Wisp": mv("Fire", 0, 75, 15, st="brn"),
+    "Stun Spore": mv("Grass", 0, 75, 30, st="par"),
+    "Poison Powder": mv("Poison", 0, 75, 35, st="psn"),
+    "Morning Sun": mv("Normal", 0, None, 5, st="recover"),
+    "Gust": mv("Flying", 40, 100, 35),
+    "Peck": mv("Flying", 35, 100, 35, c=1),
+    "Wing Attack": mv("Flying", 60, 100, 35, c=1),
+    "Aerial Ace": mv("Flying", 60, None, 20, c=1),
+    "Air Cutter": mv("Flying", 55, 95, 25, highcrit=1),
+    "Faint Attack": mv("Dark", 60, None, 20, c=1),
+    "Supersonic": mv("Normal", 0, 55, 20, st="confuse"),
+    "Dragon Claw": mv("Dragon", 80, 100, 15, c=1),
+    "Shadow Ball": mv("Ghost", 80, 100, 15, sec=(20, {"spd": -1})),
+    "Night Shade": mv("Ghost", 1, 100, 15, fixed=1),
+    "Lick": mv("Ghost", 20, 100, 30, c=1, sec=(30, "par")),
+    "Astonish": mv("Ghost", 30, 100, 15, c=1, sec=(30, "flinch")),
+    "Karate Chop": mv("Fighting", 50, 100, 25, c=1, highcrit=1),
+    "Brick Break": mv("Fighting", 75, 100, 15, c=1),
+    "Mach Punch": mv("Fighting", 40, 100, 30, c=1, prio=1),
+    "Bulk Up": mv("Fighting", 0, None, 20, up={"atk": 1, "def": 1}),
+    "Take Down": mv("Normal", 90, 85, 20, c=1, recoil=4),
+    "Mud Shot": mv("Ground", 55, 95, 15, sec=(100, {"spe": -1})),
+    "Earthquake": mv("Ground", 100, 100, 10),
+    "Fury Swipes": mv("Normal", 18, 80, 15, c=1, multi=1),
+    "Sand-Attack": mv("Ground", 0, 100, 15, down={"acc": -1}),
+    "Absorb": mv("Grass", 20, 100, 20, drain=1),
+    "Leech Seed": mv("Grass", 0, 90, 10, st="seed"),
+    "Aurora Beam": mv("Ice", 65, 100, 20, sec=(10, {"atk": -1})),
+    "Powder Snow": mv("Ice", 40, 100, 25, sec=(10, "frz")),
+    "Water Gun": mv("Water", 40, 100, 25),
+    "Amnesia": mv("Psychic", 0, None, 20, up={"spd": 2}),
+    "Metal Claw": mv("Steel", 50, 95, 35, c=1, sec=(10, ("self", {"atk": 1}))),
+    "Harden": mv("Normal", 0, None, 30, up={"def": 1}),
+    "Confusion": mv("Psychic", 50, 100, 25, sec=(10, "confuse")),
     "Struggle": mv("???", 50, None, 1, c=1, recoil=4),
 }
 
@@ -169,6 +205,36 @@ SPECIES = {
     "Tree Squid": dict(num=19, types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
                        pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
                              "Octazooka", "Synthesis", "Sleep Powder"]),
+    "Lantern Moth": dict(num=22, types=("Bug", "Fire"), base=(45, 35, 40, 75, 55, 70), ability="Shield Dust",
+                         pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
+                               "Morning Sun", "Gust"]),
+    "Dusk Bat": dict(num=25, types=("Dark", "Flying"), base=(50, 55, 40, 45, 45, 75), ability="Inner Focus",
+                     pool=["Bite", "Crunch", "Wing Attack", "Aerial Ace", "Faint Attack", "Confuse Ray", "Supersonic",
+                           "Leech Life", "Screech"]),
+    "Glimmer Drake": dict(num=28, types=("Dragon", "Flying"), base=(46, 62, 43, 50, 44, 75), ability="Levitate",
+                          pool=["Dragon Breath", "Twister", "Dragon Claw", "Dragon Dance", "Wing Attack", "Aerial Ace",
+                                "Quick Attack", "Silver Wind", "Double Team"]),
+    "Mist Wisp": dict(num=31, types=("Ghost",), base=(40, 35, 45, 70, 60, 60), ability="Levitate",
+                      pool=["Shadow Ball", "Night Shade", "Lick", "Astonish", "Confuse Ray", "Will-O-Wisp",
+                            "Hypnosis", "Psybeam", "Pain Split"]),
+    "Brawl Toad": dict(num=34, types=("Fighting",), base=(60, 70, 55, 30, 45, 50), ability="Thick Fat",
+                       pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
+                             "Rock Tomb", "Bubble Beam"]),
+    "Moss Mole": dict(num=37, types=("Ground",), base=(55, 65, 60, 30, 40, 60), ability="Rock Head",
+                      pool=["Mud Shot", "Earthquake", "Mud-Slap", "Take Down", "Fury Swipes", "Sand-Attack",
+                            "Rock Slide", "Rock Tomb"]),
+    "Sporeling": dict(num=40, types=("Grass", "Poison"), base=(60, 45, 55, 65, 60, 25), ability="Effect Spore",
+                      pool=["Absorb", "Mega Drain", "Giga Drain", "Sludge Bomb", "Stun Spore", "Sleep Powder",
+                            "Poison Powder", "Leech Seed", "Synthesis"]),
+    "Rime Newt": dict(num=43, types=("Water", "Ice"), base=(50, 45, 50, 65, 50, 60), ability="Water Absorb",
+                      pool=["Powder Snow", "Aurora Beam", "Ice Beam", "Water Gun", "Bubble Beam", "Surf", "Haze",
+                            "Amnesia", "Quick Attack"]),
+    "Copper Beetle": dict(num=46, types=("Steel", "Electric"), base=(50, 60, 70, 45, 45, 40), ability="Static",
+                          pool=["Metal Claw", "Iron Tail", "Iron Defense", "Harden", "Spark", "Shock Wave",
+                                "Thunder Wave", "Thunderbolt"]),
+    "Moon Owlet": dict(num=49, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
+                       pool=["Peck", "Wing Attack", "Aerial Ace", "Air Cutter", "Hypnosis", "Confusion", "Return",
+                             "Quick Attack"]),
 }
 
 STATS = ("atk", "def", "spa", "spd", "spe")
@@ -220,6 +286,7 @@ class Mon:
         self.status, self.sleep, self.toxic, self.confused = None, 0, 0, 0
         self.boosts = dict.fromkeys(STATS + ("acc", "eva"), 0)
         self.flinch, self.protected, self.protect_run = False, False, 0
+        self.seeded = False
         self.item = "Leftovers"
 
     def speed(self):
@@ -295,7 +362,7 @@ class Battle:
             else:
                 self.say(f"{u.name} is frozen solid!")
                 return False
-        if u.flinch:
+        if u.flinch and u.ability != "Inner Focus":
             self.say(f"{u.name} flinched!")
             return False
         if u.confused:
@@ -332,7 +399,7 @@ class Battle:
                 self.say("But it failed!")
             return
         u.protect_run = 0
-        at_foe = m["p"] > 0 or m.get("st") in ("par", "tox", "slp", "confuse") or "down" in m
+        at_foe = m["p"] > 0 or m.get("st") in ("par", "psn", "tox", "slp", "brn", "confuse", "seed") or "down" in m
         if at_foe and f.protected:
             self.say(f"{f.name} protected itself!")
             return
@@ -357,6 +424,8 @@ class Battle:
         a, d = staged(u.stats[ak], ab), staged(f.stats[dk], db)
         if phys and u.ability == "Guts" and u.status:
             a = a * 15 // 10
+        if f.ability == "Thick Fat" and t in ("Fire", "Ice"):
+            a //= 2
         dmg = (a * m["p"] * (2 * LEVEL // 5 + 2) // d) // 50
         if phys and u.status == "brn" and u.ability != "Guts":
             dmg //= 2
@@ -376,6 +445,19 @@ class Battle:
         e = effectiveness(m["t"], f.types)
         if e == 0 or (m["t"] == "Ground" and f.ability == "Levitate"):
             self.say(f"It doesn't affect {f.name}...")
+            return
+        if m["t"] == "Water" and f.ability == "Water Absorb":
+            if f.hp < f.maxhp:
+                f.hp = min(f.maxhp, f.hp + f.maxhp // 4)
+                self.say(f"{f.name} restored HP using its Water Absorb!")
+            else:
+                self.say(f"{f.name}'s Water Absorb made it useless!")
+            return
+        if m.get("fixed"):  # Night Shade: as much damage as the user's level
+            dmg = min(f.hp, LEVEL)
+            f.hp -= dmg
+            self.say("", hit=self.side(f))
+            self.check_faint(f)
             return
         hits = 1
         if m.get("multi"):  # 2, 3, 4 or 5 hits: 3/8, 3/8, 1/8, 1/8
@@ -398,7 +480,7 @@ class Battle:
             self.say("It's super effective!")
         elif e < 1:
             self.say("It's not very effective...")
-        if m.get("recoil"):
+        if m.get("recoil") and (u.ability != "Rock Head" or name == "Struggle"):
             r = max(1, total // m["recoil"])
             u.hp = max(0, u.hp - r)
             self.say(f"{u.name} is hit with recoil!", hit=self.side(u))
@@ -415,10 +497,17 @@ class Battle:
                 self.inflict(u, "par", f"{f.name}'s Static")
             elif f.ability == "Poison Point":
                 self.inflict(u, "psn", f"{f.name}'s Poison Point")
+        if m.get("c") and f.hp > 0 and u.hp > 0 and f.ability == "Effect Spore" and rng.random() < 0.1:
+            self.inflict(u, rng.choice(("psn", "par", "slp")), f"{f.name}'s Effect Spore")
         sec = m.get("sec")
         if sec and rng.random() * 100 < sec[0]:
             what = sec[1]
-            if what == "allup":
+            if isinstance(what, tuple):  # ("self", boosts): the user gets them
+                for k, v in what[1].items():
+                    self.boost(u, k, v)
+            elif f.ability == "Shield Dust" and what != "allup":
+                pass  # Shield Dust: no side effects of moves land on it
+            elif what == "allup":
                 for k in STATS:
                     self.boost(u, k, 1)
             elif f.hp > 0:
@@ -468,7 +557,13 @@ class Battle:
             self.confuse(f)
         elif st == "par" and effectiveness(m["t"], f.types) == 0:
             self.say(f"It doesn't affect {f.name}...")
-        elif st in ("par", "tox", "slp"):
+        elif st == "seed":
+            if f.seeded or "Grass" in f.types:
+                self.say(f"{f.name} evaded the attack!" if "Grass" in f.types else "But it failed!")
+            else:
+                f.seeded = True
+                self.say(f"{f.name} was seeded!")
+        elif st in ("par", "psn", "tox", "slp", "brn"):
             if not self.inflict(f, st):
                 self.say("But it failed!")
 
@@ -489,13 +584,15 @@ class Battle:
             return False
         if st == "frz" and "Ice" in f.types:
             return False
+        if st == "brn" and "Fire" in f.types:
+            return False
         f.status = st
         if st == "slp":
             f.sleep = self.rng.randint(2, 5)  # 1-4 turns asleep; it acts on the turn it wakes
         if st == "tox":
             f.toxic = 0
         text = dict(par="is paralyzed! It may be unable to move!", psn="was poisoned!", tox="was badly poisoned!",
-                    slp="fell asleep!", frz="was frozen solid!")[st]
+                    slp="fell asleep!", frz="was frozen solid!", brn="was burned!")[st]
         self.say(f"{cause}! {f.name} {text}" if cause else f"{f.name} {text}")
         return True
 
@@ -503,6 +600,9 @@ class Battle:
         old = mon.boosts[k]
         new = max(-6, min(6, old + v))
         nm = STAT_NAME[k]
+        if k == "acc" and v < 0 and mon.ability == "Keen Eye":
+            self.say(f"{mon.name}'s Keen Eye prevents accuracy loss!")
+            return
         if new == old:
             self.say(f"{mon.name}'s {nm} won't go any {'higher' if v > 0 else 'lower'}!")
             return
@@ -529,6 +629,23 @@ class Battle:
             if m.hp < m.maxhp:
                 m.hp = min(m.maxhp, m.hp + max(1, m.maxhp // 16))
                 self.say(f"{m.name} restored a little HP using its Leftovers!")
+            if m.seeded and m.hp > 0:  # Leech Seed: it feeds the other one every turn
+                other = self.mons[1 - s]
+                amt = min(m.hp, max(1, m.maxhp // 8))
+                m.hp -= amt
+                if other.hp > 0:
+                    if m.ability == "Liquid Ooze":
+                        other.hp = max(0, other.hp - amt)
+                    else:
+                        other.hp = min(other.maxhp, other.hp + amt)
+                self.say(f"{m.name}'s health is sapped by Leech Seed!", hit=s)
+                self.check_faint(m)
+                self.check_faint(other)
+                if self.winner is not None:
+                    return
+            if m.status == "brn":
+                m.hp = max(0, m.hp - max(1, m.maxhp // 8))
+                self.say(f"{m.name} is hurt by its burn!", hit=s)
             if m.status == "psn":
                 m.hp = max(0, m.hp - max(1, m.maxhp // 8))
                 self.say(f"{m.name} is hurt by poison!", hit=s)
@@ -555,7 +672,7 @@ class Battle:
                 if e == 0 or (m["t"] == "Ground" and them.ability == "Levitate"):
                     score = 0
                 else:
-                    dmg = self.damage(me, them, m, roll=92) * (3 if m.get("multi") else 1)
+                    dmg = LEVEL if m.get("fixed") else self.damage(me, them, m, roll=92) * (3 if m.get("multi") else 1)
                     score = 1000 * acc if dmg >= them.hp else 100 * min(1.0, dmg / them.hp) * acc
             else:
                 st = m.get("st")
@@ -564,8 +681,10 @@ class Battle:
                     score = 45
                 elif "down" in m:
                     score = 20
-                elif st in ("par", "tox", "slp") and them.status is None:
+                elif st in ("par", "psn", "tox", "slp", "brn") and them.status is None:
                     score = 55 * acc
+                elif st == "seed" and not them.seeded and "Grass" not in them.types:
+                    score = 50 * acc
                 elif st == "confuse" and not them.confused:
                     score = 35
                 elif st == "recover" and me.hp < me.maxhp * .5:
@@ -587,6 +706,8 @@ class Battle:
 # --- the animals in the scene --------------------------------------------------------
 
 def species_of(obj):
+    if getattr(obj, "species", None):  # beasts.py: they say what they are
+        return obj.species
     name = type(obj).__name__
     if name in ("Squid", "Nibbler", "HollowSquid"):
         return "Squid"
@@ -597,7 +718,7 @@ def species_of(obj):
     if name in ("Millipede", "Critter"):
         return name
     if name == "TreeSquid":
-        return "Tree Squid"
+        return "Moon Owlet" if getattr(obj, "kind", "squid") == "owlet" else "Tree Squid"
     return None
 
 
@@ -619,7 +740,8 @@ def animals(scene, lower):
     out = [(p, species_of(p.obj)) for p in prey if species_of(p.obj)]
     colony = getattr(scene, "colony", None)
     if colony is not None:
-        out += [(Perched(sq), "Tree Squid") for sq in colony.squid.values() if sq.fade > 0.5]
+        out += [(Perched(sq), species_of(sq)) for sq in colony.squid.values()
+                if sq.fade > 0.5 and not getattr(sq, "gone", False)]
     return out
 
 
@@ -768,32 +890,42 @@ class Fighter:
         x, y = x - ox, y - oy
         if self.fainted is not None:
             y += 6 * (1 - al / 255)  # it sinks as it fades
-        px, py = self.a.pos()
-        if self.a.low:
-            px, py = px - OFFSET[0], py - OFFSET[1]
-        dx, dy = round(x - px), round(y - py)
-        R = self.R
-        dest = pygame.Rect(round(px) - R + dx, round(py) - R + dy, 2 * R, 2 * R).clip(s.get_rect())
-        src = dest.move(-dx, -dy).clip(scratch.get_rect())
-        dest = src.move(dx, dy)
-        if src.w <= 0 or src.h <= 0:
-            return
-        scratch.set_clip(src)
-        scratch.blit(s, src.topleft, dest)
-        o = self.a.obj
-        if isinstance(self.a, Perched):
-            o.shine(scratch, t, 12)
-        else:
-            for part in ("draw", "shine"):
-                fn = getattr(o, part, None)
-                if fn:
-                    fn(scratch, t)
-        scratch.set_clip(None)
-        piece = scratch.subsurface(src)
-        if al < 255:
-            piece = piece.copy()
-            piece.set_alpha(al)
-        s.blit(piece, dest.topleft)
+        draw_elsewhere(s, self.a, (x, y), t, scratch, al, R=self.R)
+
+
+def draw_elsewhere(s, a, at, t, scratch, alpha=255, cut=None, R=56):
+    """Draw animal `a` (an apex.Prey or Perched) on `s` with its position moved to `at`
+    (s's pixels): the patch of `s` round `at` is copied into `scratch` at the animal's
+    real place, the animal draws itself there as usual, and the result goes back. `cut`:
+    nothing below that line of `s` is drawn (sinking into a hole)."""
+    px, py = a.pos()
+    if a.low:
+        px, py = px - OFFSET[0], py - OFFSET[1]
+    dx, dy = round(at[0] - px), round(at[1] - py)
+    dest = pygame.Rect(round(px) - R + dx, round(py) - R + dy, 2 * R, 2 * R)
+    if cut is not None:
+        dest.h = max(0, min(dest.bottom, round(cut)) - dest.top)
+    dest = dest.clip(s.get_rect())
+    src = dest.move(-dx, -dy).clip(scratch.get_rect())
+    dest = src.move(dx, dy)
+    if src.w <= 0 or src.h <= 0:
+        return
+    scratch.set_clip(src)
+    scratch.blit(s, src.topleft, dest)
+    o = a.obj
+    if isinstance(a, Perched):
+        o.shine(scratch, t, 12)
+    else:
+        for part in ("draw", "shine"):
+            fn = getattr(o, part, None)
+            if fn:
+                fn(scratch, t)
+    scratch.set_clip(None)
+    piece = scratch.subsurface(src)
+    if alpha < 255:
+        piece = piece.copy()
+        piece.set_alpha(alpha)
+    s.blit(piece, dest.topleft)
 
 
 class Arena:

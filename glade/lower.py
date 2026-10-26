@@ -175,6 +175,17 @@ class Lower(art.Lighting):
                         all(abs(y0 - c.track.pts[0][1]) > 50 for c in crawlers):
                     crawlers.append(Slug(rng, Track(pts), body, size=sz, speed=7, spots=spots_c, shell=shell))
                     break
+        # one of the second wave lives down here too, sheltering until a storm (storm.py)
+        from beasts import Walker
+        from storm import newcomer
+        kind = dict(glade="toad", waterfall="beetle", river="newt", forest="mole", rocks="sporeling").get(self.key)
+        for _ in range(80 if kind else 0):
+            x0, y0 = rng.randint(60, w - 280), rng.randint(90, h - 40)
+            if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)) and \
+                    all(abs(y0 - c.track.pts[0][1]) > 40 for c in crawlers):
+                crawlers.append(newcomer(Walker(rng, lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200),
+                                                kind, 2.0)))
+                break
         sky = Squid(rng, (60, 20, w - 120, h // 2), rng.choice([GLOW["cyan"], GLOW["pink"], GLOW["violet"]]), size=2.0)
         self.parts = [far, ferns] + crawlers + [near, bugs, sky, Motes(rng, (0, 0, w, h), 26, GLOW["cyan"])]
         if glows:

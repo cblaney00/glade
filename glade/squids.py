@@ -33,6 +33,7 @@ import pygame
 import art
 from art import GLOW, glow, mix
 from life import q, swell
+from beasts import owlet
 from orchard import app_command
 
 HOME = os.path.expanduser("~")
@@ -324,6 +325,9 @@ class TreeSquid:
             return
         sz, x, y = self.size * self.fade, self.x, self.y
         how = self.moving()
+        if getattr(self, "kind", "squid") == "owlet":  # a storm swapped the dwellers (storm.py)
+            owlet(s, x, y, sz, self.color, t, self.phase, how, self.poked)
+            return
         breathe = math.sin(t * 1.1 + self.phase)
         k = swell(t - self.poked, 0.35, 1.2, wait=0.15)  # opening it: a gentle wiggle and glow
         wig = math.sin((t - self.poked) * 14) * 2 * k
@@ -571,6 +575,7 @@ class Colony:
             sq = self.squid.get(iid)
             if sq is None:
                 sq = self.squid[iid] = TreeSquid(it, slot[1], slot[2], SIZE)
+                sq.kind = getattr(self, "dweller", "squid")
                 if self.clock is not None:  # someone new: it swims down from the canopy
                     sq.x, sq.y = slot[1], 20
                     sq.slot = (None, slot[1], 20)

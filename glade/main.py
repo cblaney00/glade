@@ -19,6 +19,7 @@ import art
 from apex import Hunt, Listener
 from battle import Arena, Card, animal_under
 from dex import Dex
+import storm
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -577,6 +578,8 @@ class Glade:
         self.popup = None  # the right-click menu, while it is open
         self.card = None   # an animal's battle stats (battle.py), from a right-click
         self.dex = None    # the Forest Dex (dex.py), opened from that card
+        self.storm = None  # a thunderstorm (storm.py): the animals take turns
+        self.storm_scratch = art.solid()
 
     def scene(self, key):
         if key not in self.scenes:
@@ -635,6 +638,12 @@ class Glade:
     def click(self, t):
         if self.fade_to:
             return
+        view = self.storm_view()
+        if view is not None:  # the Thunderstorm button, while battle stats are on screen
+            m = view.mouse()
+            if m and storm.button_rect(view).collidepoint(m):
+                self.storm, self.card, self.dex = storm.Storm(self, t), None, None
+                return
         if self.dex is not None:  # the dex takes clicks on it; one outside it closes it
             m = self.top.mouse()
             if m and self.dex.rect.collidepoint(m):
@@ -715,7 +724,8 @@ class Glade:
                 gone = "Remove (to Trash)" if sq.item.get("path") else "Remove from the trees"
                 choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
                            (gone, lambda t, sq=sq: colony.remove(sq)),
-                           ("Battle stats", lambda t, v=view, m=m: self.show_card(v, m, "Tree Squid", t))]
+                           ("Battle stats", lambda t, v=view, m=m, sq=sq: self.show_card(
+                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Tree Squid", t))]
             elif sp is None:
                 low = self.lower() if self.bottom else None
                 found = animal_under(self.here, low, m, view is self.bottom, t)
@@ -728,6 +738,12 @@ class Glade:
             if choices:
                 self.popup = Popup(self.signs.font, view, m, choices, t)
             return
+
+    def storm_view(self):
+        """Where the Thunderstorm button is, while it is shown (else None)."""
+        if self.storm is not None or (self.card is None and self.dex is None):
+            return None
+        return self.bottom or self.top
 
     def show_card(self, view, m, species, t):
         self.card = Card(self.signs.font, view, m, species, t)
@@ -847,6 +863,14 @@ class Glade:
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
+        if self.storm is not None:
+            if self.storm.scene is not self.here:
+                self.storm.finish()  # he walked off: it is over, and settled as it would have been
+                self.storm = None
+            elif self.storm.done:
+                self.storm = None
+            else:
+                self.storm.update(t)
         if self.arena is not None:
             if self.arena.done:
                 self.arena.finish()  # closed: everyone is home
@@ -871,6 +895,8 @@ class Glade:
                 self.listener.draw_moon(view.canvas, getattr(content, "moon", None), t)
             if self.hunt is not None:
                 self.hunt.draw(view.canvas, view is self.bottom, t)
+            if self.storm is not None:
+                self.storm.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             self.overlay(view, content, t)
             if self.arena is not None:
                 self.arena.draw(view.canvas, view is self.bottom, t)
@@ -882,6 +908,8 @@ class Glade:
                 self.card.draw(view.canvas, t)
             if self.dex is not None and view is self.top:
                 self.dex.draw(view.canvas, view.mouse(), t)
+            if self.storm_view() is view:
+                storm.draw_button(view.canvas, view, self.signs.font)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)

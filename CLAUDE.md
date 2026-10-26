@@ -84,6 +84,18 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   (`num` in `battle.SPECIES`; Critter #001, Squid #004 … Tree Squid #019, next new one #022),
   and the rest are "?" slots. Dex tab: pages of 48 slots. Compare tab: a table of everything
   found so far, sorted by clicking a column. On the right, the chosen one's stats and moves.
+- `glade/beasts.py` — the **second wave** of animals (2026-10-26, his ask: 10 more first-stage
+  creatures, varied typing, in keeping with the glade): `Flier` (Dusk Bat, Lantern Moth,
+  Glimmer Drake, Mist Wisp), `Walker` (Brawl Toad, Moss Mole, Sporeling, Rime Newt, Copper
+  Beetle), and `owlet()`, the Moon Owlet, a tree dweller that can hold the icons instead of
+  the tree squid (`TreeSquid.kind`). Dex #022-#049. More areas are coming, so not every typing
+  is covered yet.
+- `glade/storm.py` — **animals take turns**. Not all are out at once: newcomers start
+  `gone` (`storm.newcomer`). While a stats card or the Forest Dex is open, a **Thunderstorm**
+  button shows in the lower screen's top-right corner. It brings rain and lightning, everyone
+  in sight shelters (diggers sink into a hole, fliers fly off, koi dive), and the same number
+  come back out, sheltering ones first. The trees switch between squid and owlets. Places
+  not on screen are re-shuffled at once. Animals in a battle are left alone.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; name boards, fades, app launching.

@@ -109,16 +109,18 @@ def find_prey(scene, lower):
             if id(o) in seen:
                 continue
             seen.add(id(o))
+            if getattr(o, "gone", False):  # sheltering from a storm (storm.py), or in a battle
+                continue
             name = type(o).__name__
-            if name in ("Squid", "Nibbler", "HollowSquid"):
+            if name in ("Squid", "Nibbler", "HollowSquid", "Flier"):
                 prey.append(Prey(o, low, "fly"))
-            elif name in ("Slug", "Millipede", "Critter"):
+            elif name in ("Slug", "Millipede", "Critter", "Walker"):
                 prey.append(Prey(o, low, "crawl"))
             elif name == "Fireflies":
                 swarms.append((o, low))
         pond = getattr(content, "pond", None)
         if pond is not None and hasattr(pond, "fish"):
-            for f in pond.fish:
+            for f in (f for f in pond.fish if not getattr(f, "gone", False)):
                 prey.append(Prey(f, low, "fish"))
     return prey, swarms
 
