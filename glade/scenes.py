@@ -386,8 +386,8 @@ def build_glade():
     trunk = lambda x, w, lo, hi, bottom=392, lean=None: dict(  # noqa: E731
         x=x, w=w, lo=lo, hi=hi, bottom=bottom, lean=leans[x] if lean is None else lean)
     sc.colony = sc.live(Colony(sc, Spot, [
-        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330),
-        trunk(306, 14, 110, 340)]))  # only the trees on the left, as he asked
+        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330)]))
+    # four trees of four: his sixteen; the seed sign under them grows more (squids.GROW_AT)
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))

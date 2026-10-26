@@ -162,7 +162,7 @@ EDGE = (24, 14, 34)
 TEXT = (255, 238, 214)
 HOT = (255, 172, 228)
 # the glow inside each kind of banner: paths to other places, and apps / files
-MIST = dict(go=(110, 255, 180), app=(196, 140, 255))
+MIST = dict(go=(110, 255, 180), app=(196, 140, 255), grow=(190, 255, 120))
 
 
 class Signs:
@@ -187,12 +187,29 @@ class Signs:
         pygame.draw.lines(s, color, False, pts, 2)
         return s
 
+    def tile(self, spot, hot):
+        """The picture a tree squid holds: the app's own icon on a small glowing pad in
+        the squid's colour."""
+        pic = spot.tile if isinstance(spot.tile, pygame.Surface) else ICONS.get(spot.target)
+        tint = spot.squid.color if getattr(spot, "squid", None) else MIST["app"]
+        s = pygame.Surface((24, 24), pygame.SRCALPHA)
+        r = pygame.Rect(1, 1, 22, 22)
+        pygame.draw.rect(s, (*mix(tint, EDGE, 0.7), 215 if hot else 185), r, border_radius=5)
+        for i in range(r.h - 4):  # lit from above, like the banners
+            a = round((80 if hot else 50) * (1 - i / r.h))
+            pygame.draw.line(s, (*tint, a), (r.x + 2, r.y + 2 + i), (r.right - 3, r.y + 2 + i))
+        pygame.draw.rect(s, (*((255, 255, 255) if hot else mix(tint, (255, 255, 255), 0.4)), 235 if hot else 170),
+                         r, 1, border_radius=5)
+        if pic is not None:
+            s.blit(pic, pic.get_rect(center=r.center))
+        return s
+
     def board(self, spot, direction, hot, label=None):
         """A banner of glowing spirit-cloth, not wood: see-through, softly lit from
         inside, its lower edge frayed into wisps. Paths are a mossy mint green, apps
         and files a soft violet, so the two kinds are easy to tell apart."""
         label = label or spot.label
-        tint = MIST["go"] if spot.kind == "go" else MIST["app"]
+        tint = MIST.get(spot.kind, MIST["app"])
         text = self.font.render(label, False, (255, 255, 255) if hot else TEXT)
         shade = self.font.render(label, False, mix(tint, EDGE, 0.75))
         tw, th = text.get_size()
@@ -239,6 +256,16 @@ class Signs:
         """Draw a spot's boards once, place them, and make them clickable."""
         if getattr(spot, "boards", None) is not None:
             return
+        if getattr(spot, "tile", None) is not None:  # a tree squid: its picture, its name on hover
+            cold, warm = self.tile(spot, False), self.tile(spot, True)
+            rect = cold.get_rect(center=spot.sign)
+            rect.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
+            name = self.board(spot, None, True, spot.full)
+            below = name.get_rect(midtop=(rect.centerx, rect.bottom + 1))
+            below.clamp_ip(pygame.Rect(2, 2, w - 4, h - 4))
+            spot.boards, spot.namebox = (cold, warm, rect, rect), (name, below)
+            spot.hits = [rect.inflate(6, 6), spot.rect]
+            return
         direction = go_direction(spot, w, h)
         # a board whose name is cut short shows all of it while you point at it
         full = getattr(spot, "full", None)
@@ -258,6 +285,47 @@ class Signs:
         if hot:
             art.glow(s, *wide.center, max(wide.w, wide.h) // 2 + 18, (255, 150, 220), 120)
         s.blit(warm if hot else cold, wide if hot else rect)
+        if hot and getattr(spot, "namebox", None):
+            s.blit(*spot.namebox)
+
+
+class Popup:
+    """The right-click menu: a small glowing banner with one choice on each line. It eases
+    in rather than appearing at once, and any click closes it."""
+
+    LINE = 16
+
+    def __init__(self, font, view, at, choices, t):
+        self.font, self.view, self.choices, self.t = font, view, choices, t
+        w = max(font.size(label)[0] for label, _ in choices) + 16
+        self.rect = pygame.Rect(round(at[0]) + 4, round(at[1]) + 4, w, self.LINE * len(choices) + 6)
+        self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
+
+    def at(self, m):
+        if not m or not self.rect.collidepoint(m):
+            return None
+        i = int((m[1] - self.rect.y - 3) // self.LINE)
+        return i if 0 <= i < len(self.choices) else None
+
+    def draw(self, s, m, t):
+        f = max(0.0, min(1.0, (t - self.t - 0.05) / 0.22))
+        k = f * f * (3 - 2 * f)
+        if k <= 0:
+            return
+        r = self.rect
+        tint = MIST["app"]
+        surf = pygame.Surface(r.size, pygame.SRCALPHA)
+        pygame.draw.rect(surf, (*mix(tint, EDGE, 0.7), 235), surf.get_rect(), border_radius=4)
+        pick = self.at(m)
+        for i, (label, _) in enumerate(self.choices):
+            y = 3 + i * self.LINE
+            if i == pick:
+                pygame.draw.rect(surf, (*mix(tint, HOT, 0.5), 120), (2, y, r.w - 4, self.LINE), border_radius=3)
+            text = self.font.render(label, False, (255, 255, 255) if i == pick else TEXT)
+            surf.blit(text, (8, y + (self.LINE - text.get_height()) // 2))
+        pygame.draw.rect(surf, (*mix(tint, (255, 255, 255), 0.45), 220), surf.get_rect(), 1, border_radius=4)
+        surf.set_alpha(round(255 * k))
+        s.blit(surf, r)
 
 
 class Minimap:
@@ -507,6 +575,7 @@ class Glade:
         self.on_heard = None   # ... and when it has heard the word
         self.hunt = None
         self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
+        self.popup = None  # the right-click menu, while it is open
 
     def scene(self, key):
         if key not in self.scenes:
@@ -542,11 +611,15 @@ class Glade:
     def go(self, key, remember=True):
         if self.fade_to or key == self.here.key:
             return
+        self.popup = None
         if remember:
             self.history.append(self.here.key)
         self.fade_to, self.picked = key, None
 
     def activate(self, view, content, sp, t):
+        if sp.kind == "grow":  # the seed sign: grow another tree for the squid
+            content.colony.grow(t)
+            return
         if sp.kind == "go":
             self.go(sp.target)
             return
@@ -560,6 +633,12 @@ class Glade:
 
     def click(self, t):
         if self.fade_to:
+            return
+        if self.popup is not None:  # a click chooses from the open menu, or just closes it
+            pop, self.popup = self.popup, None
+            i = pop.at(pop.view.mouse())
+            if i is not None:
+                pop.choices[i][1](t)
             return
         for view, content in self.views():
             m = view.mouse()
@@ -593,6 +672,34 @@ class Glade:
                     self.held = (view, content, sp, m)  # a click or a drag: the release decides
                 else:
                     self.activate(view, content, sp, t)
+            return
+
+    def right_click(self, t):
+        """Right-click a squid to open or remove it; right-click a tree he grew to take
+        it away."""
+        self.popup = None
+        if self.fade_to:
+            return
+        for view, content in self.views():
+            m = view.mouse()
+            colony = getattr(content, "colony", None)
+            if not m or colony is None:
+                continue
+            for sp in content.spots:
+                self.signs.prepare(sp, view.w, view.h)
+            sp = view.hovered(content.spots)
+            choices = []
+            if sp is not None and getattr(sp, "squid", None):
+                sq = sp.squid
+                gone = "Remove (to Trash)" if sq.item.get("path") else "Remove from the trees"
+                choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
+                           (gone, lambda t, sq=sq: colony.remove(sq))]
+            elif sp is None:
+                tree = colony.tree_at(m)
+                if tree is not None:
+                    choices = [("Remove this tree", lambda t, g=tree: colony.cut(g, t))]
+            if choices:
+                self.popup = Popup(self.signs.font, view, m, choices, t)
             return
 
     def release(self, t):
@@ -654,7 +761,7 @@ class Glade:
         s = view.canvas
         for sp in content.spots:
             self.signs.prepare(sp, view.w, view.h)
-        hot = None if self.fade_to else view.hovered(content.spots)
+        hot = None if self.fade_to or self.popup is not None else view.hovered(content.spots)
         if hot is None and self.picked and self.picked[0] is view and self.picked[1] in content.spots:
             hot = self.picked[1]
         for sp in content.spots:
@@ -672,6 +779,8 @@ class Glade:
                 info = type("Info", (), dict(label=KEYS_HINT, kind="info", target=None))()
                 self.hint = self.signs.board(info, None, False)
             s.blit(self.hint, self.hint.get_rect(midbottom=(view.w // 2, view.h - 4)))
+        if self.popup is not None and self.popup.view is view:
+            self.popup.draw(s, view.mouse(), t)
         if self.flash and self.flash[0] is view:
             # what you opened glows softly for a moment, easing in and out
             a = t - self.flash[2]
@@ -818,6 +927,8 @@ def main():
                 glade.key(cmd, time.monotonic() - glade.t0)
             if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                 glade.click(time.monotonic() - glade.t0)
+            if e.type == pygame.MOUSEBUTTONDOWN and e.button == 3:
+                glade.right_click(time.monotonic() - glade.t0)
             if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                 glade.release(time.monotonic() - glade.t0)
         glade.frame(min(dt, 0.1))

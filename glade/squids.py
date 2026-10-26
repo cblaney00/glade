@@ -1,15 +1,18 @@
 """The tree squid: his desktop icons.
 
 Every app, and everything in his Desktop folder, is a little glowing squid holding on
-to one of the trees on the left of the Glade, its name on a glowing banner underneath.
-Only one squid shows on each tree; the other banners float by the trunk on their own.
-Clicking a banner opens what it stands for.
+to one of the trees on the left of the Glade, with that thing's picture in its arms.
+The name shows on a glowing banner while he points at it. Clicking the picture (or the
+squid) opens it.
 
+- Each tree holds four squid. When the trees are full, the ones that don't fit wait,
+  and the seed sign on the ground says how many: clicking it grows another tree.
+- Right-click a squid to open or remove it (a Desktop shortcut goes to the Trash, an
+  app just leaves the trees); right-click a tree he grew to take it away again.
 - The more he clicks a squid, the better its spot: the most-used squid sit nearest the
   middle of the picture (clicks are counted in ~/.local/state/glade/squids.json).
 - When a squid is added or taken away the others move to make room: up or down their
   own trunk they climb, hand over hand; to another tree they let go and swim across.
-- When there are too many for the trees, they all get smaller and sit closer together.
 - He can drag a squid onto another spot. It stays there (a "pin"), and whoever was
   there swaps with it.
 
@@ -20,14 +23,17 @@ never stalls a frame.
 import json
 import math
 import os
+import random
+import subprocess
 import threading
 import time
 
 import pygame
 
+import art
 from art import GLOW, glow, mix
 from life import q, swell
-from orchard import app_command, short
+from orchard import app_command
 
 HOME = os.path.expanduser("~")
 DESKTOP = os.path.join(HOME, "Desktop")
@@ -36,18 +42,106 @@ LOOK_EVERY = 5  # seconds between looks at the Desktop folder
 RERANK_EVERY = 60  # seconds: clicks reorder the squid at most this often, so nothing jumps away mid-click
 
 # His apps, in the order they get a spot before he has clicked anything. The keys are
-# main.APPS's (the banner shows that app's little picture).
+# main.APPS's (the squid holds that app's little picture).
 APPS = [("files", "Files"), ("browser", "Web Browser"), ("terminal", "Terminal"), ("music", "Music"),
         ("games", "Games"), ("discord", "Discord"), ("code", "Code Editor")]
 SKIP = {"The Glade"}  # the glade's own pictures folder: he asked for its squid to go
 
 COLORS = dict(app=GLOW["violet"], shortcut=GLOW["cyan"], folder=GLOW["amber"], file=GLOW["pink"])
 
-# How big the squid are, how far apart they sit on a trunk, and how much of a name fits
-# on a banner: the first that has room for everyone is used.
-LEVELS = [(0.7, 58, 7), (0.6, 52, 6), (0.52, 47, 6), (0.46, 42, 5)]
+SIZE = 0.7  # how big the squid are
+PER_TREE = 4  # squid on each tree
+GROUND = 392  # where the trunks meet the meadow
+# where he can grow new trees (x, and how high the tree reaches), in the order they grow:
+# in the open between the left trees and the signpost, short enough to stay under the moon
+GROW_AT = [(372, 150), (420, 175)]
+SEED = (206, 400)  # the seed sign's sapling, on the meadow under the left trees
+ICON = 16  # pictures are this many pixels square
 
 CLIMB, SWIM = 34.0, 80.0  # pixels a second
+
+
+def ease(f):
+    f = max(0.0, min(1.0, f))
+    return f * f * (3 - 2 * f)
+
+
+# --- pictures -----------------------------------------------------------------------------
+
+def _icon_dirs():
+    data = [os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share")]
+    data += (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":")
+    return [d for d in dict.fromkeys(data) if d]
+
+
+SIZES = ("64x64", "48x48", "96x96", "128x128", "256x256", "32x32", "scalable", "24x24")
+
+
+def find_icon(name):
+    """The file for a .desktop Icon= value: a path, or a name in the hicolor theme."""
+    if not name:
+        return None
+    if os.path.isabs(name):
+        return name if os.path.isfile(name) else None
+    for d in _icon_dirs():
+        for size in SIZES:
+            for ext in ("png", "svg"):
+                p = os.path.join(d, "icons", "hicolor", size, "apps", f"{name}.{ext}")
+                if os.path.isfile(p):
+                    return p
+        for ext in ("png", "svg"):
+            p = os.path.join(d, "pixmaps", f"{name}.{ext}")
+            if os.path.isfile(p):
+                return p
+    return None
+
+
+_PICS = {}
+
+
+def picture(path):
+    """A picture file scaled down to ICON x ICON (cached); None if it can't be read."""
+    if path in _PICS:
+        return _PICS[path]
+    pic = None
+    try:
+        img = pygame.image.load(path)
+        if img.get_bitsize() != 32:
+            img = img.convert(32, pygame.SRCALPHA) if hasattr(img, "convert") else img
+        w, h = img.get_size()
+        k = ICON / max(w, h)
+        img = pygame.transform.smoothscale(img, (max(1, round(w * k)), max(1, round(h * k))))
+        pic = pygame.Surface((ICON, ICON), pygame.SRCALPHA)
+        pic.blit(img, img.get_rect(center=(ICON // 2, ICON // 2)))
+    except Exception:  # a strange or broken picture: the squid gets a plain one
+        pic = None
+    _PICS[path] = pic
+    return pic
+
+
+def folder_icon():
+    s = pygame.Surface((ICON, ICON), pygame.SRCALPHA)
+    pygame.draw.rect(s, (200, 140, 60), (1, 3, 7, 3), border_radius=1)
+    pygame.draw.rect(s, (246, 190, 92), (1, 5, 14, 9), border_radius=1)
+    pygame.draw.line(s, (255, 226, 150), (2, 6), (13, 6))
+    return s
+
+
+def page_icon():
+    s = pygame.Surface((ICON, ICON), pygame.SRCALPHA)
+    pygame.draw.polygon(s, (236, 230, 250), [(3, 1), (10, 1), (13, 4), (13, 15), (3, 15)])
+    pygame.draw.polygon(s, (180, 170, 210), [(10, 1), (10, 4), (13, 4)])
+    for y in (7, 9, 11):
+        pygame.draw.line(s, (150, 140, 190), (5, y), (11, y))
+    return s
+
+
+def sprout_icon():
+    s = pygame.Surface((ICON, 14), pygame.SRCALPHA)
+    pygame.draw.line(s, (120, 210, 120), (8, 13), (8, 5), 2)
+    pygame.draw.ellipse(s, (150, 240, 140), (1, 3, 7, 5))
+    pygame.draw.ellipse(s, (170, 255, 160), (8, 0, 7, 5))
+    return s
 
 
 # --- what is on the Desktop ---------------------------------------------------------------
@@ -87,11 +181,13 @@ def desktop_items():
                 cmd = app_command(e)
             except ValueError:
                 continue
-            out.append(dict(id="desktop:" + n, name=e.get("Name") or n[:-8], kind="shortcut", cmd=cmd))
+            out.append(dict(id="desktop:" + n, name=e.get("Name") or n[:-8], kind="shortcut", cmd=cmd,
+                            path=path, icon=find_icon(e.get("Icon"))))
         elif os.path.isdir(path):
-            out.append(dict(id="desktop:" + n, name=n, kind="folder", cmd=["xdg-open", path]))
+            out.append(dict(id="desktop:" + n, name=n, kind="folder", cmd=["xdg-open", path], path=path))
         else:
-            out.append(dict(id="desktop:" + n, name=os.path.splitext(n)[0] or n, kind="file", cmd=["xdg-open", path]))
+            out.append(dict(id="desktop:" + n, name=os.path.splitext(n)[0] or n, kind="file",
+                            cmd=["xdg-open", path], path=path))
     return out
 
 
@@ -106,13 +202,61 @@ class Looker:
         self.items = app_items() + desktop_items()
         threading.Thread(target=self.run, daemon=True).start()
 
+    def look(self):
+        self.items = app_items() + desktop_items()
+
     def run(self):
         while True:
             time.sleep(LOOK_EVERY)
             try:
-                self.items = app_items() + desktop_items()
+                self.look()
             except Exception:  # never let a strange file kill the looking
                 pass
+
+
+# --- trees he grows -------------------------------------------------------------------
+
+class GrownTree:
+    """A tree he grew with the seed sign: it rises out of the meadow over a couple of
+    seconds, and sinks back into it when he takes it away."""
+
+    GROW, SHRINK = 2.6, 1.6  # seconds
+
+    def __init__(self, scene, x, top, born):
+        self.x, self.top, self.born, self.dying = x, top, born, None
+        rng = random.Random(x * 7 + 1)
+        lay = art.plane()
+        self.lean = art.trunk(lay, rng, x, top, GROUND, 12, scene.col("wood", 0.5), branches=1, pal=scene.pal)
+        cx = x + (GROUND - top) * self.lean
+        for r, dy, c in ((20, -2, "leaf3"), (16, 8, "leaf"), (13, -10, "leaf")):
+            art.clump(lay, rng, round(cx), top + dy, r, scene.col(c, 0.5))
+        art.finish(lay, scene.pal, 0.5, rng)
+        self.pic = art.trimmed(lay)
+
+    def k(self, t):
+        if self.dying is not None:
+            return 1 - ease((t - self.dying) / self.SHRINK)
+        return ease((t - self.born) / self.GROW)
+
+    def gone(self, t):
+        return self.dying is not None and t - self.dying > self.SHRINK
+
+    def draw(self, s, t):
+        k = self.k(t)
+        if k <= 0.01 or not self.pic:
+            return
+        surf, (px, py) = self.pic
+        w, h = surf.get_size()
+        hk = max(1, round(h * k))
+        wk = max(1, round(w * (0.5 + 0.5 * k)))
+        s.blit(pygame.transform.scale(surf, (wk, hk)), (px + (w - wk) // 2, py + h - hk))
+
+    def light(self, lm, t):
+        k = self.k(t)
+        if k > 0.05:
+            glow(lm, self.x, GROUND - 4, int(34 * k), GLOW["moss"], 40)
+
+
 
 
 # --- one squid ------------------------------------------------------------------------
@@ -242,32 +386,39 @@ class TreeSquid:
 # --- the colony ---------------------------------------------------------------------
 
 class Colony:
-    """All the tree squid of one place, and the clickable spots that go with them.
+    """All the tree squid of one place, the trees he grew, and the clickable spots that go
+    with them.
 
     `trunks`: dicts with the trunk's `x`, `bottom` and `lean` (as art.trunk returned it),
     its width `w`, and the stretch of it squid may sit on, `lo` to `hi` (y)."""
 
     def __init__(self, scene, spot_type, trunks):
-        self.scene, self.Spot, self.trunks = scene, spot_type, trunks
+        self.scene, self.Spot, self.base = scene, spot_type, trunks
         self.looker = Looker()
         self.squid = {}  # item id -> TreeSquid
         self.mine = []  # the spots this colony put into the scene
         self.shown = None
         self.ranked_at = -RERANK_EVERY
         self.dragging = None  # (TreeSquid, where it was grabbed from)
-        self.gap = LEVELS[0][1]
+        self.waiting = 0  # squid with no room on the trees
         self.state = self.load()
         self.t = 0.0
         self.clock = None
+        self.grown = [GrownTree(scene, x, top, -99.0) for x, top in GROW_AT if x in self.state["trees"]]
+        self.dying = []  # trees sinking back into the meadow
+        self.trunks = []
+        self.retrunk()
+        self.sprout = sprout_icon()
 
     # remembering ---------------------------------------------------------------------
     def load(self):
         try:
             with open(STATE) as f:
                 st = json.load(f)
-            return dict(clicks=dict(st.get("clicks", {})), pins=dict(st.get("pins", {})))
+            return dict(clicks=dict(st.get("clicks", {})), pins=dict(st.get("pins", {})),
+                        hidden=list(st.get("hidden", [])), trees=list(st.get("trees", [])))
         except (OSError, ValueError, AttributeError):
-            return dict(clicks={}, pins={})
+            return dict(clicks={}, pins={}, hidden=[], trees=[])
 
     def save(self):
         try:
@@ -278,19 +429,79 @@ class Colony:
         except OSError:
             pass
 
+    # the trees -----------------------------------------------------------------------
+    def retrunk(self):
+        self.trunks = list(self.base) + [
+            dict(x=g.x, w=10, lo=g.top + 34, hi=GROUND - 56, bottom=GROUND, lean=g.lean, grown=g)
+            for g in self.grown]
+
+    def grow(self, t):
+        """The seed sign was clicked: a new tree grows in the next free place."""
+        have = {g.x for g in self.grown}
+        for x, top in GROW_AT:
+            if x not in have:
+                self.grown.append(GrownTree(self.scene, x, top, t))
+                self.state["trees"] = [g.x for g in self.grown]
+                self.save()
+                self.retrunk()
+                self.shown = None  # rearrange now: the waiting squid swim over
+                return
+
+    def cut(self, tree, t):
+        """Take a grown tree away; its squid look for room elsewhere."""
+        if tree in self.grown:
+            self.grown.remove(tree)
+            tree.dying = t
+            self.dying.append(tree)
+            self.state["trees"] = [g.x for g in self.grown]
+            self.save()
+            self.retrunk()
+            self.shown = None
+
+    def tree_at(self, m):
+        """The grown tree under the pointer `m`, or None."""
+        if not m:
+            return None
+        for i, tr in enumerate(self.trunks):
+            g = tr.get("grown")
+            if g and g.top - 20 <= m[1] <= GROUND and abs(self.x_at(i, m[1]) - m[0]) < 14:
+                return g
+        return None
+
+    # the squid --------------------------------------------------------------------------
+    def remove(self, sq):
+        """Right-click → Remove. A Desktop shortcut or file goes to the Trash (so it can be
+        got back); an app only leaves the trees."""
+        it = sq.item
+        if it.get("path"):
+            try:
+                subprocess.run(["gio", "trash", it["path"]], timeout=5, check=True,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except (OSError, subprocess.SubprocessError):
+                return
+            self.state["clicks"].pop(it["id"], None)
+            self.state["pins"].pop(it["id"], None)
+            try:
+                self.looker.look()
+            except Exception:
+                pass
+        elif it["id"] not in self.state["hidden"]:
+            self.state["hidden"].append(it["id"])
+        self.save()
+        self.shown = None
+
     # where squid can sit --------------------------------------------------------------
     def x_at(self, i, y):
         tr = self.trunks[i]
         return tr["x"] + (tr["bottom"] - y) * tr["lean"]
 
-    def slots(self, gap):
+    def slots(self):
         out = []
         for i, tr in enumerate(self.trunks):
-            mine = []
-            y = tr["lo"] + (gap / 2 if i % 2 else 0)  # neighbouring trees take turns, so banners don't meet
-            while y <= tr["hi"]:
-                mine.append((i, round(self.x_at(i, y)), round(y)))
-                y += gap
+            gap = (tr["hi"] - tr["lo"]) / (PER_TREE - 0.5)
+            shift = gap / 2 if i % 2 else 0  # neighbouring trees take turns, so pictures don't meet
+            mine = [(i, round(self.x_at(i, y)), round(y))
+                    for y in (tr["lo"] + shift + k * gap for k in range(PER_TREE))]
             # on each tree the middle of its stretch fills first
             mid = (tr["lo"] + tr["hi"]) / 2
             mine.sort(key=lambda sl: abs(sl[2] - mid))
@@ -307,11 +518,7 @@ class Colony:
         return None
 
     def layout(self, items):
-        n = len(items)
-        for size, gap, chars in LEVELS:
-            free = self.slots(gap)
-            if len(free) >= n:
-                break
+        free = self.slots()
         clicks, pins = self.state["clicks"], self.state["pins"]
         order = {it["id"]: k for k, it in enumerate(items)}
         ranked = sorted(items, key=lambda it: (-clicks.get(it["id"], 0), order[it["id"]]))
@@ -326,11 +533,15 @@ class Colony:
         for it in ranked:
             if it["id"] not in placed and free:
                 placed[it["id"]] = free.pop(0)
-        return placed, size, gap, chars
+        return placed
 
     # keeping up -----------------------------------------------------------------------
+    def items(self):
+        hidden = set(self.state["hidden"])
+        return [it for it in self.looker.items if it["id"] not in hidden]
+
     def refresh(self, t):
-        items = self.looker.items
+        items = self.items()
         key = tuple(it["id"] for it in items)
         if key == self.shown and t - self.ranked_at < RERANK_EVERY:
             return
@@ -339,34 +550,45 @@ class Colony:
         self.shown, self.ranked_at = key, t
         self.arrange(items)
 
+    def tile_of(self, it):
+        if it["kind"] == "folder":
+            return folder_icon()
+        if it.get("icon"):
+            pic = picture(it["icon"])
+            if pic is not None:
+                return pic
+        return None if it["kind"] == "app" else page_icon()  # apps: main.ICONS draws theirs
+
     def arrange(self, items):
-        placed, size, self.gap, chars = self.layout(items)
+        placed = self.layout(items)
+        self.waiting = len(items) - len(placed)
         byid = {it["id"]: it for it in items}
         for gone in [i for i in self.squid if i not in byid or i not in placed]:
             del self.squid[gone]
-        firsts = {}
-        for sl in self.slots(self.gap):
-            firsts.setdefault(sl[0], sl)
-        held = self.dragging[0] if self.dragging else None
         spots = []
         for iid, slot in placed.items():
             it = byid[iid]
             sq = self.squid.get(iid)
             if sq is None:
-                sq = self.squid[iid] = TreeSquid(it, slot[1], slot[2], size)
+                sq = self.squid[iid] = TreeSquid(it, slot[1], slot[2], SIZE)
                 if self.clock is not None:  # someone new: it swims down from the canopy
                     sq.x, sq.y = slot[1], 20
                     sq.slot = (None, slot[1], 20)
-            sq.item = it
-            sq.shown = sq is held or firsts.get(slot[0]) == slot
-            if self.clock is None:
-                sq.fade = 1.0 if sq.shown else 0.0
-            sq.go(slot, size, self.trunk_of)
+            sq.item, sq.shown = it, True
+            sq.go(slot, SIZE, self.trunk_of)
             _, x, y = slot
-            sp = self.Spot("app", (x - 13 * size, y - 30 * size, 26 * size, 48 * size), short(it["name"], chars),
-                           it.get("key"), (x, y - 6 * size), sign=(x, y + 24 * size + 11))
+            # the squid's picture sits in its arms, just under its head
+            sp = self.Spot("app", (x - 9, y - 22, 18, 26), it["name"], it.get("key"), (x, y + 18),
+                           sign=(x, y + 19))
             sp.cmd = None if it.get("key") else it["cmd"]
             sp.full, sp.squid = it["name"], sq
+            sp.tile = self.tile_of(it) or True  # True: use the app's own pixel icon
+            spots.append(sp)
+        if len(self.grown) < len(GROW_AT):  # the seed sign: grows a tree for the squid waiting
+            label = "Grow a tree" + (f" ({self.waiting} waiting)" if self.waiting else "")
+            sp = self.Spot("grow", (SEED[0] - 12, SEED[1] - 14, 24, 20), label, None, SEED,
+                           sign=(SEED[0], SEED[1] - 24))
+            sp.icon = self.sprout
             spots.append(sp)
         self.scene.spots[:] = [sp for sp in self.scene.spots if sp not in self.mine] + spots
         self.mine = spots
@@ -383,7 +605,6 @@ class Colony:
         if sq is None or sp not in self.mine:
             return False
         self.dragging = (sq, (sq.x, sq.y))
-        sq.shown = True
         return True
 
     def drag(self, m):
@@ -397,8 +618,7 @@ class Colony:
         a spot on a tree), swapping with whoever was there."""
         sq, _ = self.dragging
         self.dragging = None
-        gap = self.gap
-        near = [sl for sl in self.slots(gap) if m and math.hypot(sl[1] - m[0], sl[2] - m[1]) < gap * 0.8]
+        near = [sl for sl in self.slots() if m and math.hypot(sl[1] - m[0], sl[2] - m[1]) < 36]
         pins = self.state["pins"]
         if near:
             new = min(near, key=lambda sl: math.hypot(sl[1] - m[0], sl[2] - m[1]))
@@ -412,23 +632,33 @@ class Colony:
             self.save()
         sq.route = []
         sq.slot = (self.trunk_of(sq.x, sq.y), sq.x, sq.y)
-        self.arrange(self.looker.items)
+        self.arrange(self.items())
 
     # drawing -----------------------------------------------------------------------------
     def draw(self, s, t):
         dt = 0.0 if self.clock is None else max(0.0, min(0.1, t - self.clock))
         self.refresh(t)  # before the clock starts, so the first squid are simply there
         self.clock = t
+        self.dying = [g for g in self.dying if not g.gone(t)]
+        for g in self.grown + self.dying:
+            g.draw(s, t)
         for sq in self.squid.values():
             sq.update(dt, t)
 
     def light(self, lm, t):
+        for g in self.grown + self.dying:
+            g.light(lm, t)
+        if len(self.grown) < len(GROW_AT):
+            glow(lm, SEED[0], SEED[1] - 4, 22, GLOW["lime"], q(60 + 20 * math.sin(t * 1.3)))
         for sq in self.squid.values():
             sq.light(lm, t)
 
     def shine(self, s, t):
+        if len(self.grown) < len(GROW_AT):  # the sapling under the seed sign, softly glowing
+            glow(s, SEED[0], SEED[1] - 5, 9, GLOW["lime"], q(40 + 15 * math.sin(t * 1.3)))
+            s.blit(self.sprout, (SEED[0] - 8, SEED[1] - 13))
         held = self.dragging[0] if self.dragging else None
         for sq in sorted(self.squid.values(), key=lambda sq: sq is held):  # the held one on top
             i = sq.slot[0] if sq.slot else None
-            w = self.trunks[i]["w"] if i is not None and not sq.route else 12
+            w = self.trunks[i]["w"] if i is not None and i < len(self.trunks) and not sq.route else 12
             sq.shine(s, t, w)

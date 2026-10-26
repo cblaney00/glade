@@ -112,6 +112,9 @@ class Surface:
             self.view.pointer = (event.x, event.y)
             KEYBOARD.clicked()
             self.glade.click(time.monotonic() - self.glade.t0)
+        elif event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS:
+            self.view.pointer = (event.x, event.y)
+            self.glade.right_click(time.monotonic() - self.glade.t0)
         return True
 
     def release(self, area, event):
