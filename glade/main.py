@@ -17,6 +17,7 @@ import pygame
 
 import art
 from apex import Hunt, Listener
+from battle import Arena
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -570,6 +571,7 @@ class Glade:
         self.on_listen = None  # called when the moon starts listening for typing
         self.on_heard = None   # ... and when it has heard the word
         self.hunt = None
+        self.arena = None  # the battle (battle.py): click the moon, type "battle"
         self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
         self.popup = None  # the right-click menu, while it is open
 
@@ -635,6 +637,8 @@ class Glade:
             i = pop.at(pop.view.mouse())
             if i is not None:
                 pop.choices[i][1](t)
+            return
+        if self.arena is not None and self.arena.click(self, t):
             return
         for view, content in self.views():
             m = view.mouse()
@@ -714,10 +718,16 @@ class Glade:
 
     def typed(self, ch, t):
         """A letter typed while the moon is listening."""
-        if self.listener.key(ch, t):
+        word = self.listener.key(ch, t)
+        if word:
             if self.on_heard:
                 self.on_heard()
-            if self.hunt is None:
+            if word == "battle":
+                if self.arena is None:
+                    low = self.lower() if self.bottom else None
+                    self.arena = Arena(self.here, low, self.signs.font, t)
+                    self.arena.mouse = self.top.mouse
+            elif self.hunt is None:
                 low = self.lower() if self.bottom else None
                 size = (self.bottom.w, self.bottom.h) if self.bottom else (0, 0)
                 self.hunt = Hunt(self.here, low, size, t)
@@ -807,6 +817,11 @@ class Glade:
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
+        if self.arena is not None:
+            if self.arena.done or self.arena.scene is not self.here:
+                self.arena = None  # closed, or he walked somewhere else
+            else:
+                self.arena.update(dt, t)
         if self.held is not None:
             view, content, _, start = self.held
             if content is not self.here:
@@ -824,6 +839,8 @@ class Glade:
             if self.hunt is not None:
                 self.hunt.draw(view.canvas, view is self.bottom, t)
             self.overlay(view, content, t)
+            if self.arena is not None:
+                self.arena.draw(view.canvas, view is self.bottom, t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)

@@ -52,6 +52,7 @@ LILY = (70, 150, 110)
 
 TIME_LIMIT = 30               # after this, whatever is left is finished off in a volley
 WORD = "apex"
+WORDS = (WORD, "battle")  # the moon also listens for "battle" (battle.py)
 
 
 def ease(f):
@@ -1042,14 +1043,15 @@ class Listener:
         return t < self.until
 
     def key(self, ch, t):
-        """Returns True when the word has just been typed."""
+        """Returns the word, once one of WORDS has just been typed (else None)."""
         if not self.listening(t):
-            return False
-        self.typed = (self.typed + ch.lower())[-len(WORD):]
-        if self.typed == WORD:
-            self.until, self.heard_at = -1.0, t
-            return True
-        return False
+            return None
+        self.typed = (self.typed + ch.lower())[-max(map(len, WORDS)):]
+        for word in WORDS:
+            if self.typed.endswith(word):
+                self.until, self.heard_at = -1.0, t
+                return word
+        return None
 
     def draw_moon(self, s, moon, t):
         """The moon's halo swells while it listens, and dims for a moment once it hears."""
