@@ -819,7 +819,8 @@ class Glade:
                 self.hunt.update(dt, t)
         if self.arena is not None:
             if self.arena.done or self.arena.scene is not self.here:
-                self.arena = None  # closed, or he walked somewhere else
+                self.arena.finish()  # closed, or he walked somewhere else: everyone goes home
+                self.arena = None
             else:
                 self.arena.update(dt, t)
         if self.held is not None:

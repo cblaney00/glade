@@ -20,8 +20,10 @@ import random
 
 import pygame
 
-from apex import OFFSET, find_prey
+import art
+from apex import OFFSET, ease, find_prey
 from art import glow, mix
+from life import q
 
 # --- types --------------------------------------------------------------------------
 
@@ -223,7 +225,8 @@ class Mon:
 
 class Battle:
     """The rules. `turn(i)` plays a whole turn with your move `i`; what happened is added to
-    `events`: (text, (your hp, its hp), (your status, its status), who was hit or None)."""
+    `events`: (text, (your hp, its hp), (your status, its status), who was hit, who acted) —
+    sides are 0 (yours) and 1; "who acted" is -1 - side when that side faints."""
 
     def __init__(self, mine, theirs, rng=None):
         self.rng = rng or random.Random()
@@ -234,9 +237,9 @@ class Battle:
         self.say(f"A wild battle! {self.mons[0].name} vs. {self.mons[1].name}!")
 
     # --- reporting ---
-    def say(self, text, hit=None):
+    def say(self, text, hit=None, by=None):
         a, b = self.mons
-        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit))
+        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit, by))
 
     def side(self, mon):
         return self.mons.index(mon)
@@ -311,7 +314,7 @@ class Battle:
         if u.hp <= 0 or not self.can_move(u):
             return
         m = MOVES[name]
-        self.say(f"{u.name} used {name}!")
+        self.say(f"{u.name} used {name}!", by=self.side(u))
         if m.get("st") == "protect":
             # Gen 3: each Protect in a row is half as likely to work; it fails if it goes last
             if first and self.rng.random() < 1 / 2 ** u.protect_run:
@@ -503,7 +506,7 @@ class Battle:
     def check_faint(self, mon):
         if mon.hp <= 0 and self.winner is None:
             mon.hp = 0
-            self.say(f"{mon.name} fainted!")
+            self.say(f"{mon.name} fainted!", by=-1 - self.side(mon))
             other = self.mons[1 - self.side(mon)]
             self.winner = self.side(other)
             if self.winner == 0:
@@ -620,6 +623,93 @@ CLOTH = (196, 140, 255)
 MINE = (110, 255, 180)   # your animal: the paths' mint green
 THEIRS = (255, 150, 214)  # its opponent: blossom pink
 STEP = 0.95               # seconds each line of the log is shown before the next
+WALK = 1.6                # seconds to walk onto the field (and home again)
+# the field in the top screen's bottom-right corner: where each fighter stands (yours near,
+# its opponent further back, as in the games) and the size of its mossy platform
+SPOTS = ((690, 498), (862, 452))
+PADS = ((112, 26), (86, 20))
+
+
+class Fighter:
+    """An animal on the field. It is hidden where it lives and drawn here instead: the
+    patch of field it stands on is copied into a scratch picture at the animal's real
+    place, the animal draws itself onto that as usual, and the result is copied back onto
+    the field. So it keeps its own look and its own wriggling, just somewhere else."""
+
+    R = 56  # how far round the animal to copy (a millipede is long)
+
+    def __init__(self, animal, side, t):
+        self.a, self.side, self.t0 = animal, side, t
+        self.home = animal.pos()
+        self.fly = isinstance(animal, Fly)
+        self.going_home, self.fainted, self.lunge = None, None, -9.0
+        self.hide(True)
+
+    def hide(self, on):
+        o = self.a.obj
+        if self.fly:
+            if on:
+                o.mult[self.a.i] = 0.0
+            else:
+                o.mult.pop(self.a.i, None)
+        else:
+            o.gone = on
+
+    def where(self, t):
+        """Where it is now, in shared coordinates: walking out in a little hop, standing
+        on its platform, lunging when it attacks, or walking home."""
+        (hx, hy), (sx, sy) = self.home, SPOTS[self.side]
+        if self.going_home is not None:
+            k = 1 - ease((t - self.going_home) / WALK)
+        else:
+            k = ease((t - self.t0) / WALK)
+        x = hx + (sx - hx) * k
+        y = hy + (sy - hy) * k - math.sin(k * math.pi) * 30
+        f = (t - self.lunge) / 0.4
+        if 0 <= f < 1:  # towards the other one and back
+            d = math.sin(f * math.pi) * 16 * (1 if self.side == 0 else -1)
+            x, y = x + d, y - d * 0.35
+        return x, y
+
+    def alpha(self, t):
+        if self.fainted is None:
+            return 255
+        return round(255 * max(0.0, 1 - (t - self.fainted) / 0.9))
+
+    def draw(self, s, ox, oy, t, scratch):
+        al = self.alpha(t)
+        if al <= 0:
+            return
+        x, y = self.where(t)
+        x, y = x - ox, y - oy
+        if self.fainted is not None:
+            y += 6 * (1 - al / 255)  # it sinks as it fades
+        if self.fly:
+            glow(s, x, y, 8, self.a.color, q(170 * al / 255))
+            s.set_at((round(x), round(y)), mix(self.a.color, (255, 255, 255), 0.6))
+            return
+        px, py = self.a.pos()
+        if self.a.low:
+            px, py = px - OFFSET[0], py - OFFSET[1]
+        dx, dy = round(x - px), round(y - py)
+        R = self.R
+        dest = pygame.Rect(round(px) - R + dx, round(py) - R + dy, 2 * R, 2 * R).clip(s.get_rect())
+        src = dest.move(-dx, -dy).clip(scratch.get_rect())
+        dest = src.move(dx, dy)
+        if src.w <= 0 or src.h <= 0:
+            return
+        scratch.set_clip(src)
+        scratch.blit(s, src.topleft, dest)
+        for part in ("draw", "shine"):
+            fn = getattr(self.a.obj, part, None)
+            if fn:
+                fn(scratch, t)
+        scratch.set_clip(None)
+        piece = scratch.subsurface(src)
+        if al < 255:
+            piece = piece.copy()
+            piece.set_alpha(al)
+        s.blit(piece, dest.topleft)
 
 
 class Arena:
@@ -643,11 +733,16 @@ class Arena:
         self.done = False
         self.t0 = t
         self.mouse = None  # the top view's pointer, set by the glade
+        self.fighters = []
+        self.leaving = None   # when they set off home
+        self.scratch = art.solid()
 
     # --- clicks ---
     def click(self, glade, t):
         """True if the click was the battle's."""
         m = glade.top.mouse()
+        if self.leaving is not None:
+            return False
         if m and self.rect.collidepoint(m):
             for r, action in self.buttons:
                 if r.collidepoint(m):
@@ -687,10 +782,29 @@ class Arena:
     def start(self, t):
         self.battle = Battle(self.picked[0][1], self.picked[1][1])
         a, b = self.battle.mons
-        self.hp = [float(a.hp), float(b.hp)]
+        self.hp, self.target = [float(a.hp), float(b.hp)], [a.hp, b.hp]
         self.phase = "fight"
         self.log, self.queue = [], []
+        if not self.fighters:  # they walk out onto the field, then the battle begins
+            self.fighters = [Fighter(animal, side, t) for side, (animal, _) in enumerate(self.picked)]
+            self.next_at = t + WALK
+        for f in self.fighters:
+            f.fainted = None
         self.feed(t)
+
+    def leave(self, t):
+        """Everyone goes home; the field fades away."""
+        if self.leaving is not None:
+            return
+        self.leaving = t
+        for f in self.fighters:
+            f.going_home = t
+
+    def finish(self):
+        """Every animal back where it lives, and seen again."""
+        for f in self.fighters:
+            f.hide(False)
+        self.fighters = []
 
     def feed(self, t):
         self.queue.extend(self.battle.events)
@@ -705,7 +819,7 @@ class Arena:
 
     def run(self, t):
         if self.phase == "pick" or self.battle is None or self.battle.winner is not None:
-            self.done = True
+            self.leave(t)
             return
         if self.queue:
             return
@@ -719,8 +833,13 @@ class Arena:
     # --- time passing ---
     def update(self, dt, t):
         while self.queue and t >= self.next_at:
-            text, hp, st, hit = self.queue.pop(0)
+            text, hp, st, hit, by = self.queue.pop(0)
             self.target, self.status = list(hp), list(st)
+            if by is not None and self.fighters:
+                if by >= 0:
+                    self.fighters[by].lunge = t
+                else:
+                    self.fighters[-1 - by].fainted = t
             if text:
                 self.log = (self.log + [text])[-3:]
             if hit is not None:
@@ -730,6 +849,9 @@ class Arena:
             gap = self.target[s] - self.hp[s]
             self.hp[s] += gap * min(1.0, dt * 6) if abs(gap) > 0.5 else gap
         self.hits = [(s, h) for s, h in self.hits if t - h < 0.6]
+        if self.leaving is not None and t - self.leaving > WALK:
+            self.finish()
+            self.done = True
 
     # --- drawing ---
     def text(self, s, words, x, y, color=TEXT, right=False):
@@ -785,9 +907,18 @@ class Arena:
         self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
 
     def draw(self, s, low, t):
-        """`low`: drawing the lower screen (only the rings go there)."""
+        """`low`: drawing the lower screen (only animals on their way go there)."""
+        if not low:
+            self.field(s, t)
+        ox, oy = OFFSET if low else (0, 0)
+        for f in self.fighters:
+            f.draw(s, ox, oy, t, self.scratch)
+            for side, h in self.hits:
+                if side == f.side:
+                    x, y = f.where(t)
+                    glow(s, x - ox, y - oy, 26, (255, 255, 255), q(140 * (1 - (t - h) / 0.6)))
         self.rings(s, low, t)
-        if low:
+        if low or self.leaving is not None:
             return
         self.buttons = []
         k = min(1.0, (t - self.t0) / 0.3)
@@ -833,7 +964,7 @@ class Arena:
                         self.close, t)
 
     def close(self, t):
-        self.done = True
+        self.leave(t)
 
     def fit(self, line, w):
         while self.font.size(line)[0] > w and len(line) > 4:
@@ -866,6 +997,8 @@ class Arena:
     def rings(self, s, low, t):
         """A soft glowing ring around each chosen animal (mint: yours, pink: its foe), and a
         flash on whichever one is hurt."""
+        if self.fighters:
+            return
         ox, oy = OFFSET if low else (0, 0)
         for n, (a, _) in enumerate(self.picked):
             x, y = a.pos()
@@ -876,7 +1009,31 @@ class Arena:
             k = 0.6 + 0.4 * math.sin(t * 3 + n)
             glow(s, x, y, 18, c, round(40 * k))
             pygame.draw.ellipse(s, mix(c, (255, 255, 255), 0.3 * k), (round(x) - 13, round(y) - 9, 26, 18), 1)
-            for side, h in self.hits:
-                if side == n:
-                    f = 1 - (t - h) / 0.6
-                    glow(s, x, y, 26, (255, 255, 255), round(140 * f))
+
+    def field(self, s, t):
+        """Two mossy platforms, glowing in each side's colour, growing out of the grass when
+        the battle is called and sinking back when it is over."""
+        k = ease((t - self.t0) / 0.8)
+        if self.leaving is not None:
+            k *= 1 - ease((t - self.leaving) / WALK)
+        if k <= 0.02:
+            return
+        moss = (90, 200, 150)
+        for side in (1, 0):
+            (x, y), (w, h) = SPOTS[side], PADS[side]
+            c = MINE if side == 0 else THEIRS
+            y += 6
+            w, h = round(w * k), max(2, round(h * k))
+            glow(s, x, y, w * 0.6, c, q(50 * k))
+            base = pygame.Rect(0, 0, w, h)
+            base.center = (x, y)
+            pygame.draw.ellipse(s, mix(c, EDGE, 0.82), base.move(0, 3))
+            pygame.draw.ellipse(s, mix(moss, EDGE, 0.6), base)
+            pygame.draw.ellipse(s, mix(moss, EDGE, 0.42), base.inflate(-w // 4, -h // 3))
+            pygame.draw.ellipse(s, mix(c, (255, 255, 255), 0.25), base, 1)
+            for i in range(16):  # spores round the rim, blinking slowly
+                a = i / 16 * math.tau + t * 0.15
+                b = 0.5 + 0.5 * math.sin(t * 2.2 + i * 1.7)
+                if b > 0.45:
+                    s.set_at((round(x + math.cos(a) * w / 2), round(y + math.sin(a) * h / 2)),
+                             mix(c, (255, 255, 255), b * 0.6))

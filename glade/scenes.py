@@ -376,7 +376,8 @@ def build_glade():
     sc.live(Shafts([(400, 40, 300, 130, 0.0), (450, 30, 590, 100, 2.4)], (150, 170, 255), alpha=18))
     sc.live(Blades(rng, (0, 412, W, 128), 520, [sc.col("leaf", 0.15), sc.col("leaf2", 0.12), sc.col("leaf3", 0.12)], 6, 18))
     # invertebrates: a slug on the meadow, a glowing one on the mossy rock, a snail up the tree
-    sc.live(Slug(rng, Track([(520, 474), (600, 478), (680, 472), (760, 476), (840, 470)]), (214, 170, 222), size=1.5))
+    # the big violet slug keeps to the middle strip of grass: the corner is the battle field
+    sc.live(Slug(rng, Track([(404, 514), (464, 518), (524, 511), (584, 516)]), (214, 170, 222), size=1.5))
     rock_track = sorted((pt for pt in rock_moss if 166 < pt[0] < 220), key=lambda pt: pt[0])
     if len(rock_track) > 2:
         sc.live(Slug(rng, Track([(x, y - 1) for x, y in rock_track]), (120, 150, 230), size=1.2, speed=3,
