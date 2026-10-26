@@ -278,11 +278,12 @@ def build_glade():
     leaf_row(lay, rng, -20, 292, 52, 44, 32, sc.col("leaf3", 0.5), p, jitter=16)
     for x in (860, 932):
         leans[x] = art.trunk(lay, rng, x, 60, 392, 16, sc.col("wood", 0.5), pal=p)
-    # two more trees at the forest edges (the left one holds tree squid); their own random
-    # numbers, so the rest of the glade still looks the same
+    # one more tree at the right forest edge, with its own random numbers so the rest of the
+    # glade still looks the same. (The bare one left of the signpost is gone: he asked; it is
+    # still drawn, out of sight, so the right one comes out unchanged.)
     more = random.Random(117)
-    for x, top in ((306, 70), (676, 110)):
-        leans[x] = art.trunk(lay, more, x, top, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
+    art.trunk(art.plane(), more, 306, 70, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
+    leans[676] = art.trunk(lay, more, 676, 110, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (808, 0, 160, 60))
     leaf_row(lay, rng, 808, 980, 72, 40, 32, sc.col("leaf3", 0.5), p, jitter=16)
     art.canopy(lay, rng, -20, 300, 388, sc.col("leaf", 0.5), r=(12, 24))
