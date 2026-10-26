@@ -8,6 +8,7 @@ moss, mushrooms, crystals, lanterns, fireflies and the little sky-squid.
 """
 
 import math
+import random
 
 import pygame
 
@@ -277,6 +278,11 @@ def build_glade():
     leaf_row(lay, rng, -20, 292, 52, 44, 32, sc.col("leaf3", 0.5), p, jitter=16)
     for x in (860, 932):
         leans[x] = art.trunk(lay, rng, x, 60, 392, 16, sc.col("wood", 0.5), pal=p)
+    # two more trees at the forest edges, so the tree squid have room; their own random
+    # numbers, so the rest of the glade still looks the same
+    more = random.Random(117)
+    for x, top in ((306, 70), (676, 110)):
+        leans[x] = art.trunk(lay, more, x, top, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (808, 0, 160, 60))
     leaf_row(lay, rng, 808, 980, 72, 40, 32, sc.col("leaf3", 0.5), p, jitter=16)
     art.canopy(lay, rng, -20, 300, 388, sc.col("leaf", 0.5), r=(12, 24))
@@ -380,8 +386,8 @@ def build_glade():
     trunk = lambda x, w, lo, hi, bottom=392, lean=None: dict(  # noqa: E731
         x=x, w=w, lo=lo, hi=hi, bottom=bottom, lean=leans[x] if lean is None else lean)
     sc.colony = sc.live(Colony(sc, Spot, [
-        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330),
-        trunk(744, 24, 272, 372, bottom=412, lean=blossom_lean), trunk(860, 15, 252, 340), trunk(932, 15, 100, 340)]))
+        trunk(28, 18, 96, 290), trunk(96, 14, 96, 290), trunk(172, 13, 96, 330), trunk(236, 22, 96, 330), trunk(306, 14, 110, 340),
+        trunk(744, 24, 272, 372, bottom=412, lean=blossom_lean), trunk(676, 14, 236, 330), trunk(860, 15, 252, 316), trunk(932, 15, 100, 340)]))
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))

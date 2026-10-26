@@ -44,7 +44,7 @@ COLORS = dict(app=GLOW["violet"], shortcut=GLOW["cyan"], folder=GLOW["amber"], f
 
 # How big the squid are, how far apart they sit on a trunk, and how much of a name fits
 # on a board: the first that has room for everyone is used.
-LEVELS = [(1.0, 50, 9), (0.85, 42, 8), (0.72, 36, 7), (0.62, 31, 6)]
+LEVELS = [(0.7, 58, 7), (0.6, 52, 6), (0.52, 47, 6), (0.46, 42, 5)]
 
 CLIMB, SWIM = 34.0, 80.0  # pixels a second
 
@@ -279,12 +279,19 @@ class Colony:
     def slots(self, gap):
         out = []
         for i, tr in enumerate(self.trunks):
+            mine = []
             y = tr["lo"] + (gap / 2 if i % 2 else 0)  # neighbouring trees take turns, so boards don't meet
             while y <= tr["hi"]:
-                out.append((i, round(self.x_at(i, y)), round(y)))
+                mine.append((i, round(self.x_at(i, y)), round(y)))
                 y += gap
-        # the best spots are nearest the middle of the picture
-        return sorted(out, key=lambda sl: math.hypot(sl[1] - 480, (sl[2] - 230) * 1.5))
+            # on each tree the middle of its stretch fills first
+            mid = (tr["lo"] + tr["hi"]) / 2
+            mine.sort(key=lambda sl: abs(sl[2] - mid))
+            out += [(k, sl) for k, sl in enumerate(mine)]
+        # every tree gets one before any gets two, so they spread out; among equals the
+        # best spots are nearest the middle of the picture
+        out.sort(key=lambda ks: (ks[0], math.hypot(ks[1][1] - 480, (ks[1][2] - 230) * 1.5)))
+        return [sl for _, sl in out]
 
     def trunk_of(self, x, y):
         for i, tr in enumerate(self.trunks):
@@ -395,8 +402,8 @@ class Colony:
     # drawing -----------------------------------------------------------------------------
     def draw(self, s, t):
         dt = 0.0 if self.clock is None else max(0.0, min(0.1, t - self.clock))
+        self.refresh(t)  # before the clock starts, so the first squid are simply there
         self.clock = t
-        self.refresh(t)
         for sq in self.squid.values():
             sq.update(dt, t)
 
