@@ -651,7 +651,8 @@ class Colony:
         if len(self.grown) < len(GROW_AT):
             glow(lm, SEED[0], SEED[1] - 4, 22, GLOW["lime"], q(60 + 20 * math.sin(t * 1.3)))
         for sq in self.squid.values():
-            sq.light(lm, t)
+            if not getattr(sq, "gone", False):  # away in a battle (battle.py)
+                sq.light(lm, t)
 
     def shine(self, s, t):
         if len(self.grown) < len(GROW_AT):  # the sapling under the seed sign, softly glowing
@@ -659,6 +660,8 @@ class Colony:
             s.blit(self.sprout, (SEED[0] - 8, SEED[1] - 13))
         held = self.dragging[0] if self.dragging else None
         for sq in sorted(self.squid.values(), key=lambda sq: sq is held):  # the held one on top
+            if getattr(sq, "gone", False):  # away in a battle (battle.py)
+                continue
             i = sq.slot[0] if sq.slot else None
             w = self.trunks[i]["w"] if i is not None and i < len(self.trunks) and not sq.route else 12
             sq.shine(s, t, w)

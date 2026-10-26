@@ -23,7 +23,7 @@ import pygame
 import art
 from apex import OFFSET, ease, find_prey
 from art import glow, mix
-from life import q
+from life import Track, q
 
 # --- types --------------------------------------------------------------------------
 
@@ -134,6 +134,10 @@ MOVES = {
     "Spark": mv("Electric", 65, 100, 20, c=1, sec=(30, "par")),
     "Double Team": mv("Normal", 0, None, 15, up={"eva": 1}),
     "Flash": mv("Normal", 0, 70, 20, down={"acc": -1}),
+    "Mega Drain": mv("Grass", 40, 100, 15, drain=1),
+    "Magical Leaf": mv("Grass", 60, None, 20),
+    "Synthesis": mv("Grass", 0, None, 5, st="recover"),
+    "Sleep Powder": mv("Grass", 0, 75, 15, st="slp"),
     "Struggle": mv("???", 50, None, 1, c=1, recoil=4),
 }
 
@@ -159,9 +163,9 @@ SPECIES = {
     "Koi": dict(types=("Water",), base=(70, 80, 60, 55, 65, 80), ability="Swift Swim",
                 pool=["Waterfall", "Hydro Pump", "Surf", "Dragon Dance", "Return", "Bubble Beam", "Dragon Breath",
                       "Twister", "Ice Beam", "Body Slam"]),
-    "Firefly": dict(types=("Bug", "Electric"), base=(50, 45, 50, 85, 60, 105), ability="Static",
-                    pool=["Thunderbolt", "Thunder Wave", "Tail Glow", "Shock Wave", "Spark", "Signal Beam",
-                          "Silver Wind", "Double Team", "Flash", "Confuse Ray"]),
+    "Tree Squid": dict(types=("Water", "Grass"), base=(65, 55, 65, 80, 85, 60), ability="Suction Cups",
+                       pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
+                             "Octazooka", "Synthesis", "Sleep Powder"]),
 }
 
 STATS = ("atk", "def", "spa", "spd", "spe")
@@ -589,28 +593,30 @@ def species_of(obj):
         return "Koi"
     if name in ("Millipede", "Critter"):
         return name
+    if name == "TreeSquid":
+        return "Tree Squid"
     return None
 
 
-class Fly:
-    """One firefly out of a swarm, standing in for an animal (same shape as apex.Prey)."""
+class Perched:
+    """A tree squid (squids.py), standing in for an animal (same shape as apex.Prey)."""
 
-    def __init__(self, swarm, i, low):
-        self.obj, self.i, self.low = swarm, i, low
-        self.color = swarm.color
+    low = False
+
+    def __init__(self, squid):
+        self.obj = squid
 
     def pos(self):
-        now = self.obj.now
-        x, y = now[self.i][:2] if self.i < len(now) else (-99, -99)
-        return (x + OFFSET[0], y + OFFSET[1]) if self.low else (x, y)
+        return self.obj.x, self.obj.y - 8 * self.obj.size
 
 
 def animals(scene, lower):
-    prey, swarms = find_prey(scene, lower)
+    """Every animal you can pick (not the fireflies): (animal, species)."""
+    prey, _ = find_prey(scene, lower)
     out = [(p, species_of(p.obj)) for p in prey if species_of(p.obj)]
-    for swarm, low in swarms:
-        for i in range(len(swarm.items)):
-            out.append((Fly(swarm, i, low), "Firefly"))
+    colony = getattr(scene, "colony", None)
+    if colony is not None:
+        out += [(Perched(sq), "Tree Squid") for sq in colony.squid.values() if sq.fade > 0.5]
     return out
 
 
@@ -641,19 +647,27 @@ class Fighter:
     def __init__(self, animal, side, t):
         self.a, self.side, self.t0 = animal, side, t
         self.home = animal.pos()
-        self.fly = isinstance(animal, Fly)
         self.going_home, self.fainted, self.lunge = None, None, -9.0
+        self.saved = None
+        o = animal.obj
+        if hasattr(o, "track"):
+            # a crawler stands on level ground in the arena, even one that was climbing a
+            # tree: it gets a short flat track right where it is until it goes home
+            px, py = o.track.at(o.d)[:2]
+            self.saved = (o.track, o.d, getattr(o, "trail", None))
+            o.track, o.d = Track([(px - 60, py), (px + 60, py)]), 60.0
+            if self.saved[2] is not None:
+                o.trail = []
         self.hide(True)
 
     def hide(self, on):
         o = self.a.obj
-        if self.fly:
-            if on:
-                o.mult[self.a.i] = 0.0
-            else:
-                o.mult.pop(self.a.i, None)
-        else:
-            o.gone = on
+        o.gone = on
+        if not on and self.saved is not None:
+            o.track, o.d, trail = self.saved
+            if trail is not None:
+                o.trail = []
+            self.saved = None
 
     def where(self, t):
         """Where it is now, in shared coordinates: walking out in a little hop, standing
@@ -684,10 +698,6 @@ class Fighter:
         x, y = x - ox, y - oy
         if self.fainted is not None:
             y += 6 * (1 - al / 255)  # it sinks as it fades
-        if self.fly:
-            glow(s, x, y, 8, self.a.color, q(170 * al / 255))
-            s.set_at((round(x), round(y)), mix(self.a.color, (255, 255, 255), 0.6))
-            return
         px, py = self.a.pos()
         if self.a.low:
             px, py = px - OFFSET[0], py - OFFSET[1]
@@ -700,10 +710,14 @@ class Fighter:
             return
         scratch.set_clip(src)
         scratch.blit(s, src.topleft, dest)
-        for part in ("draw", "shine"):
-            fn = getattr(self.a.obj, part, None)
-            if fn:
-                fn(scratch, t)
+        o = self.a.obj
+        if isinstance(self.a, Perched):
+            o.shine(scratch, t, 12)
+        else:
+            for part in ("draw", "shine"):
+                fn = getattr(o, part, None)
+                if fn:
+                    fn(scratch, t)
         scratch.set_clip(None)
         piece = scratch.subsurface(src)
         if al < 255:
@@ -769,12 +783,12 @@ class Arena:
         best, near = None, 24.0
         taken = [a for a, _ in self.picked]
         for a, sp in animals(self.scene, self.lower):
-            if any(a.obj is b.obj and getattr(a, "i", 0) == getattr(b, "i", 0) for b in taken):
+            if any(a.obj is b.obj for b in taken):
                 continue
             if getattr(a.obj, "gone", False):
                 continue
             ax, ay = a.pos()
-            d = math.hypot(ax - x, ay - y) * (1.6 if sp == "Firefly" else 1.0)
+            d = math.hypot(ax - x, ay - y)
             if d < near:
                 best, near = (a, sp), d
         return best
