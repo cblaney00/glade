@@ -144,27 +144,29 @@ MOVES = {
 
 # --- the animals ---------------------------------------------------------------------
 # base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed — first stages, totals 300-320
+# num: its Forest Dex number (dex.py). Each line of three evolutions takes three numbers in a
+# row, so the next new animal is #022 and its evolutions #023 and #024; room for 260.
 
 SPECIES = {
-    "Critter": dict(types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
+    "Critter": dict(num=1, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                           "Swords Dance", "Agility"]),
-    "Squid": dict(types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
+    "Squid": dict(num=4, types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
                   pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                         "Hypnosis", "Recover", "Calm Mind"]),
-    "Slug": dict(types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
+    "Slug": dict(num=7, types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
                  pool=["Sludge Bomb", "Sludge", "Toxic", "Acid Armor", "Giga Drain", "Mud-Slap", "Rest", "Curse",
                        "Pain Split", "Haze", "Body Slam"]),
-    "Snail": dict(types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
+    "Snail": dict(num=10, types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
                   pool=["Rock Slide", "Ancient Power", "Silver Wind", "Rock Tomb", "Iron Defense", "Withdraw",
                         "Protect", "Toxic", "Rest", "Leech Life", "Curse"]),
-    "Millipede": dict(types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
+    "Millipede": dict(num=13, types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
                       pool=["Poison Tail", "Pin Missile", "Signal Beam", "Sludge Bomb", "Toxic", "Swords Dance",
                             "Agility", "Screech", "Rock Tomb"]),
-    "Koi": dict(types=("Water",), base=(53, 60, 45, 42, 49, 61), ability="Swift Swim",
+    "Koi": dict(num=16, types=("Water",), base=(53, 60, 45, 42, 49, 61), ability="Swift Swim",
                 pool=["Waterfall", "Hydro Pump", "Surf", "Dragon Dance", "Return", "Bubble Beam", "Dragon Breath",
                       "Twister", "Ice Beam", "Body Slam"]),
-    "Tree Squid": dict(types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
+    "Tree Squid": dict(num=19, types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
                        pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
                              "Octazooka", "Synthesis", "Sleep Powder"]),
 }
@@ -1130,18 +1132,20 @@ def stat_color(v):
 
 class Card:
     """A small board next to an animal with what it would be in a battle: its kind, types,
-    ability and base stats. Any click closes it."""
+    ability and base stats, and a button that opens the Forest Dex at it (dex.py). Any
+    other click closes it."""
 
     W = 200
     ROWS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 
     def __init__(self, font, view, at, species, t):
         self.font, self.view, self.species, self.t = font, view, species, t
-        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18
+        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + 24
         self.rect = pygame.Rect(round(at[0]) + 12, round(at[1]) - h // 2, self.W, h)
         if self.rect.right > view.w - 4:  # no room on the right: open on the left
             self.rect.right = round(at[0]) - 12
         self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
+        self.button = pygame.Rect(self.rect.x + 8, self.rect.bottom - 24, self.W - 16, 18)
 
     def text(self, s, words, x, y, color=TEXT, right=False):
         img = self.font.render(words, False, color)
@@ -1182,3 +1186,9 @@ class Card:
         self.text(surf, str(sum(sp["base"])), 92, y, (255, 255, 255), right=True)
         surf.set_alpha(round(255 * k))
         s.blit(surf, self.rect)
+        mouse = getattr(self.view, "mouse", None)
+        m = mouse() if mouse else None
+        hot = bool(m) and self.button.collidepoint(m)
+        cloth(s, self.button, MINE if hot else mix(CLOTH, EDGE, 0.2), hot=hot, alpha=round(220 * k))
+        img = self.font.render("Open in Forest Dex", False, (255, 255, 255) if hot else TEXT)
+        s.blit(img, img.get_rect(center=self.button.center))

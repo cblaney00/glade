@@ -79,6 +79,11 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   is the **first of three evolutions** (base totals 300-320; a final stage would be 500-600,
   ~530 average). The later evolutions are not made yet, so don't add them unless he asks. The big
   violet slug lives in the middle strip of grass because the corner is the field.
+- `glade/dex.py` — the **Forest Dex** (his Pokédex), opened from the stats card's "Open in
+  Forest Dex" button. It has room for **260**. Each line of 3 evolutions takes 3 numbers in a row
+  (`num` in `battle.SPECIES`; Critter #001, Squid #004 … Tree Squid #019, next new one #022),
+  and the rest are "?" slots. Dex tab: pages of 48 slots. Compare tab: a table of everything
+  found so far, sorted by clicking a column. On the right, the chosen one's stats and moves.
 - `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
   on the next), moved into place and made "below/sticky/skip_taskbar"
   with `wmctrl` so it sits behind every window; name boards, fades, app launching.

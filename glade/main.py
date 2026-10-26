@@ -18,6 +18,7 @@ import pygame
 import art
 from apex import Hunt, Listener
 from battle import Arena, Card, animal_under
+from dex import Dex
 from art import H, W, mix
 from life import swell
 from lower import Lower
@@ -575,6 +576,7 @@ class Glade:
         self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
         self.popup = None  # the right-click menu, while it is open
         self.card = None   # an animal's battle stats (battle.py), from a right-click
+        self.dex = None    # the Forest Dex (dex.py), opened from that card
 
     def scene(self, key):
         if key not in self.scenes:
@@ -633,8 +635,20 @@ class Glade:
     def click(self, t):
         if self.fade_to:
             return
-        if self.card is not None:  # a click just closes the stats card
-            self.card = None
+        if self.dex is not None:  # the dex takes clicks on it; one outside it closes it
+            m = self.top.mouse()
+            if m and self.dex.rect.collidepoint(m):
+                self.dex.click(m)
+                if self.dex.closed:
+                    self.dex = None
+            else:
+                self.dex = None
+            return
+        if self.card is not None:  # a click closes the stats card, or opens the dex
+            card, self.card = self.card, None
+            m = card.view.mouse()
+            if m and card.button.collidepoint(m):
+                self.dex = Dex(self.signs.font, card.species, t)
             return
         if self.popup is not None:  # a click chooses from the open menu, or just closes it
             pop, self.popup = self.popup, None
@@ -682,6 +696,9 @@ class Glade:
         """Right-click an animal to see its battle stats; right-click a squid to open or
         remove it (or see its stats); right-click a tree he grew to take it away."""
         self.popup, self.card = None, None
+        if self.dex is not None:
+            self.dex = None
+            return
         if self.fade_to:
             return
         for view, content in self.views():
@@ -863,6 +880,8 @@ class Glade:
                         self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
             if self.card is not None and self.card.view is view:
                 self.card.draw(view.canvas, t)
+            if self.dex is not None and view is self.top:
+                self.dex.draw(view.canvas, view.mouse(), t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
