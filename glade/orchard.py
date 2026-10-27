@@ -207,18 +207,32 @@ def fruit_icon(kind):
 class Orchard:
     """Draws the fruit and keeps the scene's clickable spots in step with them."""
 
-    def __init__(self, scene, spot_type):
+    def __init__(self, scene, spot_type, canopy=None):
         """Just fruit now (his ask, 2026-10-27): they hang in the tree for the look and the
         nibbling squid, and open nothing — no name boards, no links to files or apps.
         golden fruit in the crown, violet plums and amber peaches below."""
         self.scene = scene
         self.bites = {}  # fruit index -> when it was last bitten
         self.fruit = []  # (x, y, kind, phase)
-        crown = [(x, y) for _, (x, y) in NEW_SLOTS]
-        lower = [(x, y) for _, (x, y) in RECENT_SLOTS]
-        for i, (x, y) in enumerate(crown + lower):
-            kind = "new" if i < len(crown) else ("app", "file")[i % 2]
-            self.fruit.append((x, y, kind, (x * 7 + y) % 10 / 10 * math.tau))
+        # scattered at random about the canopy (its foliage masses, `canopy`: (cx, cy, rx, ry)),
+        # well inside them so each hangs from leaves, never from thin air, and not bunched up
+        import random
+        rng = random.Random(1717)
+        canopy = canopy or [(744, 180, 110, 70)]
+        spots = []
+        for _ in range(600):
+            if len(spots) == 11:
+                break
+            cx, cy, rx, ry = rng.choice(canopy)
+            a, d = rng.uniform(0, math.tau), math.sqrt(rng.random()) * 0.72
+            x, y = cx + math.cos(a) * rx * d, cy + math.sin(a) * ry * d + 8
+            stem = (x, y - 11)
+            inside = any(((stem[0] - ex) / erx) ** 2 + ((stem[1] - ey) / ery) ** 2 < 0.75 for ex, ey, erx, ery in canopy)
+            if inside and all(math.hypot(x - px, y - py) > 26 for px, py in spots):
+                spots.append((round(x), round(y)))
+        for i, (x, y) in enumerate(spots):
+            kind = rng.choice(("new", "app", "file", "file", "app"))
+            self.fruit.append((x, y, kind, rng.uniform(0, math.tau)))
 
     def refresh(self):
         pass

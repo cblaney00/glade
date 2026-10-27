@@ -402,8 +402,9 @@ def build_glade():
     sc.lamp(743, 336, 26, GLOW["amber"], 50)  # something lives in the hollow
     sc.shine(743, 338, 8, GLOW["amber"], 60)
     lay = art.plane()
-    for cx, cy, rx, ry in ((744, 200, 112, 60), (680, 168, 60, 40), (808, 172, 60, 40), (744, 140, 76, 44),
-                           (644, 216, 40, 24), (848, 216, 40, 24)):
+    crown = ((744, 200, 112, 60), (680, 168, 60, 40), (808, 172, 60, 40), (744, 140, 76, 44),
+             (644, 216, 40, 24), (848, 216, 40, 24))
+    for cx, cy, rx, ry in crown:
         art.foliage(lay, rng, cx, cy, rx, ry, sc.col("pink", 0.32), p, leaf=(4, 8))
     mask = pygame.mask.from_surface(lay)
     art.blossoms(lay, rng, (600, 80, 300, 200), [(255, 255, 255), (255, 220, 240), (255, 130, 196)], 700, mask)
@@ -415,7 +416,7 @@ def build_glade():
     sc.lamp(744, 200, 150, GLOW["pink"], 34)
     sc.live(Petals(rng, (620, 140, 260, 80), 460, 60, [(255, 200, 230), (255, 255, 255), (255, 150, 200)]))
     # fruit in its canopy: what he used lately, and his new downloads up top (orchard.py)
-    sc.orchard = sc.live(Orchard(sc, Spot))
+    sc.orchard = sc.live(Orchard(sc, Spot, canopy=crown))
     sc.live(Nibbler(rng, sc.orchard, (600, 80, 300, 200), GLOW["pink"]))
 
     sc.live(Shafts([(400, 40, 300, 130, 0.0), (450, 30, 590, 100, 2.4)], (150, 170, 255), alpha=18))
