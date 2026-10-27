@@ -448,6 +448,7 @@ def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
 def canopy(s, rng, x0, x1, y, color, r=(14, 28), jitter=12, down=True):
     """A lumpy mass of foliage along a line, filled toward the bottom (or the top)."""
     x = x0
+    lumps = []
     while x < x1:
         rr = rng.randint(*r)
         cy = y + rng.randint(-jitter, jitter)
@@ -456,7 +457,37 @@ def canopy(s, rng, x0, x1, y, color, r=(14, 28), jitter=12, down=True):
             pygame.draw.rect(s, color, (x - rr, cy, rr * 2, H - cy))
         else:
             pygame.draw.rect(s, color, (x - rr, 0, rr * 2, cy))
+        lumps.append((x, cy, rr))
         x += rng.randint(rr // 2 + 3, rr + 3)
+    leafy(s, lumps, color, down, int(x0 * 31 + y * 17 + x1))
+
+
+def leafy(s, lumps, color, down, seed):
+    """Leaf texture over a canopy's lumps: a lit, broken crown on each (toward the
+    moon at the top-left), small leaf specks, and a dithered shadow where lumps overlap."""
+    rng = random.Random(seed)
+    lit, dark = mix(color, (255, 255, 255), 0.13), mix(color, (12, 10, 40), 0.24)
+    for x, cy, rr in lumps:
+        if down:
+            for a in range(200, 330, 6):  # the crown
+                if rng.random() < 0.7:
+                    px = int(x + math.cos(math.radians(a)) * (rr - 1))
+                    py = int(cy + math.sin(math.radians(a)) * (rr - 1))
+                    _dot(s, px, py, lit)
+                    if rng.random() < 0.4:
+                        _dot(s, px, py + 1, lit)
+            for yy in range(cy + rr // 3, cy + rr + 6):  # shadow under the lump
+                for xx in range(x - rr, x + rr):
+                    if (xx + yy) % 2 == 0 and (xx - x) ** 2 + (yy - cy - rr // 2) ** 2 > rr * rr * 0.6 \
+                            and (xx - x) ** 2 + (yy - cy) ** 2 < (rr + 4) ** 2 and rng.random() < 0.5:
+                        if s.get_at((xx, yy)).a if 0 <= xx < s.get_width() and 0 <= yy < s.get_height() else 0:
+                            s.set_at((xx, yy), dark)
+        for _ in range(rr):  # leaf specks
+            a, d = rng.random() * math.tau, math.sqrt(rng.random()) * rr * 0.85
+            px, py = int(x + math.cos(a) * d), int(cy + math.sin(a) * d)
+            c = lit if py < cy - rr * 0.2 and rng.random() < 0.6 else dark
+            _dot(s, px, py, c)
+            _dot(s, px + 1, py, c)
 
 
 def clump(s, rng, cx, cy, r, color, n=9, squash=0.7):
@@ -491,6 +522,26 @@ def foliage(s, rng, cx, cy, rx, ry, color, pal, density=1.0, leaf=(3, 6)):
     for x, y, r in pts:
         if (x - cx) / rx * 0.5 * -side + (y - cy) / ry < -0.45:
             pygame.draw.circle(s, light, (int(x + side * 2), int(y - 2)), max(1, r - 2))
+    # leaves: little two-pixel marks, dark in the shade and pale in the light, plus a
+    # deep pocket of shadow under some clusters (own dice, so the scene stays put)
+    lr = random.Random(int(cx * 7 + cy * 13 + rx))
+    deep, pale = mix(color, pal["shade"], 0.6), mix(color, pal["rim"], 0.5)
+    for x, y, r in pts:
+        v = (x - cx) / rx * 0.5 * -side + (y - cy) / ry
+        px, py = int(x + lr.randint(-r, r)), int(y + lr.randint(-r, r) // 2)
+        if v < -0.2:
+            _dot(s, px, py, pale)
+            _dot(s, px + side, py + 1, light)
+        elif v > 0.25:
+            _dot(s, px, py, deep)
+            _dot(s, px - side, py + 1, dark)
+        else:
+            _dot(s, px, py, mid if lr.random() < 0.5 else light)
+        if lr.random() < 0.12 and v > -0.3:  # a shadow pocket
+            for dy in range(r // 2 + 1):
+                for dx in range(-r // 2, r // 2 + 1):
+                    if (dx + dy) % 2 == 0:
+                        _dot(s, int(x + dx), int(y + r // 2 + dy), deep)
 
 
 def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
@@ -516,11 +567,43 @@ def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
                 f = (y - top) / max(1, bottom - top)
                 cx = x + (bottom - y) * lean
                 s.set_at((int(cx + fx * w * (0.8 + 0.2 * f)), y), dark)
+        br = random.Random(x * 101 + top)
+        deep = mix(color, (14, 10, 36), 0.42)
+        for (lx, ly), (rx_, ry_) in zip(pts_l, pts_r):  # shade on the far side, dithered
+            ww = rx_ - lx
+            for yy in range(ly, ly + 4):
+                for i in range(int(ww * 0.4)):
+                    xx = int(rx_ - 1 - i) if side < 0 else int(lx + i)
+                    if BAYER[yy % 4][xx % 4] < 12 - i * 30 / max(1, ww):
+                        _dot(s, xx, yy, dark)
+        pale = mix(color, (255, 255, 255), 0.1)
+        for _ in range(w * 2):  # bark ridges: broken vertical lines, dark grooves beside pale ridges
+            fx = br.uniform(-0.42, 0.42)
+            y0 = br.randint(top, bottom - 8)
+            y1 = min(bottom, y0 + br.randint(8, 40))
+            for y in range(y0, y1):
+                f = (y - top) / max(1, bottom - top)
+                cx = x + (bottom - y) * lean + fx * w * (0.8 + 0.2 * f)
+                if br.random() < 0.85:
+                    _dot(s, int(cx), y, deep if fx * side > 0 else dark)
+                    if fx * side < 0 and y % 3:
+                        _dot(s, int(cx) + side, y, pale)
+        for _ in range(max(1, (bottom - top) // 40)):  # knots and bark cracks
+            y = br.randint(top + 8, bottom - 16)
+            cx = x + (bottom - y) * lean + br.uniform(-0.25, 0.25) * w
+            if br.random() < 0.4:
+                pygame.draw.ellipse(s, deep, (int(cx) - 2, y - 3, 4, 6))
+                _dot(s, int(cx) + side, y - 3, mix(color, (255, 255, 255), 0.15))
+            else:
+                for i in range(br.randint(2, int(w * 0.6) + 2)):
+                    _dot(s, int(cx) + i, y + (i // 3) % 2, deep)
         if pal:
             lit = mix(color, pal["rim"], 0.22)
             for (lx, ly), (rx_, ry_) in zip(pts_l, pts_r):
                 ex = lx + 1 if side < 0 else rx_ - 2
                 pygame.draw.line(s, lit, (ex, ly), (ex, ly + 3))
+                if w >= 12 and ly % 8 < 4:
+                    pygame.draw.line(s, mix(lit, color, 0.5), (ex - side * 2, ly), (ex - side * 2, ly + 2))
     for _ in range(branches):
         by = rng.randint(top, top + (bottom - top) // 2)
         side = rng.choice((-1, 1))
