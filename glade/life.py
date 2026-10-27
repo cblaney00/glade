@@ -552,7 +552,8 @@ class Critter(Clock):
 
     def draw(self, s, t):
         big = getattr(self, "stage", 1) > 1  # Glowtail, its evolution (evolve.py)
-        radii = [r * (1.25 if big else 1.0) for r in (6.6, 7.2, 6.4, 5.0, 4.0, 3.2, 2.6, 2.1, 1.7, 1.4, 1.2)]
+        final = getattr(self, "stage", 1) > 2  # Cometail, its final stage
+        radii = [r * (1.45 if final else 1.25 if big else 1.0) for r in (6.6, 7.2, 6.4, 5.0, 4.0, 3.2, 2.6, 2.1, 1.7, 1.4, 1.2)]
         for (x, y), r in reversed(list(zip(self.pts, radii))):
             pygame.draw.circle(s, self.belly, (round(x), round(y + 2)), r)
         for (x, y), r in reversed(list(zip(self.pts, radii))):
@@ -576,12 +577,20 @@ class Critter(Clock):
             for i in (-4, -7):
                 bx, by = self.pts[i]
                 pygame.draw.circle(s, ruff, (round(bx), round(by)), 3)
+        if final:  # three swept-back plumes on its head, and a starry blaze down its back
+            for j in range(3):
+                sway = math.sin(t * 2.5 + j) * 1.2
+                pygame.draw.line(s, mix(self.tail_glow, (255, 255, 255), 0.3), (round(hx - f * 2), round(hy - 6)),
+                                 (round(hx - f * (9 + j * 3)), round(hy - 12 + j * 2 + sway)), 2)
+            for i in range(1, 6):
+                mx, my = self.pts[i]
+                s.set_at((round(mx), round(my - radii[i] * 0.8)), (255, 250, 220))
         for i, k in ((0, 0.0), (2, math.pi)):  # little legs while walking, standing on the ground
             x, y = self.pts[i][0], hy
             lift = max(0, math.sin(self.step + k)) * 3 if self.wait <= 0 else 0
             pygame.draw.line(s, self.belly, (round(x - 1), round(y + 5 - lift)), (round(x - 1), round(y + 8 - lift)), 2)
         # ears: two soft points
-        for ex_, h_ in ((-2, 13), (2, 14)) if big else ((-2, 9), (2, 10)):
+        for ex_, h_ in ((-2, 16), (2, 17)) if final else ((-2, 13), (2, 14)) if big else ((-2, 9), (2, 10)):
             pygame.draw.polygon(s, self.body, [(hx + ex_ * f - 2, hy - 4), (hx + ex_ * f + 2, hy - 4),
                                                (hx + ex_ * f + f, hy - h_)])
             s.set_at((round(hx + ex_ * f), round(hy - 6)), (255, 190, 214))
@@ -608,8 +617,29 @@ class Critter(Clock):
                 b = 0.6 + 0.4 * math.sin(t * 3 + i)
                 glow(s, bx, by, 5, self.tail_glow, q(130 * b))
                 s.set_at((round(bx), round(by)), mix(self.tail_glow, (255, 255, 255), 0.6))
+            if getattr(self, "stage", 1) > 2:  # Cometail: the whole tail is a comet, streaming sparks
+                n = len(self.pts)
+                for i in range(5, n):
+                    bx, by = self.pts[i]
+                    f = (i - 5) / (n - 5)
+                    glow(s, bx, by, int(4 + 9 * f), self.tail_glow, q(50 + 90 * f))
+                (ax, ay), (bx, by) = self.pts[-2], self.pts[-1]
+                d = math.hypot(bx - ax, by - ay) or 1
+                ux, uy = (bx - ax) / d, (by - ay) / d
+                for j in range(7):
+                    kk = (t * 0.9 + j / 7) % 1.0
+                    sx = bx + ux * kk * 24 + math.sin(t * 3 + j * 2) * 3 * kk
+                    sy = by + uy * kk * 24 + math.cos(t * 2 + j) * 3 * kk
+                    s.set_at((round(sx), round(sy)), mix((255, 250, 220), self.tail_glow, kk))
+                pygame.draw.circle(s, (255, 252, 230), (round(bx), round(by)), 3)
+                hx, hy = self.pts[0]  # a star on its brow
+                sx, sy = hx + self.facing * 1, hy - 5
+                glow(s, sx, sy, 5, (255, 250, 220), 110)
+                for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1), (0, -2), (0, 2)):
+                    s.set_at((round(sx + dx), round(sy + dy)), (255, 252, 236))
             hx, hy = self.pts[0]
-            for ex_, h_ in ((-2, 13), (2, 14)):
+            final = getattr(self, "stage", 1) > 2
+            for ex_, h_ in ((-2, 16), (2, 17)) if final else ((-2, 13), (2, 14)):
                 tx, ty = hx + ex_ * self.facing + self.facing, hy - h_
                 glow(s, tx, ty, 4, self.tail_glow, 90)
                 s.set_at((round(tx), round(ty)), (255, 236, 180))
@@ -759,6 +789,21 @@ class Squid(Clock):
                 x, y = arm[-1]
                 glow(s, x, y, int(6 * sz), self.color, q(120 + 40 * math.sin(t * 3)))
                 pygame.draw.circle(s, self.spots, (round(x), round(y)), max(1, round(1.4 * sz)))
+        if getattr(self, "stage", 1) > 2:  # Skyveil: a veil of light webbing its arms, a crown of cloud
+            web = mix(self.color, (255, 255, 255), 0.55)
+            for i in (2, 4):
+                ring = [arm[i] for arm in self.arms[:6] if i < len(arm)]
+                for (ax, ay), (bx, by) in zip(ring, ring[1:]):
+                    pygame.draw.line(s, web, (round(ax), round(ay)), (round(bx), round(by)))
+            for j in range(7):
+                a = j / 7 * math.tau + t * 0.3
+                cx = tipx - ux * 3 * sz + px_ * math.cos(a) * 7 * sz
+                cy = tipy - uy * 3 * sz + py_ * math.cos(a) * 7 * sz - abs(math.sin(a)) * 3 * sz
+                r = (2.2 + 0.6 * math.sin(t * 1.5 + j)) * sz
+                pygame.draw.circle(s, (176, 170, 220), (round(cx), round(cy + 1)), max(1, round(r)))
+                pygame.draw.circle(s, (236, 234, 255), (round(cx), round(cy)), max(1, round(r - 0.5)))
+            if math.sin(t * 4.1 + self.phase * 7) * math.sin(t * 1.7) > 0.6:  # a flicker of lightning inside it
+                glow(s, tipx, tipy, int(12 * sz), (220, 230, 255), q(140))
         # blinking spots down the back, and eyes on the head
         for j in range(7 if big else 4):
             if math.sin(t * 2.5 + j * 1.3 + self.phase * 9) > -0.2:
@@ -1026,6 +1071,50 @@ class Slug(Clock):
                 rr = (r - 1.5) * (1 - k / 30)
                 s.set_at((round(cx + math.cos(a) * rr * -self.dir), round(cy + math.sin(a) * rr)), sh_dark)
             s.set_at((round(cx - 2), round(cy - r + 2)), mix(self.shell, (255, 255, 255), 0.6))
+        stage = getattr(self, "stage", 1)
+        self._tips, self._window = [], None
+        if stage > 1 and not self.shell:  # Gloomdrape / Nightmire: frilled plumes down its back
+            for i in range(1, self.n - 2, 2 if stage > 2 else 3):
+                x, y, nx, ny, tx, ty = pts[i]
+                r = SLUG_PROFILE[i] * sz
+                for k in ((-0.6, 0, 0.6) if stage > 2 else (-0.4, 0.4)):
+                    sway = math.sin(t * 2 + i * 0.7 + k * 2 + self.ph) * 0.35
+                    bx, by = x + nx * r * 1.5 + tx * k * r, y + ny * r * 1.5 + ty * k * r
+                    ln = (3.2 if stage == 2 else 4.6) * sz
+                    ex, ey = bx + (nx + tx * sway) * ln, by + (ny + ty * sway) * ln
+                    pygame.draw.line(s, self.mantle, (round(bx), round(by)), (round(ex), round(ey)), max(1, round(sz * 0.7)))
+                    self._tips.append((ex, ey))
+        if self.shell and stage > 1:  # Cairnspire: a cairn stacked on its shell; Cairnhold: a little ruined tower
+            x, y, nx, ny, tx, ty = pts[5]
+            cx, cy, r = x + nx * 7 * sz, y + ny * 7 * sz, 7 * sz
+            P = lambda a, b: (cx + tx * a + nx * b, cy + ty * a + ny * b)  # noqa: E731 (along, up)
+            stone, sd = (156, 148, 190), (96, 86, 130)
+            if stage == 2:
+                for j, (w, h) in enumerate(((7, 3), (5.5, 2.6), (4, 2.2))):
+                    b = r - 1 + (j * 2.6 + 1.4) * sz
+                    pts_ = [P(-w * sz * 0.5, b - h * sz * 0.5), P(w * sz * 0.5, b - h * sz * 0.5),
+                            P(w * sz * 0.4, b + h * sz * 0.5), P(-w * sz * 0.4, b + h * sz * 0.5)]
+                    pygame.draw.polygon(s, sd, [(px, py + 1) for px, py in pts_])
+                    pygame.draw.polygon(s, mix(stone, (255, 255, 255), 0.1 * j), pts_)
+                mx, my = P(0, r - 1 + 9.6 * sz)
+                pygame.draw.circle(s, (100, 200, 150), (round(mx), round(my)), max(1, round(1.4 * sz)))
+            else:
+                tw, th, b0 = 9 * sz, 13 * sz, r * 0.4
+                body = [P(-tw / 2, b0), P(tw / 2, b0), P(tw / 2 - sz, b0 + th), P(-tw / 2 + sz, b0 + th)]
+                pygame.draw.polygon(s, sd, [(px, py + 1) for px, py in body])
+                pygame.draw.polygon(s, stone, body)
+                for a in (-tw / 2 + sz, -sz, tw / 2 - 3 * sz):  # battlements, one tumbled away
+                    if a > 0 and (int(self.ph * 10) % 2):
+                        continue
+                    pygame.draw.polygon(s, stone, [P(a, b0 + th), P(a + 2 * sz, b0 + th), P(a + 2 * sz, b0 + th + 2 * sz),
+                                                   P(a, b0 + th + 2 * sz)])
+                for j in range(3):  # courses of stone
+                    pygame.draw.line(s, sd, P(-tw / 2 + 0.5 * sz, b0 + (3 + j * 3.5) * sz), P(tw / 2 - 0.5 * sz, b0 + (3 + j * 3.5) * sz))
+                for j in range(4):  # ivy up one side
+                    s.set_at(tuple(round(v) for v in P(-tw / 2 + (j % 2) * sz, b0 + j * 3 * sz)), (100, 200, 150))
+                self._window = P(0.5 * sz, b0 + th * 0.6)
+                wx, wy = self._window
+                pygame.draw.rect(s, (40, 26, 50), (round(wx - sz), round(wy - 1.5 * sz), max(2, round(2 * sz)), max(2, round(3 * sz))))
         # eye stalks and feelers
         out = 1.0 if t - self.shy > 2.2 else min(1.0, max(0.15, (t - self.shy - 1.2) / 1.0))
         x, y, nx, ny, tx, ty = pts[0]
@@ -1066,6 +1155,24 @@ class Slug(Clock):
                 glow(s, px, py, 5, self.spots, q(130 * k))
                 s.set_at((round(px), round(py)), mix(self.spots, (255, 255, 255), 0.5))
 
+        stage = getattr(self, "stage", 1)
+        if stage > 1 and not self.shell:  # the plumes' tips glow
+            c = self.spots or (190, 130, 255)
+            for i, (px, py) in enumerate(getattr(self, "_tips", [])):
+                b = 0.5 + 0.5 * math.sin(t * 2 + i * 0.9 + self.ph)
+                if stage > 2:
+                    glow(s, px, py, 4, c, q(60 + 80 * b))
+                s.set_at((round(px), round(py)), mix(c, (255, 255, 255), 0.3 + 0.4 * b))
+            if stage > 2:  # Nightmire leaves glowing pools in its trail
+                for x, y, t0 in self.trail[::9]:
+                    if t - t0 < 30:
+                        glow(s, x, y, 6, c, q(70 * (1 - (t - t0) / 30)))
+        if getattr(self, "_window", None):  # a warm light in the tower's window
+            wx, wy = self._window
+            b = 0.7 + 0.3 * math.sin(t * 1.3 + self.ph)
+            glow(s, wx, wy, int(7 * self.size), (255, 200, 110), q(120 * b))
+            s.set_at((round(wx), round(wy)), (255, 230, 160))
+
     def light(self, lm, t):
         if self.spots and getattr(self, "head", None):
             glow(lm, *self.head, int(28 * self.size), self.spots, 70)
@@ -1093,7 +1200,10 @@ class Millipede(Clock):
     def draw(self, s, t):
         dt = self.tick(t)
         L = self.track.length
-        body_len = self.n * 2.6
+        stage = getattr(self, "stage", 1)
+        sp = 2.6 + 0.9 * (stage - 1)  # Luminthread and Glowcoil are longer and thicker
+        rad = 2 + (stage - 1)
+        body_len = self.n * sp
         if self.wait > 0:
             self.wait -= dt
         else:
@@ -1106,18 +1216,31 @@ class Millipede(Clock):
         curl = min(1.0, max(0.0, 1 - (t - self.shy) / 3.0))
         self.pts = []
         for i in range(self.n):
-            x, y, tx, ty, nx, ny = self.track.at(self.d - self.dir * i * 2.6 * (1 - curl * 0.5))
-            self.pts.append((x + nx * 2.4, y + ny * 2.4, nx, ny))
+            x, y, tx, ty, nx, ny = self.track.at(self.d - self.dir * i * sp * (1 - curl * 0.5))
+            self.pts.append((x + nx * 2.4 * (1 + 0.5 * (stage - 1)), y + ny * 2.4 * (1 + 0.5 * (stage - 1)), nx, ny))
         moving = self.wait <= 0
         for i, (x, y, nx, ny) in enumerate(self.pts):
             lift = math.sin(t * 14 - i * 0.9) if moving else 0
             for k in (-1, 1):
-                lx = x - nx * 3 + k * 0.8 * ny + lift * 0.6 * k
-                ly = y - ny * 3 - k * 0.8 * nx
+                lx = x - nx * (rad + 1) + k * 0.8 * ny + lift * 0.6 * k
+                ly = y - ny * (rad + 1) - k * 0.8 * nx
                 s.set_at((round(lx), round(ly)), self.dark)
         for i, (x, y, nx, ny) in enumerate(reversed(self.pts)):
-            pygame.draw.circle(s, self.dark, (round(x), round(y + 0.5)), 2)
-            pygame.draw.circle(s, self.body, (round(x), round(y - 0.5)), 2 if i < self.n - 1 else 3)
+            pygame.draw.circle(s, self.dark, (round(x), round(y + 0.5)), rad)
+            pygame.draw.circle(s, self.body, (round(x), round(y - 0.5)), rad if i < self.n - 1 else rad + 1)
+            if stage > 1 and i % 2:  # banded plates
+                pygame.draw.line(s, self.dark, (round(x - ny * rad * 0.2), round(y - rad + 0.5)), (round(x), round(y + rad - 1)))
+        if stage > 1 and self.pts:  # long feelers off its head
+            x, y, nx, ny = self.pts[0]
+            (ax, ay), d_ = self.pts[1][:2], 1
+            ux, uy = x - ax, y - ay
+            d_ = math.hypot(ux, uy) or 1
+            ux, uy = ux / d_, uy / d_
+            for k in (-1, 1):
+                sway = math.sin(t * 3 + k) * 1.5
+                ex, ey = x + ux * (5 + 3 * stage) + nx * (3 + k * 2 + sway), y + uy * (5 + 3 * stage) + ny * (3 + k * 2 + sway)
+                pygame.draw.line(s, self.dark, (round(x), round(y)), (round(ex), round(ey)))
+                self.__dict__.setdefault("_feel", {})[k] = (ex, ey)
 
     def light(self, lm, t):
         if getattr(self, "pts", None):
@@ -1125,10 +1248,19 @@ class Millipede(Clock):
             glow(lm, x, y, 30, self.glow_c, 60)
 
     def shine(self, s, t):
+        stage = getattr(self, "stage", 1)
         for i, (x, y, nx, ny) in enumerate(getattr(self, "pts", [])):
             if i % 2 == 0:
                 k = 0.6 + 0.4 * math.sin(t * 2 - i * 0.4)
                 s.set_at((round(x), round(y - 1)), scale(self.glow_c, 0.5 + 0.5 * k))
+                if stage > 1:  # a lamp on every other plate, a pulse of light running down them
+                    w = 0.5 + 0.5 * math.sin(t * 4 - i * 0.5)
+                    if stage > 2 or w > 0.7:
+                        glow(s, x, y - 1, 3 + stage, self.glow_c, q(40 + 90 * w))
+        if stage > 1:
+            for ex, ey in getattr(self, "_feel", {}).values():
+                glow(s, ex, ey, 4, self.glow_c, 90)
+                s.set_at((round(ex), round(ey)), mix(self.glow_c, (255, 255, 255), 0.5))
 
 
 def make_rng(seed):

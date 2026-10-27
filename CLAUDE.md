@@ -184,3 +184,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   ink blob with stalk eyes) and **Glintshell** (Steel, shy, under a silver dome). Kinds `bramble`,
   `thistle`, `rune`, `spark`, `murk`, `glint` in `beasts.py`; placed by `second_wave(..., new=...)`
   (own dice, so the rest of each place paints as before) and each place's `sc.lower` walkers/fliers.
+- **Forest Dex page one filled** (2026-10-27, his ask, his approved names): every line #010-#048
+  has all three stages (`battle._LATER`, built from the earlier stage's pool by `_grown`;
+  `evolve.EVOLVES`). Each class draws its later stages from `stage`: Critter (Cometail), Squid
+  (Skyveil), Slug (Gloomdrape/Nightmire without a shell, Cairnspire/Cairnhold with one), Millipede
+  (Luminthread/Glowcoil: `set_stage` adds segments; the Dex coils them), Fish (Lilyveil/Lotuscrest),
+  TreeSquid (Boughgrip/Canopolis: the Dex/battle tuple is `("perch", kind, stage)`; tree squids
+  holding icons never evolve), Flier bat/moth/drake/wisp, Walker toad (`draw_toad3`) and mole.

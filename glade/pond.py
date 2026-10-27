@@ -102,18 +102,35 @@ class Fish:
             x, y = self.pts[i]
             pygame.draw.circle(s, self.lit[min(i, len(self.lit) - 1)], (round(x - nx), round(y - ny)),
                                max(1, self.RADII[i] * sz * 0.4))
+        stage = getattr(self, "stage", 1)  # Lilyveil and Lotuscrest trail long veils of fin
         (ax, ay), (bx, by) = self.pts[-2], self.pts[-1]
         ang = math.atan2(by - ay, bx - ax) + math.sin(self.wig * 1.3) * 0.5
         for spread in (-0.6, 0.6):  # tail fin
-            for k in (6, 8):
+            for k in (6, 8, 10, 12, 14, 16)[:2 + 2 * (stage - 1)]:
                 pygame.draw.line(s, mix(self.colors[-1], (255, 255, 255), 0.3), (bx, by),
                                  (bx + math.cos(ang + spread * k / 7) * k * sz * 1.2,
                                   by + math.sin(ang + spread * k / 7) * k * sz * 1.2))
         hx, hy = self.pts[1]
-        flap = 6 * sz + math.sin(self.wig * 2) * 1.6
+        flap = (6 + 3 * (stage - 1)) * sz + math.sin(self.wig * 2) * 1.6
         for k in (-1, 1):  # side fins
             pygame.draw.line(s, mix(self.colors[0], (255, 255, 255), 0.5), (hx + nx * 3 * k, hy + ny * 3 * k),
                              (hx + nx * flap * k - math.cos(self.heading) * 3, hy + ny * flap * k - math.sin(self.heading) * 3), 2)
+        if stage > 1:  # a frilled fin down its back
+            for i in range(1, len(self.pts) - 1):
+                x, y = self.pts[i]
+                w = math.sin(self.wig * 1.5 - i) * 1.2
+                s.set_at((round(x + nx * w), round(y + ny * w)), mix(self.colors[0], (255, 220, 240), 0.6))
+        if stage > 2:  # Lotuscrest: a lotus in bloom on its head
+            cx, cy = self.pts[1]
+            for j in range(7):
+                a = self.heading + j / 7 * math.tau + math.sin(self.wig * 0.3) * 0.1
+                ln = 6 * sz if j % 2 else 5 * sz
+                tip = (cx + math.cos(a) * ln, cy + math.sin(a) * ln)
+                l = (cx + math.cos(a - 0.45) * ln * 0.45, cy + math.sin(a - 0.45) * ln * 0.45)
+                r = (cx + math.cos(a + 0.45) * ln * 0.45, cy + math.sin(a + 0.45) * ln * 0.45)
+                pygame.draw.polygon(s, (250, 170, 214) if j % 2 else (255, 206, 232), [(cx, cy), l, tip, r])
+                pygame.draw.line(s, (255, 236, 246), (round(cx), round(cy)), (round(tip[0]), round(tip[1])))
+            pygame.draw.circle(s, (255, 226, 120), (round(cx), round(cy)), max(1, round(1.8 * sz)))
         ex, ey = self.pts[0]
         for k in (-1, 1):  # eyes
             s.set_at((round(ex + nx * 2.4 * sz * k + math.cos(self.heading) * 2),

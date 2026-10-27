@@ -42,6 +42,7 @@ FLIERS = dict(
     spark=dict(species="Sparkfly", body=(84, 100, 190), color=(255, 246, 130), speed=95, turn=0.7),
 )
 AURORA = [(140, 255, 200), (120, 220, 255), (190, 150, 255), (255, 150, 220)]
+PRISM = [(255, 130, 150), (255, 190, 110), (255, 240, 130), (140, 255, 170), (120, 210, 255), (180, 150, 255)]
 
 
 class Flier(Clock):
@@ -118,20 +119,28 @@ class Flier(Clock):
     # the bat: a velvet body, pointed ears, wings that beat fast
     def draw_bat(self, s, t):
         z, x, y = self.size, self.x, self.y
-        beat = math.sin(t * 16 + self.phase)
+        st = getattr(self, "stage", 1)  # Gloomglide and Nightshroud: broader wings, slower beats, gliding
+        span = 1 + 0.3 * (st - 1)
+        beat = math.sin(t * 16 / (1 + 0.7 * (st - 1)) + self.phase) * (1 - 0.25 * (st - 1))
+        self._wings = []
+        if st > 1:  # a membrane between its legs, like a cape
+            cape = [(x - 3 * z, y + 2 * z), (x + 3 * z, y + 2 * z), (x + 1.5 * z * math.sin(t * 3), y + (8 + 2 * st) * z)]
+            pygame.draw.polygon(s, mix(self.body, INK, 0.45), cape)
         for side in (-1, 1):
-            tip = (x + side * 13 * z, y - 7 * z * beat)
-            elbow = (x + side * 7 * z, y - 4 * z * beat - 2 * z)
-            pts = [(x + side * 2 * z, y - 2 * z), elbow, tip, (x + side * 10 * z, y + 2 * z),
-                   (x + side * 6 * z, y + 1 * z), (x + side * 3 * z, y + 3 * z)]
+            tip = (x + side * 13 * z * span, y - 7 * z * beat)
+            elbow = (x + side * 7 * z * span, y - 4 * z * beat - 2 * z)
+            pts = [(x + side * 2 * z, y - 2 * z), elbow, tip, (x + side * 10 * z * span, y + 2 * z),
+                   (x + side * 6 * z * span, y + (1 + st) * z), (x + side * 3 * z, y + 3 * z)]
+            self._wings.append(pts)
             pygame.draw.polygon(s, mix(self.body, INK, 0.35), pts)
             pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.25), (x + side * 2 * z, y - 2 * z), elbow)
             pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.25), elbow, tip)
         pygame.draw.ellipse(s, self.body, (x - 4 * z, y - 4 * z, 8 * z, 8 * z))
         pygame.draw.ellipse(s, mix(self.body, (255, 220, 240), 0.3), (x - 2 * z, y, 4 * z, 3 * z))
+        ear = 8 + 2 * (st - 1)
         for ex in (-2, 2):
             pygame.draw.polygon(s, self.body, [(x + ex * z - 1.5 * z, y - 3 * z), (x + ex * z + 1.5 * z, y - 3 * z),
-                                               (x + ex * z * 1.5, y - 8 * z)])
+                                               (x + ex * z * 1.5, y - ear * z)])
 
     # the moth: four soft wings with eye-spots, a furry body
     def draw_moth(self, s, t):
@@ -149,6 +158,14 @@ class Flier(Clock):
                 w1 = 10 * z * open_
                 band = (x + (w1 * 0.35 if side > 0 else -w1 * 0.65), y - 6 * z, w1 * 0.3, 6 * z)
                 pygame.draw.ellipse(s, mix(wing, (200, 90, 80), 0.45), band)
+        if getattr(self, "stage", 1) > 2:  # Hearthwing: tongues of flame along its wings' edges
+            for side in (-1, 1):
+                w1 = 10 * z * open_
+                for j in range(4):
+                    fx = x + side * w1 * (0.2 + j * 0.22)
+                    h = (2 + 1.5 * abs(math.sin(t * 8 + j * 1.7 + side))) * z
+                    pygame.draw.polygon(s, (255, 150, 80) if j % 2 else (255, 200, 110),
+                                        [(fx - z, y - 7 * z), (fx + z, y - 7 * z), (fx, y - 7 * z - h)])
         pygame.draw.ellipse(s, self.body, (x - 2 * z, y - 5 * z, 4 * z, 10 * z))
         for side in (-1, 1):  # feathery antennae
             tip = (x + side * (5 if big else 4) * z, y - (12 if big else 10) * z)
@@ -162,15 +179,23 @@ class Flier(Clock):
     def draw_drake(self, s, t):
         z, x, y, f = self.size, self.x, self.y, self.facing
         bob = math.sin(t * 3 + self.phase) * z
-        for i in range(9):  # the tail, behind the head
+        st = getattr(self, "stage", 1)
+        n = (9, 13, 16)[st - 1]
+        for i in range(n):  # the tail, behind the head (a wyrm's winds like a ribbon)
             px = x - f * (4 + i * 2.2) * z
-            col = mix(self.body, (150, 110, 255), i / 9)
-            pygame.draw.circle(s, col, (round(px), round(y + bob * i / 9)), max(1, round((1.6 - i * 0.08) * z)))
+            wave = math.sin(t * 4 - i * 0.6 + self.phase) * (st - 1) * 1.2 * z * i / n
+            col = PRISM[(i + int(t * 6)) % len(PRISM)] if st > 2 else mix(self.body, (150, 110, 255), i / n)
+            pygame.draw.circle(s, col, (round(px), round(y + bob * i / n + wave)), max(1, round((1.6 + 0.4 * (st - 1) - i * 1.4 / n) * z)))
         pygame.draw.circle(s, self.body, (round(x), round(y)), max(2, round(2.6 * z)))
+        if st > 1:  # horns swept back
+            for k in (-1, 1):
+                pygame.draw.line(s, (236, 244, 255), (x - f * z, y - 2 * z), (x - f * 4 * z, y - (4 + k) * z))
         s.set_at((round(x + f * z), round(y - z)), (255, 255, 255))
         blur = self.hover > 0 or (t * 30) % 2 < 1
         wing = mix(self.body, (255, 255, 255), 0.7)
-        for k, ln in ((1, 9), (3, 8)):
+        for k, ln in ((1, 9 + 2 * (st - 1)), (3, 8 + 2 * (st - 1))):
+            if st > 2:
+                wing = PRISM[(k + int(t * 4)) % len(PRISM)]
             for up in (-1, 1):
                 end = (x - f * k * z + (2 * f * z if blur else 0), y + up * (3 if blur else 2) * z - ln * z * (0.6 if up < 0 else -0.2))
                 pygame.draw.line(s, wing, (x - f * k * z, y - z), end)
@@ -243,8 +268,23 @@ class Flier(Clock):
         z, x, y = self.size, self.x, self.y
         k = swell(t - self.poked, 0.1, 0.6)
         if self.kind == "bat":
+            st = getattr(self, "stage", 1)
             for ex in (-1.5, 1.5):  # little glowing eyes
                 s.set_at((round(x + ex * z), round(y - 1 * z)), self.color)
+                if st > 1:
+                    glow(s, x + ex * z, y - z, int(3 * z), self.color, q(70 + 50 * k))
+            if st > 2:  # Nightshroud: stars twinkling in its wings, a crescent moon on its chest
+                for w, pts in enumerate(getattr(self, "_wings", [])):
+                    for j in range(5):
+                        a, b = pts[1 + j % 3], pts[3 + j % 2]
+                        f = 0.3 + 0.15 * j
+                        sx, sy = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+                        if math.sin(t * 3 + j * 1.9 + w) > -0.3:
+                            s.set_at((round(sx), round(sy)), (230, 230, 255))
+                cx, cy = x, y + 1.5 * z
+                pygame.draw.circle(s, (255, 236, 180), (round(cx), round(cy)), max(1, round(1.6 * z)))
+                pygame.draw.circle(s, self.body, (round(cx + 0.8 * z), round(cy - 0.4 * z)), max(1, round(1.4 * z)))
+                glow(s, cx, cy, int(5 * z), (255, 236, 180), q(70 + 60 * k))
         elif self.kind == "moth":
             glow(s, x, y, int(10 * z), self.color, q(70 + 50 * k))
             if getattr(self, "stage", 1) > 1:  # a lantern of a belly, and embers trailing behind
@@ -253,10 +293,15 @@ class Flier(Clock):
                 pygame.draw.ellipse(s, (255, 214, 140), (x - 1.5 * z, y + 1 * z, 3 * z, 4 * z))
                 for i, (px, py) in enumerate(self.trail[2::2]):
                     s.set_at((round(px), round(py + 3 * z + i)), mix((255, 170, 90), (60, 30, 50), i / 4))
+                if getattr(self, "stage", 1) > 2:  # a hearth's warmth all round it
+                    glow(s, x, y - 2 * z, int(18 * z), (255, 150, 80), q(60 + 30 * b + 50 * k))
             for side in (-1, 1):  # eye-spots on the wings glow like embers
                 s.set_at((round(x + side * 5 * z), round(y - 4 * z)), (255, 210, 120))
         elif self.kind == "drake":
-            tx = x - self.facing * 22 * z
+            st = getattr(self, "stage", 1)
+            tx = x - self.facing * (4 + (9, 13, 16)[st - 1] * 2.2) * z
+            if st > 2:
+                glow(s, x, y, int(12 * z), PRISM[int(t * 3) % len(PRISM)], q(60 + 40 * k))
             glow(s, tx, y, int(6 * z), self.color, q(90 + 60 * k))
         elif self.kind == "finch":
             for i, (px, py) in enumerate(self.trail[1:]):  # the streamer of a tail
@@ -322,15 +367,32 @@ class Flier(Clock):
                     px, py = nx, ny
         else:  # the wisp
             flick = 0.75 + 0.25 * math.sin(t * 11 + self.phase) * math.sin(t * 7.3)
+            st = getattr(self, "stage", 1)
+            if st > 1:  # misty arms (and, for Mistwraith, the tatters of a cloak) trailing behind
+                for side in ((-1, 1) if st == 2 else (-1.4, -0.5, 0.5, 1.4)):
+                    for i, (px, py) in enumerate(self.trail[::-1]):
+                        c = mix((150, 140, 220) if st > 2 else self.color, (40, 40, 100), 1 - i / 8)
+                        off = side * (2 + i * 0.9) * z
+                        pygame.draw.circle(s, c, (round(px + off), round(py + i * 0.6 * z)), max(1, round((0.6 + i * 0.25) * z)))
             for i, (px, py) in enumerate(self.trail[::-1]):
                 r = max(1, round((1 + i * 0.6) * z))
                 c = mix(self.color, (60, 60, 140), 1 - i / 8)
                 pygame.draw.circle(s, c, (round(px), round(py - i * 0.4)), r)
             glow(s, x, y, int(16 * z), self.color, q(90 * flick + 60 * k))
+            if st > 1:  # a hood of shadow
+                pygame.draw.circle(s, (70, 60, 130), (round(x), round(y - z)), max(3, round(6 * z)))
             pygame.draw.circle(s, self.body, (round(x), round(y)), max(2, round(5 * z)))
             pygame.draw.circle(s, (255, 255, 255), (round(x - z), round(y - 2 * z)), max(1, round(2 * z)))
+            if st > 2:  # a crown of three cold flames
+                for j in (-1, 0, 1):
+                    fx, fy = x + j * 3 * z, y - (6 + (j == 0)) * z
+                    h = (2.5 + math.sin(t * 9 + j * 2) * 0.8) * z
+                    glow(s, fx, fy - h / 2, int(4 * z), self.color, q(90 * flick))
+                    pygame.draw.polygon(s, (220, 230, 255), [(fx - z, fy), (fx + z, fy), (fx, fy - h)])
             for ex in (-2, 2):
                 s.set_at((round(x + ex * z), round(y)), INK)
+                if st > 2:  # glowing eyes
+                    s.set_at((round(x + ex * z), round(y)), (150, 255, 240))
 
 
 # --- on the ground ----------------------------------------------------------------------
@@ -512,6 +574,23 @@ class Walker(Clock):
                 pygame.draw.circle(s, (238, 226, 206), (round(fx), round(fy)), max(2, round(2.2 * z)))
                 pygame.draw.line(s, (200, 186, 170), (fx - z, fy), (fx + z, fy))
 
+    # Titanhop: Thudhop grown huge, stone plates down its back, a champion's golden belt
+    def draw_toad3(self, s, t):
+        self.draw_toad(s, t)
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        stone, sd = (150, 144, 176), (96, 88, 126)
+        for j in range(3):
+            bx = x - f * (5 - j * 3.2) * z
+            by = y - (9.5 + (j == 1)) * z
+            pts = [(bx - 2 * z, by + 2 * z), (bx - 1 * z, by - 1.5 * z), (bx + 1.5 * z, by - 2 * z), (bx + 2.2 * z, by + 1.5 * z)]
+            pygame.draw.polygon(s, sd, [(px, py + 1) for px, py in pts])
+            pygame.draw.polygon(s, stone, pts)
+            s.set_at((round(bx), round(by - z)), (220, 216, 240))
+        pygame.draw.line(s, (240, 190, 70), (x - 7 * z, y - 3 * z), (x + 7 * z, y - 3 * z), max(2, round(1.4 * z)))
+        bx = x + f * 2 * z
+        pygame.draw.rect(s, (255, 226, 120), (bx - 1.5 * z, y - 4.5 * z, 3 * z, 3 * z))
+        s.set_at((round(bx), round(y - 3 * z)), (255, 255, 255))
+
     # the mole: velvet, with a pink star of a nose that glows, by its hole
     def draw_mole(self, s, t):
         z, x, y, f = self.size, self.x, self.y, self.facing
@@ -524,9 +603,28 @@ class Walker(Clock):
         pygame.draw.ellipse(s, mix(self.body, INK, 0.3), (x - 8 * z, y - 8 * z + 1, 16 * z, 9 * z))
         pygame.draw.ellipse(s, self.body, (x - 8 * z, y - 9 * z, 16 * z, 9 * z))
         pygame.draw.ellipse(s, mix(self.body, (255, 255, 255), 0.25), (x - 5 * z, y - 8 * z, 8 * z, 3 * z))
-        for c in (-1, 1):  # big digging claws
+        st = getattr(self, "stage", 1)
+        if st > 1:  # Mossburrow: moss over its back; Mossquake: a whole mossy hill
+            hill = 3 if st > 2 else 0
+            if hill:
+                pygame.draw.ellipse(s, (66, 140, 110), (x - 7 * z, y - 13 * z, 13 * z, 7 * z))
+            for j in range(6):
+                mx = x - 6 * z + j * 2.2 * z
+                my = y - 9 * z - math.sin(j / 5 * math.pi) * (1 + hill) * z
+                pygame.draw.circle(s, (100, 200, 150) if j % 2 else (80, 176, 132), (round(mx), round(my)), max(1, round(1.8 * z)))
+            if st > 2:
+                for j, (cx, ch) in enumerate(((-3, 5), (-1, 7), (2, 4))):  # crystal shards through the moss
+                    pygame.draw.polygon(s, (160, 230, 255), [(x + cx * z - z, y - 12 * z), (x + cx * z + z, y - 12 * z),
+                                                             (x + cx * z, y - (12 + ch) * z)])
+                    pygame.draw.line(s, (240, 252, 255), (x + cx * z, y - 12 * z), (x + cx * z, y - (12 + ch * 0.7) * z))
+                sx = x - f * 4 * z  # and a sapling
+                pygame.draw.line(s, (130, 96, 120), (sx, y - 12 * z), (sx, y - 18 * z), max(1, round(z * 0.7)))
+                for k in (-1, 1):
+                    pygame.draw.ellipse(s, (120, 220, 160), (sx + (k - 1) * 1.5 * z, y - 19.5 * z + (k > 0) * z, 3 * z, 2 * z))
+        claw = (236, 220, 230) if st < 3 else (200, 196, 230)
+        for c in (-1, 0, 1)[:2 + (st > 1)]:  # big digging claws
             cx = x + f * 6 * z + c * 2 * z
-            pygame.draw.line(s, (236, 220, 230), (cx, y - 1 * z), (cx + f * 2 * z, y), 1)
+            pygame.draw.line(s, claw, (cx, y - 1 * z), (cx + f * (2 + st) * z, y), max(1, round(z * 0.5 * st)))
         s.set_at((round(x + f * 4 * z), round(y - 6 * z)), INK)
 
     # the sporeling: a mushroom cap on a little stem, waddling, its spots aglow
@@ -950,6 +1048,18 @@ class Walker(Clock):
                 s.set_at((round(x + sx * z), round(y + sy * z)), mix(self.color, (255, 255, 255), 0.4 + 0.5 * b))
             glow(s, x, y - 13 * z, int(10 * z), self.color, q(40 + 90 * k))
         elif self.kind == "mole":
+            st = getattr(self, "stage", 1)
+            if st > 1:  # glowing mushrooms in its moss
+                for j, mx in enumerate((-4, 1, 4)[:2 + (st > 2)]):
+                    b = 0.6 + 0.4 * math.sin(t * 1.8 + j * 2 + self.phase)
+                    my = y - (10 + (st > 2) * 3) * z
+                    pygame.draw.ellipse(s, mix(self.color, (255, 255, 255), 0.3), (x + mx * z - 1.5 * z, my - 1.5 * z, 3 * z, 1.6 * z))
+                    glow(s, x + mx * z, my, int(4 * z), self.color, q(70 * b))
+            if st > 2 and self.wait <= 0:  # the ground cracks with light as it walks
+                for j in range(3):
+                    cx = x - f * (4 + j * 4) * z
+                    if math.sin(t * 5 + j) > 0:
+                        pygame.draw.line(s, (160, 230, 255), (cx, y), (cx + 2 * z, y + 1.5 * z))
             nx, ny = x + f * 9 * z, y - 5 * z
             glow(s, nx, ny, int(5 * z), self.color, q(90 + 60 * k))
             pygame.draw.circle(s, (255, 180, 220), (round(nx), round(ny)), max(1, round(1.5 * z)))

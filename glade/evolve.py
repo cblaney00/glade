@@ -27,6 +27,13 @@ from battle import cloth, draw_elsewhere, species_of
 
 EVOLVES = {"Duskling": "Glowtail", "Driftlet": "Nimbusdrift", "Lanternwing": "Beaconwing",
            "Brawlhop": "Thudhop", "Sporeling": "Sporestride",
+           # page one of the Forest Dex filled in (2026-10-27): every line #010-#048 has three stages
+           "Glowtail": "Cometail", "Nimbusdrift": "Skyveil", "Beaconwing": "Hearthwing", "Thudhop": "Titanhop",
+           "Gloamooze": "Gloomdrape", "Gloomdrape": "Nightmire", "Cairncurl": "Cairnspire", "Cairnspire": "Cairnhold",
+           "Luminpede": "Luminthread", "Luminthread": "Glowcoil", "Lilyfin": "Lilyveil", "Lilyveil": "Lotuscrest",
+           "Canopod": "Boughgrip", "Boughgrip": "Canopolis", "Gloomflit": "Gloomglide", "Gloomglide": "Nightshroud",
+           "Glimmerfly": "Glimmerwyrm", "Glimmerwyrm": "Prismwyrm", "Mistwisp": "Mistshade", "Mistshade": "Mistwraith",
+           "Mossdelve": "Mossburrow", "Mossburrow": "Mossquake",
            # the starters' lines, all three stages (2026-10-27)
            "Mossprance": "Lichenmane", "Lichenmane": "Eldermane",
            "Kindlet": "Smoldershell", "Smoldershell": "Pyreclad",
@@ -68,9 +75,14 @@ def set_stage(obj, stage):
     obj.species = species_at(first["name"], stage) if stage > 1 else first["species"]
     if type(obj).__name__ == "Critter":
         if stage >= 2:
-            obj.SEG = 5.2  # a longer body and tail
+            obj.SEG = 6.2 if stage > 2 else 5.2  # a longer body and tail
         else:
             obj.__dict__.pop("SEG", None)
+    if type(obj).__name__ == "Slug":
+        obj.seg = 2.0 * obj.size  # its body grows with it
+    if type(obj).__name__ == "Millipede":
+        base = obj.__dict__.setdefault("_n", obj.n)
+        obj.n = base + 6 * (stage - 1)  # more segments each stage
     if type(obj).__name__ == "Squid":
         long = obj.__dict__.setdefault("_long", [])
         if stage >= 2 and not long:  # two long hunting tentacles

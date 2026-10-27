@@ -261,6 +261,9 @@ def body(species, at=(480, 300)):
         sq = TreeSquid({"kind": "app", "id": "kept"}, at[0], at[1], 1.0)
         if thing[1] == "owlet":
             sq.kind = "owlet"
+        if len(thing) > 2:  # Boughgrip, Canopolis
+            from evolve import SIZE
+            sq.stage, sq.size = thing[2], SIZE[thing[2]]
         return Drawn(sq, perched=True)
     shift(thing, dx, dy)
     return Drawn(thing)

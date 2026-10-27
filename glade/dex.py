@@ -8,6 +8,7 @@ animal found so far in one table, sorted by whichever stat you click). The panel
 right shows the chosen one in full, with a living picture of it.
 """
 
+import math
 import random
 
 import pygame
@@ -41,6 +42,16 @@ def specimen(species):
     if species in EVOLVED_FROM:  # an evolved one: its first stage, grown
         first, n = stage_of(species)
         thing = specimen(first)
+        if isinstance(thing, tuple):  # a tree dweller: (perch, kind, stage)
+            return thing[:2] + (n,)
+        if first == "Luminpede":  # the long ones lie coiled up, so all of them fits in
+            rng = random.Random(7)
+            cx, cy = PW // 2, PH - 26
+            spiral = [(cx + math.cos(a / 6) * (3 + a * 0.45), cy + math.sin(a / 6) * (2 + a * 0.28)) for a in range(60, -1, -1)]
+            thing = Millipede(rng, Track(spiral), (150, 110, 184), GLOW["cyan"], n=14, speed=0)
+            set_stage(thing, n)
+            thing.dir, thing.d = 1, thing.track.length - 3
+            return thing
         set_stage(thing, n)
         if n == 3 and hasattr(thing, "size"):  # a final stage is big: smaller in the picture
             thing.size *= 0.6
@@ -96,7 +107,8 @@ def paint(pic, thing, t):
             owlet(pic, x, y, 0.8, GLOW["violet"], t, 1.0, None, -10)
         else:
             from squids import TreeSquid
-            sq = TreeSquid({"kind": "app", "id": "dex"}, x, y, 0.8)
+            sq = TreeSquid({"kind": "app", "id": "dex"}, x, y + (4 if len(thing) > 2 else 0), 0.8 if len(thing) < 3 else 0.7)
+            sq.stage = thing[2] if len(thing) > 2 else 1
             sq.shine(pic, t, 14)
         return
     if isinstance(thing, Squid):  # keep it from swimming out of the picture

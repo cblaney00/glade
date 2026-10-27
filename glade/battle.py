@@ -338,6 +338,64 @@ SPECIES = {
                               "Poison Powder", "Leech Seed", "Synthesis", "Spore"]),
 }
 
+def _grown(first, num, types, base, ability, more):
+    """A later stage: its first stage's moves plus `more`, stronger ones."""
+    pool = list(dict.fromkeys(SPECIES[first]["pool"] + more))
+    return dict(num=num, types=types, base=base, ability=ability, pool=pool)
+
+
+# Page one of the Forest Dex filled in (2026-10-27, his ask; his approved names): every line
+# from #010 to #048 now has all three stages. Middle stages ~410, finals 530.
+_LATER = [  # in order, so each takes on the one before it
+    ("Cometail", "Glowtail", 12, ("Normal",), (85, 100, 75, 60, 75, 135), "Guts",
+                       ["Double-Edge", "Slash", "Swords Dance", "Iron Tail", "Shadow Ball"]),
+    ("Skyveil", "Nimbusdrift", 15, ("Water", "Psychic"), (85, 60, 70, 120, 100, 95), "Levitate",
+                      ["Hydro Pump", "Psychic", "Ice Beam", "Calm Mind", "Thunderbolt"]),
+    ("Gloomdrape", "Gloamooze", 17, ("Poison",), (90, 62, 72, 62, 82, 42), "Liquid Ooze",
+                         ["Sludge Bomb", "Giga Drain", "Pain Split"]),
+    ("Nightmire", "Gloomdrape", 18, ("Poison", "Ghost"), (115, 80, 95, 85, 110, 45), "Liquid Ooze",
+                        ["Shadow Ball", "Will-O-Wisp", "Confuse Ray", "Curse"]),
+    ("Cairnspire", "Cairncurl", 20, ("Bug", "Rock"), (68, 64, 116, 44, 90, 28), "Shell Armor",
+                         ["Rock Slide", "Ancient Power", "Iron Defense"]),
+    ("Cairnhold", "Cairnspire", 21, ("Rock", "Bug"), (90, 85, 145, 55, 115, 40), "Shell Armor",
+                        ["Earthquake", "Signal Beam", "Rest"]),
+    ("Luminthread", "Luminpede", 23, ("Bug", "Poison"), (58, 86, 70, 42, 58, 96), "Poison Point",
+                          ["Poison Tail", "Signal Beam", "Agility"]),
+    ("Glowcoil", "Luminthread", 24, ("Bug", "Poison"), (75, 110, 90, 55, 75, 125), "Poison Point",
+                       ["Sludge Bomb", "Swords Dance", "Earthquake"]),
+    ("Lilyveil", "Lilyfin", 26, ("Water",), (70, 76, 60, 56, 66, 82), "Swift Swim",
+                       ["Waterfall", "Surf", "Agility"]),
+    ("Lotuscrest", "Lilyveil", 27, ("Water", "Grass"), (90, 95, 80, 80, 90, 95), "Swift Swim",
+                         ["Giga Drain", "Magical Leaf", "Dragon Dance", "Synthesis", "Hydro Pump"]),
+    ("Boughgrip", "Canopod", 29, ("Water", "Grass"), (66, 58, 70, 80, 82, 54), "Suction Cups",
+                        ["Giga Drain", "Surf", "Leech Seed"]),
+    ("Canopolis", "Boughgrip", 30, ("Grass", "Water"), (95, 70, 95, 105, 110, 55), "Suction Cups",
+                        ["Synthesis", "Calm Mind", "Hydro Pump", "Sleep Powder", "Protect"]),
+    ("Hearthwing", "Beaconwing", 33, ("Bug", "Fire"), (75, 55, 65, 125, 95, 115), "Shield Dust",
+                         ["Flamethrower", "Heat Wave", "Tail Glow", "Morning Sun", "Will-O-Wisp"]),
+    ("Gloomglide", "Gloomflit", 35, ("Dark", "Flying"), (66, 72, 54, 58, 60, 100), "Inner Focus",
+                         ["Crunch", "Aerial Ace", "Agility"]),
+    ("Nightshroud", "Gloomglide", 36, ("Dark", "Flying"), (85, 95, 70, 75, 80, 125), "Inner Focus",
+                          ["Shadow Ball", "Confuse Ray", "Double Team"]),
+    ("Glimmerwyrm", "Glimmerfly", 38, ("Dragon", "Flying"), (62, 82, 58, 66, 58, 84), "Levitate",
+                          ["Dragon Claw", "Dragon Breath", "Agility"]),
+    ("Prismwyrm", "Glimmerwyrm", 39, ("Dragon", "Flying"), (80, 110, 75, 85, 75, 105), "Levitate",
+                        ["Dragon Dance", "Earthquake", "Ancient Power"]),
+    ("Mistshade", "Mistwisp", 41, ("Ghost",), (55, 48, 60, 92, 80, 75), "Levitate",
+                        ["Shadow Ball", "Will-O-Wisp", "Calm Mind"]),
+    ("Mistwraith", "Mistshade", 42, ("Ghost",), (70, 60, 75, 125, 105, 95), "Levitate",
+                         ["Psychic", "Pain Split", "Hypnosis"]),
+    ("Titanhop", "Thudhop", 45, ("Fighting", "Rock"), (105, 130, 100, 50, 80, 65), "Thick Fat",
+                       ["Cross Chop", "Rock Slide", "Earthquake", "Fire Punch"]),
+    ("Mossburrow", "Mossdelve", 47, ("Ground", "Grass"), (72, 88, 80, 40, 54, 76), "Rock Head",
+                         ["Giga Drain", "Leech Seed", "Mud Shot"]),
+    ("Mossquake", "Mossburrow", 48, ("Ground", "Grass"), (95, 120, 105, 55, 70, 85), "Rock Head",
+                        ["Earthquake", "Swords Dance", "Rock Slide", "Metal Claw"]),
+]
+for _name, *_args in _LATER:
+    SPECIES[_name] = _grown(*_args)
+
+
 STATS = ("atk", "def", "spa", "spd", "spe")
 STAT_NAME = {"atk": "Attack", "def": "Defense", "spa": "Sp. Atk", "spd": "Sp. Def", "spe": "Speed",
              "acc": "accuracy", "eva": "evasiveness"}

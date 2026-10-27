@@ -369,6 +369,33 @@ class TreeSquid:
             pygame.draw.polygon(s, self.color, [(tx, ty - 4 * sz), (tx + side * flap, ty + 1), (tx, ty + 4 * sz)])
         pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.5), (round(x - 2 * sz), round(y - 6 * sz)),
                          (round(tx - 2 * sz), round(ty + 3 * sz)))
+        stage = getattr(self, "stage", 1)
+        if stage > 1:  # Boughgrip: bark plates down its mantle, leaves budding on its fins
+            bark = (150, 104, 120)
+            for i in range(2, 8, 2):
+                f = i / 8
+                r = 5.5 * sz * (1 - f ** 2.2) * squeeze
+                cx, cy = x + sway * f, y - 3 * sz - f * ln
+                pygame.draw.line(s, bark, (round(cx - r + 1), round(cy)), (round(cx + r - 1), round(cy - sz)), max(1, round(sz)))
+            for side in (-1, 1):
+                pygame.draw.ellipse(s, (110, 210, 150), (tx + side * flap - 2 * sz, ty - 1.5 * sz, 4 * sz, 3 * sz))
+        if stage > 2:  # Canopolis: a whole little canopy grows from its crown, hung with glowing fruit
+            for j in range(9):
+                a = j / 9 * math.tau + 0.3
+                lx, ly = tx + math.cos(a) * 8 * sz, ty - 8 * sz + math.sin(a) * 4.5 * sz
+                c = (70, 160, 130) if j % 3 else (110, 210, 150)
+                pygame.draw.circle(s, mix(c, (20, 30, 50), 0.35), (round(lx), round(ly + 1)), max(2, round(4 * sz)))
+                pygame.draw.circle(s, c, (round(lx), round(ly)), max(2, round(3.6 * sz)))
+            pygame.draw.circle(s, (130, 225, 165), (round(tx), round(ty - 10 * sz)), max(2, round(4.5 * sz)))
+            for j, fx in enumerate((-6, 1, 6)):
+                b = 0.6 + 0.4 * math.sin(t * 1.6 + j * 2 + self.phase)
+                fy = ty - 3 * sz + (j % 2) * 2 * sz
+                pygame.draw.line(s, (90, 150, 120), (round(tx + fx * sz), round(fy - 2 * sz)), (round(tx + fx * sz), round(fy)))
+                glow(s, tx + fx * sz, fy + sz, int(5 * sz), (255, 200, 120), q(110 * b))
+                s.set_at((round(tx + fx * sz), round(fy + sz)), (255, 236, 170))
+            for j in range(-2, 3):  # a beard of moss under its head
+                pygame.draw.line(s, (100, 200, 150), (round(x + j * 2 * sz), round(y + 3 * sz)),
+                                 (round(x + j * 2 * sz + math.sin(t * 2 + j) * sz), round(y + (6 + abs(j)) * sz)))
         for j in range(3):  # spots down its back that blink
             if math.sin(t * 2 + j * 1.7 + self.phase * 3) > 0:
                 s.set_at((round(x + 2 * sz + sway * 0.4), round(y - 8 * sz - j * 5 * sz)), (255, 255, 255))
