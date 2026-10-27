@@ -163,7 +163,10 @@ Run: `nix develop /home/insideabush/nixos-config#vibe-python --command python gl
 
 Performance matters (it runs all day): keep surfaces 32-bit (`art.solid`), and see-through
 layers trimmed to what is on them (`art.trimmed`). `--shots` prints ms per frame; keep it
-around 10 ms for both screens.
+around 10 ms for both screens. Anything drawn every frame that rarely changes is made once and kept:
+`battle.cloth` keeps each board's look, the Claude panel's wrapped text and the Dex's scaled
+pictures are cached, off-screen lifespans are checked once a second, and `wayland.py` hands the
+canvas to cairo without copying it (2026-10-27 checkup).
 
 It is installed on his system from a copy in the config repo (`pkgs/glade`), which is
 started at login under Hyprland. Changing the installed copy is a config change → `ccn`.

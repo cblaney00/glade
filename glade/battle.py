@@ -1334,8 +1334,23 @@ SPOTS = ((400, 500), (570, 462))  # the middle of the screen, below the board
 PADS = ((112, 26), (86, 20))
 
 
+_CLOTHS = {}
+
+
 def cloth(s, r, tint, hot=False, alpha=200):
-    """A panel of the glade's glowing spirit-cloth, lit from above."""
+    """A panel of the glade's glowing spirit-cloth, lit from above. Each look is made once
+    and kept, since the same boards are drawn every frame."""
+    r = pygame.Rect(r)
+    key = (r.size, tuple(tint), hot, alpha)
+    surf = _CLOTHS.get(key)
+    if surf is None:
+        if len(_CLOTHS) > 600:  # fades make a few hundred passing looks: forget them now and then
+            _CLOTHS.clear()
+        surf = _CLOTHS[key] = _weave(r, tint, hot, alpha)
+    s.blit(surf, r)
+
+
+def _weave(r, tint, hot, alpha):
     surf = pygame.Surface(r.size, pygame.SRCALPHA)
     pygame.draw.rect(surf, (*mix(tint, EDGE, 0.72), alpha), surf.get_rect(), border_radius=4)
     light = pygame.Surface(r.size, pygame.SRCALPHA)  # drawn apart, then laid on top, so it blends
@@ -1345,7 +1360,7 @@ def cloth(s, r, tint, hot=False, alpha=200):
     surf.blit(light, (0, 0))
     rim = (255, 255, 255) if hot else mix(tint, (255, 255, 255), 0.45)
     pygame.draw.rect(surf, (*rim, 230 if hot else 160), surf.get_rect(), 1, border_radius=4)
-    s.blit(surf, r)
+    return surf
 
 
 class Fighter:

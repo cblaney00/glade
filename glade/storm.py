@@ -183,6 +183,7 @@ class Lifespans:
     def __init__(self):
         self.rng = random.Random()
         self.moves = []
+        self.far_at = 0.0  # when to next look at the places not on screen
 
     def keep(self, glade):
         arena = glade.arena
@@ -210,7 +211,10 @@ class Lifespans:
                     o.leave_at = t + self.rng.uniform(0, LIFE)
                 elif t >= o.leave_at and not kept(o):
                     self.swap(content, o, low, t, kept)
-        for content in list(glade.scenes.values()) + list(glade.lowers.values()):
+        far = t >= self.far_at  # lifespans are minutes long: once a second is plenty there
+        if far:
+            self.far_at = t + 1.0
+        for content in list(glade.scenes.values()) + list(glade.lowers.values()) if far else ():
             if any(content is c for c, _ in here):
                 continue
             for o in roster(content):  # elsewhere: at once

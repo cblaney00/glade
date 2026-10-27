@@ -289,7 +289,10 @@ class Dex:
                 pic = picture(name)
                 w = cell.w - 12
                 h = round(PH * w / PW)
-                s.blit(pygame.transform.scale(pic, (w, h)), (cell.x + 6, cell.y + 3))
+                small = _still.get((name, w, h))
+                if small is None:
+                    small = _still[(name, w, h)] = pygame.transform.scale(pic, (w, h))
+                s.blit(small, (cell.x + 6, cell.y + 3))
             self.text(s, f"#{num:03}", cell.x + 4, cell.y + 3, WHITE if on else DIM)
             if name:
                 lines = fit_name(self.font, name, cell.w - 4)  # long names: two lines (his note: they didn't fit)

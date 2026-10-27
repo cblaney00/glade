@@ -11,9 +11,9 @@ terminal (options to pick, a plan, a permission), it says "Open terminal" in ora
 wording, 2026-10-27), with the reason underneath while it is pointed at.
 """
 
+import functools
 import glob
 import json
-import math
 import os
 import re
 import subprocess
@@ -23,7 +23,7 @@ import time
 import pygame
 
 import claude_state
-from art import glow, mix
+from art import mix
 from battle import TEXT, cloth
 
 MINT = (130, 255, 190)
@@ -36,6 +36,7 @@ SHORT = 4        # lines of the message shown while it is closed
 DONE_FOR = 15.0  # seconds the "all done" line stays after a task's last step
 
 
+@functools.lru_cache(maxsize=8)
 def tidy(text):
     """Claude writes Markdown; the panel shows it as plain words."""
     out = []
@@ -48,6 +49,7 @@ def tidy(text):
     return "\n".join(out).strip()
 
 
+@functools.lru_cache(maxsize=32)
 def wrap(font, text, width):
     lines = []
     for para in text.split("\n"):

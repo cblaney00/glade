@@ -11,7 +11,7 @@ import math
 import pygame
 
 from art import glow, mix
-from beasts import INK, AURORA, PRISM, Flier, Walker
+from beasts import INK, AURORA, Flier, Walker
 from life import q
 
 WHITE = (255, 255, 255)

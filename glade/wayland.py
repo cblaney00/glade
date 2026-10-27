@@ -158,15 +158,20 @@ class Surface:
         v = self.view
         cr.set_source_rgb(*(c / 255 for c in main.INK))
         cr.paint()
-        r = v.shown()
-        shown = v.canvas.subsurface(r)
-        data = bytearray(pygame.image.tobytes(shown, "BGRA"))
-        img = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_RGB24, r.w, r.h, r.w * 4)
+        r = v.shown()  # always the canvas's top-left corner
+        # cairo reads the canvas's own pixels (32-bit, no alpha: the same layout as cairo's
+        # RGB24), so nothing is copied; the buffer is let go straight after, so the canvas
+        # can be drawn on again.
+        buf = v.canvas.get_buffer()
+        img = cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_RGB24, r.w, r.h, v.canvas.get_pitch())
         cr.translate(v.rect.x, v.rect.y)
         cr.scale(v.rect.w / r.w, v.rect.h / r.h)
         cr.set_source_surface(img, 0, 0)
         cr.get_source().set_filter(cairo.FILTER_NEAREST)
         cr.paint()
+        cr.set_source_rgb(0, 0, 0)  # (drops cairo's hold on img)
+        img.finish()
+        del img, buf
         return True
 
 
