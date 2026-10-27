@@ -16,7 +16,7 @@ import time
 import pygame
 
 import art
-from apex import Hunt, Listener
+from apex import OFFSET, Hunt, Listener
 from battle import Arena, Card, animal_under
 from dex import Dex
 from starter import StarterBoard
@@ -815,8 +815,18 @@ class Glade:
     def show_card(self, view, m, species, t, animal=None):
         evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
         ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
-        self.card = Card(self.signs.font, view, m, species, t, animal, evolves, ivs,
-                         fight=animal is not None and self.arena is None)
+        at, body = m, None
+        if animal is not None:  # the card goes beside the animal itself, clear of all of it
+            ax, ay = animal.pos()
+            if getattr(animal, "low", False):
+                ax, ay = ax - OFFSET[0], ay - OFFSET[1]
+            z = getattr(animal.obj, "size", 1.0)
+            body = pygame.Rect(0, 0, round(44 * z), round(40 * z))
+            body.center = (round(ax), round(ay - 6 * z))
+            body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
+            at = body.center
+        self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
+                         fight=animal is not None and self.arena is None, avoid=body)
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that

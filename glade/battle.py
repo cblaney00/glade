@@ -1632,7 +1632,7 @@ class Card:
 
     WEB = 132  # the IV web's height
 
-    def __init__(self, font, view, at, species, t, animal=None, evolves=None, ivs=None, fight=True):
+    def __init__(self, font, view, at, species, t, animal=None, evolves=None, ivs=None, fight=True, avoid=None):
         """`animal`: the one right-clicked; `evolves`: what it can evolve into, if anything
         (evolve.py) — then the card has an Evolve button too; `ivs`: its own IVs (team.py),
         drawn as a six-sided web; `fight`: whether it has a "Battle it!" button."""
@@ -1640,10 +1640,21 @@ class Card:
         self.animal, self.evolves, self.ivs = animal, evolves, ivs
         web = self.WEB if ivs else 0
         h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + web + 24 + (22 if evolves else 0) + (22 if fight else 0)
-        self.rect = pygame.Rect(round(at[0]) + 12, round(at[1]) - h // 2, self.W, h)
-        if self.rect.right > view.w - 4:  # no room on the right: open on the left
-            self.rect.right = round(at[0]) - 12
-        self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
+        # beside the animal, never over it (`avoid`: where it is): right, left, above or below,
+        # whichever fits on the screen without covering it
+        screen = pygame.Rect(2, 2, view.w - 4, view.h - 4)
+        ax, ay = round(at[0]), round(at[1])
+        body = avoid or pygame.Rect(ax - 6, ay - 6, 12, 12)
+        tries = [pygame.Rect(body.right + 8, ay - h // 2, self.W, h), pygame.Rect(body.x - 8 - self.W, ay - h // 2, self.W, h),
+                 pygame.Rect(ax - self.W // 2, body.y - 8 - h, self.W, h), pygame.Rect(ax - self.W // 2, body.bottom + 8, self.W, h)]
+        self.rect = None
+        for r in tries:
+            r = r.clamp(screen)
+            if not r.colliderect(body):
+                self.rect = r
+                break
+        if self.rect is None:  # no room anywhere: the side with the most of it showing
+            self.rect = min((r.clamp(screen) for r in tries), key=lambda r: r.clip(body).w * r.clip(body).h)
         self.button = pygame.Rect(self.rect.x + 8, self.rect.bottom - 24, self.W - 16, 18)
         self.fight = self.button.move(0, -22) if fight else None
         self.evolve = (self.fight or self.button).move(0, -22) if evolves else None
@@ -1653,6 +1664,11 @@ class Card:
         s.blit(img, (x - img.get_width() if right else x, y))
         return img.get_width()
 
+    def fit(self, line, w):
+        while self.font.size(line)[0] > w and len(line) > 4:
+            line = line[:-2] + "…"
+        return line
+
     def draw(self, s, t):
         k = ease((t - self.t) / 0.2)
         if k <= 0:
@@ -1661,7 +1677,7 @@ class Card:
         surf = pygame.Surface(self.rect.size, pygame.SRCALPHA)
         cloth(surf, surf.get_rect(), CLOTH, alpha=240)
         y = 5
-        self.text(surf, self.species, 8, y, (255, 255, 255))
+        self.text(surf, self.fit(self.species, self.W - 16), 8, y, (255, 255, 255))
         y += 16
         x = 8
         for kind in sp["types"]:
@@ -1671,8 +1687,8 @@ class Card:
             surf.blit(img, (x + 3, y))
             x += img.get_width() + 9
         y += 16
-        self.text(surf, "Ability", 8, y, DIM)
-        self.text(surf, sp["ability"], self.W - 8, y, TEXT, right=True)
+        aw = self.text(surf, "Ability", 8, y, DIM)
+        self.text(surf, self.fit(sp["ability"], self.W - 24 - aw), self.W - 8, y, TEXT, right=True)
         y += 16
         for label, v in zip(self.ROWS, sp["base"]):
             self.text(surf, label, 8, y, DIM)
@@ -1686,7 +1702,7 @@ class Card:
         self.text(surf, "Total", 8, y, DIM)
         self.text(surf, str(sum(sp["base"])), 92, y, (255, 255, 255), right=True)
         if self.ivs:
-            self.text(surf, "IVs: this one's own strength", 8, y + 16, DIM)
+            self.text(surf, self.fit("IVs (this one's own)", self.W - 16), 8, y + 16, DIM)
             iv_web(surf, self.font, self.ivs, (self.W // 2, y + 80), 36, t)
         surf.set_alpha(round(255 * k))
         s.blit(surf, self.rect)
@@ -1704,5 +1720,6 @@ class Card:
         if self.evolve is not None:  # glowing gold: something special
             hot = bool(m) and self.evolve.collidepoint(m)
             cloth(s, self.evolve, (255, 214, 120), hot=hot, alpha=round(225 * k))
-            img = self.font.render(f"Evolve into {self.evolves}", False, (255, 255, 255) if hot else (255, 240, 200))
+            img = self.font.render(self.fit(f"Evolve into {self.evolves}", self.W - 24), False,
+                                   (255, 255, 255) if hot else (255, 240, 200))
             s.blit(img, img.get_rect(center=self.evolve.center))
