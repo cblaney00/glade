@@ -438,7 +438,7 @@ class Keyboard:
         for m in mons:
             ws = m.get("activeWorkspace", {}).get("id")
             if any(c.get("fullscreen", 0) >= 2 and c.get("workspace", {}).get("id") == ws and not c.get("hidden")
-                   for c in clients):
+                   and not not_a_game(c) for c in clients):
                 full.add((m.get("x"), m.get("y")))
         covered = []
         for s in self.surfaces:
@@ -447,6 +447,15 @@ class Keyboard:
                 covered.append(s.view)
         self.glade.set_covered(covered)
         return False
+
+
+# full-screen windows that are not games: the glade keeps going behind them (his rule, 2026-10-27)
+NOT_GAMES = ("discord", "vesktop", "webcord")
+
+
+def not_a_game(client):
+    name = (client.get("class", "") + " " + client.get("initialClass", "")).lower()
+    return any(n in name for n in NOT_GAMES)
 
 
 # what can make a window full screen, or take one away

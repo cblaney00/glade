@@ -141,7 +141,7 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   glides the top screen 1.8x in on the field for the whole battle (not the picking) and out as they walk home;
   the boards are drawn after, unzoomed. While zoomed the top screen shows and takes clicks only on path signs.
 - **Hiding for games** (`glade/hiding.py`, 2026-10-27, his picks): a screen a full-screen window (`fullscreen` >= 2 in
-  `hyprctl clients`) fills is not drawn (`Glade.covered`, set by `wayland.Keyboard.check_fullscreen`). After 30 s of it,
+  `hyprctl clients`; not Discord, `wayland.NOT_GAMES`) fills is not drawn (`Glade.covered`, set by `wayland.Keyboard.check_fullscreen`). After 30 s of it,
   everyone out where he is hides (storm `Shelter`s); when he is back they come out one by one over ~30 s. Lower screen,
   top-left, under the Dex button: **Keep animals out** (a switch, only stops this hiding; saved in
   `~/.local/state/glade/settings.json`) and **Your party** (opens the boxes).
