@@ -13,6 +13,7 @@ The session writes ~/.local/state/glade/claude.json through this file, run as a 
     glade-status step DONE [NEXT] DONE is finished, now on NEXT (update after EVERY step)
     glade-status attention TEXT   glow gold: he should come to the terminal (TEXT says why)
     glade-status calm             stop glowing
+    glade-status done             the task is finished: the bar fills and says so, whatever was planned
     glade-status watch            (started by the hooks) every 5 s, Claude's latest message onto
                                   the panel; when the chat ends, the panel goes
 """
@@ -205,6 +206,12 @@ def main(args):
         if p["done"] >= p["total"]:
             p["finished"] = time.time()
         d["progress"] = p
+    elif cmd == "done":
+        p = d.get("progress")
+        if p:
+            p["total"] = p["done"] = max(1, p["done"])
+            p["now"], p["finished"] = "", time.time()
+            d["progress"] = p
     elif cmd == "attention":
         d["attention"] = " ".join(rest) or "Claude would like you to look at the terminal"
     elif cmd == "calm":

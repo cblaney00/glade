@@ -127,6 +127,12 @@ class Surface:
 
     def leave(self, area, event):
         self.view.pointer = None
+        # The pointer has left the glade's screen: give the keyboard back at once. (Clicking a
+        # window that was already the active one doesn't tell Hyprland to take it back, so the
+        # panel's reply box kept the keys and his terminal couldn't be typed in.)
+        self.glade.panel.stop_typing()
+        if self is self.glade.panel_surface:
+            self.keyboard(False)
         return False
 
     def press(self, area, event):
@@ -317,6 +323,7 @@ def run():
         surfaces.append(Surface(glade, glade.bottom, mons[1]))
     panel_surface = surfaces[-1]  # the Claude panel lives on the lower screen (or the only one)
     glade.panel.on_typing = panel_surface.keyboard
+    glade.panel_surface = panel_surface
 
     last = [time.monotonic()]
 
