@@ -24,7 +24,7 @@ from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
 from lower import Lower
-from scenes import BUILDERS, MAP
+from scenes import BUILDERS, LINKS, MAP
 
 HOME = "glade"
 
@@ -338,9 +338,9 @@ class Minimap:
     Pointing at another place shows its name; clicking it goes there."""
 
     NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
-                 rocks="The Mossy Rocks")
+                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs")
     COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
-                  forest=(160, 236, 140), rocks=(196, 160, 255))
+                  forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110))
     CELL = 22  # canvas pixels between neighbouring places
 
     def __init__(self, font):
@@ -392,11 +392,10 @@ class Minimap:
         pygame.draw.line(s, WOOD_LO, (r.x + 2, r.bottom - 1), (r.right - 3, r.bottom - 1))
         for gx in range(r.x + 4, r.right - 3, 7):  # wood grain
             s.set_at((gx, r.bottom - 5), WOOD_LO)
-        # the paths between places: every place is one step from the glade
+        # the paths between places (scenes.LINKS)
         trail = (150, 112, 150)
-        for k in MAP:
-            if k != "glade":
-                pygame.draw.line(s, trail, self.node("glade"), self.node(k), 3)
+        for a, b in LINKS:
+            pygame.draw.line(s, trail, self.node(a), self.node(b), 3)
         for k in MAP:
             nx, ny = self.node(k)
             c = self.COLORS[k]

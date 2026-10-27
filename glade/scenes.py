@@ -18,20 +18,25 @@ from beasts import Flier, Walker
 from orchard import Nibbler, Orchard
 from storm import newcomer
 from squids import Colony
-from life import (Blades, Critter, Fireflies, GlowThreads, Lantern, Millipede, Motes, Petals, Pulses, River,
-                  Shafts, Slug, Squid, Stars, Track, Vines, Waterfall, make_rng)
+from life import (Aurora, Blades, Critter, Fireflies, GlowThreads, Lantern, Millipede, Motes, Petals, Pulses, River,
+                  Shafts, Slug, Snow, Squid, Stars, Steam, Track, Vines, Waterfall, make_rng)
 
 
 # Where every place lies, on a grid: x grows to the right, y downwards. The Glade is in
-# the middle and every other place is one step from it, so a path always points the way
-# its place really lies (left only ever goes left), and the minimap is this drawn small.
+# the middle; a path always points the way its place really lies (left only ever goes
+# left), and the minimap is this drawn small. The far places lie one step further out,
+# reached through the place next to them (LINKS: the paths that join places).
 MAP = {
     "glade": (0, 0),
     "waterfall": (0, -1),
     "rocks": (0, 1),
     "forest": (-1, 0),
     "river": (1, 0),
+    "ridge": (-2, 0),
+    "springs": (2, 0),
 }
+LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
+         ("forest", "ridge"), ("river", "springs")]
 
 
 def heading(here, there):
@@ -128,15 +133,24 @@ class Scene(art.Lighting):
             self.critter.update(dt)
 
 
-def second_wave(sc, rng, sky, grounds):
+FLY = ("bat", "moth", "drake", "wisp")
+WALK = ("toad", "mole", "sporeling", "newt", "beetle")
+
+
+def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=()):
     """One of every animal of the second wave (beasts.py) lives in every place: the fliers
     in its sky, the walkers on its stretches of ground. They start out sheltering, and a
-    thunderstorm (storm.py) brings out a random mix of everyone who lives here."""
-    for kind in ("bat", "moth", "drake", "wisp"):
-        sc.live(newcomer(Flier(rng, sky, kind, 1.1)))
-    for i, kind in enumerate(("toad", "mole", "sporeling", "newt", "beetle")):
+    thunderstorm (storm.py) brings out a random mix of everyone who lives here. The far
+    places have their own animals instead, and the kinds in `out` start out in sight."""
+    for kind in fliers:
+        f = sc.live(Flier(rng, sky, kind, 1.1))
+        if kind not in out:
+            newcomer(f)
+    for i, kind in enumerate(walkers):
         ground, x_range = grounds[i % len(grounds)]
-        sc.live(newcomer(Walker(rng, ground, x_range, kind, 1.1)))
+        w = sc.live(Walker(rng, ground, x_range, kind, 1.1))
+        if kind not in out:
+            newcomer(w)
 
 
 # --- shared palette pieces ------------------------------------------------------------
@@ -651,12 +665,14 @@ def build_river():
     art.flowers(lay, rng, (0, 436, W, 104), p["flowers"], 80)
     earth, edge = sc.col("earth", 0.15), sc.col("earth_edge", 0.15)
     art.path(lay, [(-24, 476), (160, 484), (400, 480), (580, 456), (636, 440)], [40, 44, 44, 36, 28], earth, edge, rng=rng)
+    art.path(lay, [(600, 452), (700, 446), (800, 440), (900, 436), (984, 434)], [30, 30, 32, 34, 34], earth, edge,
+             rng=random.Random(34))  # on to the Hot Springs
     sc.add(lay, 0.15, texture=0.6)
     lay = art.plane()  # the post the boat is tied to
     pygame.draw.line(lay, sc.col("earth_edge", 0.1), (632, 386), (608, 428))
     pygame.draw.rect(lay, sc.col("wood", 0.1), (604, 412, 8, 32))
     glowmoss(sc, lay, 500, 500, 70, 16)
-    glowmoss(sc, lay, 860, 470, 60, 14, GLOW["cyan"])
+    glowmoss(sc, lay, 860, 482, 60, 14, GLOW["cyan"])
     glowmoss(sc, lay, 260, 520, 50, 12, GLOW["lime"])
     sc.add(lay, 0.1, texture=0.3)
     for x0, x1 in ((0, 120), (240, 400), (800, 960)):  # reeds in clumps along the bank
@@ -673,6 +689,7 @@ def build_river():
 
     sc.spots = [
         Spot("go", (0, 428, 88, 92), "Back to the Glade", "glade", (28, 476), sign=(104, 444)),
+        Spot("go", (872, 396, 88, 76), "The Hot Springs", "springs", (930, 434), sign=(852, 392)),
     ]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"])
     return sc.done()
@@ -719,6 +736,8 @@ def build_forest():
     art.flowers(lay, rng, (0, 440, W, 100), [(255, 255, 255), (196, 150, 255), (130, 226, 255)], 60)
     earth, edge = sc.col("earth", 0.2), sc.col("earth_edge", 0.2)
     art.path(lay, [(984, 488), (800, 476), (600, 448), (500, 428), (460, 412)], [48, 44, 36, 20, 10], earth, edge, rng=rng)
+    art.path(lay, [(486, 424), (380, 430), (240, 434), (100, 440), (-24, 444)], [16, 24, 28, 32, 34], earth, edge,
+             rng=random.Random(45))  # on to the Snowy Ridge
     sc.add(lay, 0.2, texture=0.6)
 
     # a ring of glowing mushrooms, and more scattered about
@@ -752,6 +771,7 @@ def build_forest():
 
     sc.spots = [
         Spot("go", (872, 428, 88, 92), "Back to the Glade", "glade", (932, 480), sign=(864, 424)),
+        Spot("go", (0, 400, 96, 76), "The Snowy Ridge", "ridge", (30, 442), sign=(112, 396)),
     ]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"])
     return sc.done()
@@ -873,10 +893,261 @@ def build_rocks():
     return sc.done()
 
 
+# --- The Snowy Ridge (beyond the Forest) ----------------------------------------------------------
+
+SNOW = (236, 244, 255)
+
+
+def snowcaps(lay, tops, color, line, rng):
+    """Snow on far peaks: thick on the summits, thinning to streaks down the gullies."""
+    for x in range(len(tops) - 1):
+        depth = max(0, line - tops[x])
+        if depth <= 0:
+            continue
+        ln = int(depth * (0.5 + 0.3 * math.sin(x / 7.0) + 0.2 * math.sin(x / 2.3)))
+        pygame.draw.line(lay, color, (x, tops[x]), (x, tops[x] + ln))
+        if rng.random() < 0.3:
+            pygame.draw.line(lay, color, (x, tops[x] + ln), (x, tops[x] + ln + rng.randint(2, 10)))
+
+
+def ice_crystals(sc, lay, x, y, n, color, glows):
+    """A cluster of glowing ice crystals growing out of the snow."""
+    rng = sc.rng
+    for i in range(n):
+        h = rng.randint(6, 18)
+        w = max(2, h // 4)
+        cx = x + rng.randint(-10, 10)
+        lean = rng.uniform(-0.4, 0.4)
+        tip = (cx + lean * h, y - h)
+        body = mix(color, (255, 255, 255), 0.35)
+        pygame.draw.polygon(lay, mix(color, (40, 50, 120), 0.35), [(cx - w, y), (cx + w, y), tip])
+        pygame.draw.polygon(lay, body, [(cx - w + 1, y), (cx, y), tip])
+        if 0 <= int(tip[0]) < W and 0 <= int(tip[1]) < H:
+            sc.emit.set_at((int(tip[0]), int(tip[1])), art.scale(color, 0.8))
+    glows.append((x, y - 8, 60, color, 90, x * 0.1))
+
+
+def build_ridge():
+    rng = make_rng(55)
+    p = pal(sky=[(6, 10, 34), (14, 24, 66), (32, 50, 110), (70, 92, 160)],
+            mist=(84, 104, 170), shade=(10, 16, 48), ambient=((230, 240, 255), (92, 104, 166)),
+            leaf=(196, 222, 246), leaf2=(222, 236, 252), leaf3=(58, 112, 140), lav=(150, 162, 228),
+            stone=(150, 156, 214), earth=(206, 206, 240), earth_edge=(140, 140, 196), wood=(120, 96, 128),
+            rim=(206, 226, 255), flowers=[(200, 240, 255), (240, 240, 255), (196, 170, 255), (160, 255, 220)])
+    sc = Scene("ridge", "The Snowy Ridge", p, rng)
+    sc.live(Stars(rng, 260, 250))
+    sc.live(Aurora(rng, 0, 160, [((120, 255, 190), (110, 210, 255)), ((190, 140, 255), (255, 150, 220))]))
+    moon(sc, 170, 70, 16)
+
+    # far: high snowy peaks
+    lay = art.plane()
+    tops = art.mountains(lay, rng, 250, 120, sc.col("lav", 0.88), scales=(150, 52, 17), side=p["moon_side"])
+    snowcaps(lay, tops, mix(sc.col("leaf2", 0.85), SNOW, 0.6), 220, rng)
+    sc.add(lay, 0.88, veil=0.05)
+    # a long ridge of small pines
+    lay = art.plane()
+    tops = art.ridge(lay, rng, 318, 26, sc.col("leaf2", 0.72), scales=(130, 44, 14))
+    for x in range(-4, W + 8, 9):
+        if rng.random() < 0.75:
+            art.pine(lay, rng, x, tops[max(0, min(W, x))] + 4, rng.randint(18, 34), sc.col("leaf3", 0.72),
+                     snow=sc.col("leaf2", 0.7), side=p["moon_side"])
+    sc.add(lay, 0.72, veil=0.05, low=0.1)
+    # nearer: a frozen lake, and taller pines on the slopes either side of it
+    lay = art.plane()
+    tops = art.ridge(lay, rng, 372, 18, sc.col("leaf2", 0.5), scales=(160, 50, 16))
+    for x in list(range(10, 330, 22)) + list(range(640, 960, 22)):
+        art.pine(lay, rng, x + rng.randint(-6, 6), tops[max(0, min(W, x))] + 6, rng.randint(48, 84),
+                 sc.col("leaf3", 0.5), snow=sc.col("leaf2", 0.45), trunk=sc.col("wood", 0.5), side=p["moon_side"])
+    sc.add(lay, 0.5, veil=0.03, low=0.08)
+    lay = art.plane()
+    ice = sc.col("water", 0.4)
+    pygame.draw.ellipse(lay, mix(ice, SNOW, 0.35), (300, 384, 360, 52))
+    pygame.draw.ellipse(lay, mix(ice, SNOW, 0.15), (316, 390, 328, 40))
+    for i in range(10):  # the aurora and the moon, faint in the ice
+        y = 394 + i * 3
+        c = mix(mix(ice, SNOW, 0.15), (150, 255, 210) if i % 2 else (200, 160, 255), 0.25)
+        pygame.draw.line(lay, c, (380 + rng.randint(-20, 20), y), (580 + rng.randint(-20, 20), y))
+    for _ in range(9):  # cracks in the ice
+        x, y = rng.randint(340, 620), rng.randint(394, 424)
+        for _ in range(rng.randint(6, 16)):
+            lay.set_at((x, y), mix(ice, (20, 30, 80), 0.3))
+            x += rng.choice((-1, 1, 1))
+            y += rng.choice((-1, 0, 0, 1))
+    sc.raw(lay)
+    sc.lamp(480, 410, 180, GLOW["cyan"], 40)  # something glows under the ice
+
+    # near: deep snow, the path in from the Forest, crystals, and two big snowy firs framing it all
+    lay = art.plane()
+    art.ridge(lay, rng, 440, 10, sc.col("leaf2", 0.2), scales=(120, 40, 14))
+    for _ in range(1400):  # sparkle in the snow
+        x, y = rng.randrange(W), rng.randint(436, H - 1)
+        lay.set_at((x, y), SNOW if rng.random() < 0.3 else sc.col("leaf", 0.2))
+    earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
+    art.path(lay, [(984, 486), (840, 480), (700, 466), (580, 452), (500, 446)], [44, 42, 36, 26, 14], earth, edge, rng=rng)
+    sc.add(lay, 0.2, texture=0.5)
+    lay = art.plane()
+    glows = []
+    for x, y, n, c in ((180, 476, 6, GLOW["cyan"]), (360, 508, 4, GLOW["violet"]), (650, 520, 5, GLOW["moss"]),
+                       (800, 452, 3, GLOW["cyan"]), (90, 452, 3, GLOW["violet"])):
+        ice_crystals(sc, lay, x, y, n, c, glows)
+    glowmoss(sc, lay, 260, 520, 60, 12, GLOW["cyan"])
+    sc.raw(lay)
+    sc.live(Pulses(glows, speed=0.8))
+    lay = art.plane()
+    for x, base, h in ((36, 560, 400), (930, 560, 380)):
+        art.pine(lay, rng, x, base, h, sc.col("leaf3", 0.08), snow=sc.col("leaf2", 0.06), trunk=sc.col("wood", 0.08),
+                 side=p["moon_side"])
+    sc.add(lay, 0.08, texture=0.8)
+
+    # who lives here: the new animals of the snow, out from the start, and a few old friends
+    grounds = [(lambda x: 470 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 506 + 3 * math.sin(x / 40), (400, 620)),
+               (lambda x: 490 + 2 * math.sin(x / 60), (640, 820))]
+    second_wave(sc, rng, (120, 80, 700, 200), grounds, fliers=("finch", "wisp"), walkers=("fox", "goat", "newt"),
+                out=("fox", "goat", "finch"))
+    sc.live(Slug(rng, Track([(420, 524), (520, 528), (620, 524)]), (200, 210, 250), size=1.4, speed=3,
+                 spots=GLOW["cyan"]))
+    bugs = sc.live(Fireflies(rng, (0, 200, W, 260), 14, color=GLOW["cyan"], reach=22))
+    sc.bugs.append(bugs)
+    squids(sc, rng, (120, 100, 700, 200), [GLOW["cyan"], GLOW["violet"]])
+    sc.live(Snow(rng, (0, 0, W, H), 180))
+
+    sc.spots = [
+        Spot("go", (872, 440, 88, 80), "Back to the Forest", "forest", (930, 482), sign=(852, 436)),
+    ]
+    sc.lower = dict(ground=0.2, props=["pines", "crystals"], fly=GLOW["cyan"], bushes=False,
+                    walkers=("fox", "goat", "newt"), fliers=("finch", "wisp"), out=("fox", "finch"))
+    return sc.done()
+
+
+# --- The Hot Springs (beyond the River) ----------------------------------------------------------
+
+EMBER = (255, 150, 80)
+SPRING = (110, 236, 226)
+
+
+def terrace(lay, sc, cx, y, w, rim, water, glows, steam):
+    """A pool on a stepped terrace of mineral rock: a pale rim, turquoise water glowing from
+    below, ripples, and the lip spilling over the front."""
+    face = mix(rim, (60, 30, 70), 0.3)  # the terrace's face below the pool, streaked by mineral drips
+    pygame.draw.rect(lay, face, (cx - w // 2 + 2, y + 4, w - 4, 26), border_radius=6)
+    for k in range(-w // 2 + 5, w // 2 - 5, 3):
+        ln = 8 + (k * 17) % 16
+        pygame.draw.line(lay, mix(face, (255, 255, 255), 0.18 if k % 2 else 0.0), (cx + k, y + 8), (cx + k, y + 8 + ln))
+    pygame.draw.ellipse(lay, mix(rim, (40, 20, 60), 0.35), (cx - w // 2 - 3, y - 5, w + 6, 22))
+    pygame.draw.ellipse(lay, rim, (cx - w // 2 - 3, y - 7, w + 6, 20))
+    pygame.draw.ellipse(lay, water, (cx - w // 2 + 2, y - 4, w - 4, 12))
+    pygame.draw.ellipse(lay, mix(water, (255, 255, 255), 0.35), (cx - w // 4, y - 2, w // 2, 4), 1)
+    for k in range(-w // 2 + 6, w // 2 - 6, 5):  # drips over the lip
+        if (k * 7) % 3:
+            ln = (k * 13) % 7 + 3
+            pygame.draw.line(lay, mix(rim, (255, 255, 255), 0.25), (cx + k, y + 12), (cx + k, y + 12 + ln))
+    glows.append((cx, y + 2, w, SPRING, 70, cx * 0.05))
+    steam.append((cx, y, w * 0.6))
+
+
+def build_springs():
+    rng = make_rng(66)
+    p = pal(sky=[(14, 8, 36), (40, 18, 66), (88, 38, 96), (150, 72, 112)],
+            mist=(122, 66, 116), shade=(20, 10, 36), ambient=((255, 224, 236), (112, 72, 124)),
+            leaf=(136, 168, 140), leaf2=(150, 116, 146), leaf3=(86, 70, 116), lav=(150, 96, 156),
+            stone=(128, 100, 140), earth=(206, 170, 182), earth_edge=(136, 94, 124), water=(80, 210, 210),
+            wood=(140, 96, 118), rim=(255, 206, 196), moon_side=1,
+            flowers=[(255, 186, 150), (255, 150, 214), (255, 236, 140), (255, 255, 255)])
+    sc = Scene("springs", "The Hot Springs", p, rng)
+    sc.live(Stars(rng, 160, 220, avoid=lambda x, y: 520 < x < 860))
+    moon(sc, 120, 64, 15)
+
+    # far: a sleeping volcano, its crater glowing, a ribbon of lava down its flank
+    lay = art.plane()
+    art.mountains(lay, rng, 268, 60, sc.col("lav", 0.9), scales=(170, 56, 18), side=p["moon_side"])
+    sc.add(lay, 0.9, veil=0.04)
+    lay = art.plane()
+    cone = [(470, 330), (560, 196), (610, 150), (650, 146), (700, 152), (744, 196), (850, 330)]
+    art.crag(lay, cone, sc.col("stone", 0.78), 66, side=p["moon_side"], strata=(9, 16))
+    pygame.draw.ellipse(lay, mix(EMBER, (60, 20, 40), 0.3), (614, 144, 82, 12))
+    pygame.draw.ellipse(lay, (255, 196, 120), (626, 146, 58, 6))
+    x, y = 640.0, 156
+    while y < 300:  # the lava ribbon
+        lay.set_at((int(x), y), (255, 170, 90))
+        lay.set_at((int(x) + 1, y), (220, 110, 70))
+        if 0 <= int(x) < W:
+            sc.emit.set_at((int(x), y), (140, 70, 30))
+        x += math.sin(y / 9) * 0.9 - 0.25
+        y += 1
+    sc.add(lay, 0.78, veil=0.04)
+    sc.lamp(655, 150, 140, EMBER, 80)
+    sc.lamp(620, 230, 80, EMBER, 40)
+    sc.live(Steam(rng, [(655, 140, 40)], n_each=8, color=(200, 170, 200), height=130))
+    lay = art.plane()
+    art.ridge(lay, rng, 330, 22, sc.col("leaf3", 0.66), scales=(110, 36, 12))
+    sc.add(lay, 0.66, veil=0.05, low=0.12)
+
+    # middle: stepped mineral terraces with steaming turquoise pools
+    lay = art.plane()
+    rim = sc.col("pink2", 0.4)
+    glows, steam = [], []
+    hill = [(120, 440), (200, 360), (300, 336), (420, 326), (560, 330), (680, 344), (780, 380), (860, 440)]
+    art.crag(lay, hill, mix(rim, (60, 30, 70), 0.45), 67, side=p["moon_side"], strata=(5, 9))  # the mineral hill the terraces step down
+    for cx, y, w in ((300, 356, 120), (560, 350, 150), (420, 382, 170), (700, 384, 130), (230, 400, 140),
+                     (560, 414, 190)):
+        terrace(lay, sc, cx, y, w, mix(rim, (255, 255, 255), 0.1 if y < 380 else 0.0), sc.col("water", 0.3), glows,
+                steam)
+    sc.add(lay, 0.36, texture=0.3)
+    sc.live(Pulses(glows, speed=0.6))
+    for x, y, r, c, st, ph in glows:
+        sc.lamp(x, y, r, c, 40)
+
+    # near: warm ash ground, the path from the River, rocks glowing with heat through their cracks
+    lay = art.plane()
+    art.ridge(lay, rng, 452, 10, sc.col("leaf2", 0.2), scales=(120, 40, 14))
+    art.grass_bed(lay, rng, (0, 452, W, 88), sc.col("leaf", 0.2), 900, 5)
+    art.flowers(lay, rng, (0, 470, W, 70), p["flowers"], 40)
+    earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
+    art.path(lay, [(-24, 486), (120, 480), (280, 470), (400, 462), (460, 458)], [44, 42, 36, 26, 14], earth, edge, rng=rng)
+    sc.add(lay, 0.2, texture=0.6)
+    lay = art.plane()
+    hot = []
+    for x, y, w, h in ((760, 482, 90, 40), (860, 500, 70, 32), (640, 508, 50, 22), (90, 520, 60, 24)):
+        art.rock(lay, rng, x, y, w, h, sc.col("stone", 0.16))
+        for _ in range(3):  # cracks with heat glowing through
+            cx_, cy_ = x + rng.randint(-w // 3, w // 3), y - rng.randint(4, h - 6)
+            for i in range(rng.randint(5, 10)):
+                lay.set_at((cx_, cy_), (255, 170, 90))
+                if 0 <= cx_ < W and 0 <= cy_ < H:
+                    sc.emit.set_at((cx_, cy_), (150, 70, 30))
+                cx_ += rng.choice((-1, 0, 1))
+                cy_ += 1
+        hot.append((x, y - h // 2, w, EMBER, 50, x * 0.1))
+    glowmoss(sc, lay, 380, 520, 60, 14, GLOW["amber"])
+    sc.add(lay, 0.16, texture=0.6)
+    sc.live(Pulses(hot, speed=0.7))
+    sc.live(Steam(rng, steam, n_each=4))
+    sc.live(Motes(rng, (0, 120, W, 420), 40, EMBER, rise=-18))  # embers drifting up
+
+    pool = (lambda x: 418 + 0 * x, (500, 620))  # the big lower pool: the steambara bathes in it
+    grounds = [pool, (lambda x: 500 + 3 * math.sin(x / 40), (480, 700)), (lambda x: 512 + 2 * math.sin(x / 50), (160, 340))]
+    second_wave(sc, rng, (120, 80, 700, 180), grounds, fliers=("jelly", "moth"), walkers=("capy", "gecko", "beetle"),
+                out=("capy", "gecko", "jelly"))
+    sc.live(Slug(rng, Track([(200, 520), (300, 526), (420, 522)]), (255, 190, 170), size=1.4, speed=3, spots=EMBER))
+    bugs = sc.live(Fireflies(rng, (0, 220, W, 260), 16, color=GLOW["amber"], reach=24))
+    sc.bugs.append(bugs)
+    squids(sc, rng, (120, 100, 600, 200), [GLOW["pink"], GLOW["amber"]])
+    front_frame(sc, rng, top=False)
+
+    sc.spots = [
+        Spot("go", (0, 440, 88, 80), "Back to the River", "river", (30, 484), sign=(110, 436)),
+    ]
+    sc.lower = dict(ground=0.18, props=["rocks", "vents"], fly=GLOW["amber"],
+                    walkers=("capy", "gecko", "beetle"), fliers=("jelly", "moth"), out=("gecko", "jelly"))
+    return sc.done()
+
+
 BUILDERS = {
     "glade": build_glade,
     "waterfall": build_waterfall,
     "river": build_river,
     "forest": build_forest,
     "rocks": build_rocks,
+    "ridge": build_ridge,
+    "springs": build_springs,
 }

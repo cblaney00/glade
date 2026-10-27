@@ -100,7 +100,7 @@ class Lower(art.Lighting):
             c = (GLOW["moss"], GLOW["cyan"], GLOW["lime"])[i % 3]
             self.moss(props, x, y, rng.randint(50, 90), rng.randint(14, 22), c)
         # close-up bushes with blossoms, and clumps of ferns (they sway; see below)
-        for x, y in spots(4, 44):
+        for x, y in spots(4, 44) if spec.get("bushes", True) else []:
             art.foliage(props, rng, x, y - 16, rng.randint(28, 44), rng.randint(18, 26), col("leaf", 0.08), p)
             m = pygame.mask.from_surface(props)
             art.blossoms(props, rng, (x - 44, y - 44, 88, 52), [(255, 255, 255), p["pink"], p["pink2"]], 90, m)
@@ -119,6 +119,31 @@ class Lower(art.Lighting):
                             self.emit.set_at((int(gx), int(gy)), art.scale(GLOW["moss"], 0.6))
                         if i % 3 == 0:
                             self.lamp(gx, gy + 4, 40, GLOW["moss"], 60)
+            if kind == "pines":  # little snowy firs
+                for x, y in spots(5, 40):
+                    art.pine(props, rng, x, y, rng.randint(70, 120), col("leaf3", 0.06), snow=col("leaf2", 0.04),
+                             trunk=col("wood", 0.06), side=p.get("moon_side", -1))
+                    self.shadow(x, y + 2, 30, 8, 0.4)
+            if kind == "crystals":  # glowing ice crystals poking out of the snow
+                for i, (x, y) in enumerate(spots(5, 26)):
+                    c = (GLOW["cyan"], GLOW["violet"], GLOW["moss"])[i % 3]
+                    for _ in range(rng.randint(3, 6)):
+                        h_ = rng.randint(10, 26)
+                        cx = x + rng.randint(-12, 12)
+                        tip = (cx + rng.uniform(-0.4, 0.4) * h_, y - h_)
+                        pygame.draw.polygon(props, mix(c, (40, 50, 120), 0.35), [(cx - h_ // 4, y), (cx + h_ // 4, y), tip])
+                        pygame.draw.polygon(props, mix(c, (255, 255, 255), 0.35), [(cx - h_ // 4 + 1, y), (cx, y), tip])
+                    glows.append((x, y - 10, 70, c, 90, x * 0.1))
+            if kind == "vents":  # small steaming pools in the warm ground
+                self.vents = []
+                for x, y in spots(3, 50):
+                    rw, rh = rng.randint(34, 56), rng.randint(10, 16)
+                    pygame.draw.ellipse(props, col("pink2", 0.1), (x - rw - 4, y - rh - 3, rw * 2 + 8, rh * 2 + 6))
+                    pygame.draw.ellipse(props, col("water", 0.12), (x - rw, y - rh, rw * 2, rh * 2))
+                    pygame.draw.ellipse(props, mix(col("water", 0.12), (255, 255, 255), 0.35),
+                                        (x - rw // 2, y - rh // 2, rw, rh // 2), 1)
+                    glows.append((x, y, rw * 2, (110, 236, 226), 80, x * 0.1))
+                    self.vents.append((x, y, rw))
             if kind == "mushrooms":
                 for x, y in spots(6, 24):  # in little clusters
                     for _ in range(rng.randint(2, 4)):
@@ -179,18 +204,28 @@ class Lower(art.Lighting):
         # (storm.py) brings out a random mix
         from beasts import Flier, Walker
         from storm import newcomer
-        for kind in ("toad", "mole", "sporeling", "newt", "beetle"):
+        from scenes import FLY, WALK
+        out = spec.get("out", ())
+        for kind in spec.get("walkers", WALK):
             for _ in range(80):
                 x0, y0 = rng.randint(60, w - 280), rng.randint(90, h - 40)
                 if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)):
-                    crawlers.append(newcomer(Walker(rng, lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200),
-                                                    kind, 2.0)))
+                    wk = Walker(rng, lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200), kind, 2.0)
+                    crawlers.append(wk if kind in out else newcomer(wk))
                     break
-        crawlers += [newcomer(Flier(rng, (60, 20, w - 120, h // 2), kind, 2.0)) for kind in ("bat", "moth", "drake", "wisp")]
+        for kind in spec.get("fliers", FLY):
+            fl = Flier(rng, (60, 20, w - 120, h // 2), kind, 2.0)
+            crawlers.append(fl if kind in out else newcomer(fl))
         sky = Squid(rng, (60, 20, w - 120, h // 2), rng.choice([GLOW["cyan"], GLOW["pink"], GLOW["violet"]]), size=2.0)
         self.parts = [far, ferns] + crawlers + [near, bugs, sky, Motes(rng, (0, 0, w, h), 26, GLOW["cyan"])]
         if glows:
             self.parts.append(Pulses(glows))
+        if getattr(self, "vents", None):
+            from life import Steam
+            self.parts.append(Steam(rng, [(x, y, rw) for x, y, rw in self.vents], n_each=5, height=110))
+        if "pines" in spec.get("props", []):
+            from life import Snow
+            self.parts.append(Snow(rng, (0, 0, w, h), 140))
         self.creatures = [c for c in self.parts if hasattr(c, "poke")]
         if self.pond:
             self.creatures.append(self.pond)

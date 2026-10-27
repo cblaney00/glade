@@ -15,9 +15,14 @@ game *Putt-Putt Travels Through Time*. Places, each with paths to others:
 
 - **The Glade** (home, the centre): blossom tree, signpost, paths to everywhere else.
 - **The Waterfall**, **The River**, **The Forest**, **The Mossy Rocks**.
+- Further out (2026-10-27, his picks): **The Snowy Ridge** past the Forest (pines, snow, a frozen
+  lake, aurora) and **The Hot Springs** past the River (a sleeping volcano, steaming turquoise
+  terrace pools, embers). Each brings 3 animals of its own (below).
 
 They lie on a map (`MAP` in `glade/scenes.py`): Waterfall up, Mossy Rocks down, Forest
-left, River right of the Glade, each one step away with a single path back. **His rule
+left, River right of the Glade; the Ridge one more step left of the Forest, the Springs one
+more step right of the River. `LINKS` lists which places a path joins (the minimap draws
+them). He is happy for the map to grow beyond the four directions, with more tiles. **His rule
 (2026-10-23): left only ever goes left, down only down** — every path's arrow (and the
 keyboard) comes from `MAP`, never from where the board happens to sit, so a new place
 must go on the map and its path art must run that way. A **minimap** board in the lower
@@ -88,7 +93,10 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
 - `glade/beasts.py` — the **second wave** of animals (2026-10-26, his ask: 10 more first-stage
   creatures, varied typing, in keeping with the glade): `Flier` (Dusk Bat, Lantern Moth,
   Glimmer Drake, Mist Wisp), `Walker` (Brawl Toad, Moss Mole, Sporeling, Rime Newt, Copper
-  Beetle), and `owlet()`, the Moon Owlet, a tree dweller that can hold the icons instead of
+  Beetle), the far places' own animals (2026-10-27, Dex #052-#067: Frost Kit, Fluffhorn and
+  Aurora Finch on the Ridge; Steambara, Ember Gecko and Vapor Jelly at the Springs — they live
+  only there, and are out from the start; `second_wave(..., fliers, walkers, out)` and the
+  `walkers`/`fliers`/`out` keys of `sc.lower`), and `owlet()`, the Moon Owlet, a tree dweller that can hold the icons instead of
   the tree squid (`TreeSquid.kind`). Dex #022-#049. More areas are coming, so not every typing
   is covered yet.
 - `glade/storm.py` — **animals take turns**. Not all are out at once: newcomers start

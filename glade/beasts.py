@@ -34,7 +34,11 @@ FLIERS = dict(
     moth=dict(species="Lantern Moth", body=(250, 214, 170), color=GLOW["amber"], speed=34, turn=1.6),
     drake=dict(species="Glimmer Drake", body=(110, 220, 210), color=GLOW["cyan"], speed=110, turn=1.2),
     wisp=dict(species="Mist Wisp", body=(214, 220, 255), color=(170, 190, 255), speed=16, turn=4.0),
+    # the far places (2026-10-27): the Snowy Ridge and the Hot Springs
+    finch=dict(species="Aurora Finch", body=(236, 240, 255), color=(150, 255, 210), speed=70, turn=1.0),
+    jelly=dict(species="Vapor Jelly", body=(196, 228, 255), color=(255, 236, 120), speed=12, turn=3.5),
 )
+AURORA = [(140, 255, 200), (120, 220, 255), (190, 150, 255), (255, 150, 220)]
 
 
 class Flier(Clock):
@@ -81,7 +85,7 @@ class Flier(Clock):
             self.vx *= 1 - min(1.0, dt * 6)
             self.vy *= 1 - min(1.0, dt * 6)
         else:
-            acc = self.speed * (3 if self.kind != "wisp" else 1)
+            acc = self.speed * (3 if self.kind not in ("wisp", "jelly") else 1)
             self.vx += dx / d * acc * dt
             self.vy += dy / d * acc * dt
             sp = math.hypot(self.vx, self.vy)
@@ -89,6 +93,8 @@ class Flier(Clock):
                 self.vx, self.vy = self.vx / sp * self.speed, self.vy / sp * self.speed
             if self.kind == "moth":  # fluttering: it never goes quite straight
                 self.vy += math.sin(t * 7 + self.phase) * 40 * dt
+            if self.kind == "jelly":  # it swims in slow pulses: a push up, then a sink
+                self.vy += (-60 if math.sin(t * 1.6 + self.phase) > 0.85 else 9) * dt
             if self.kind == "bat" and self.rng.random() < dt * 1.5:  # sudden jinks
                 self.vx += self.rng.uniform(-60, 60)
                 self.vy += self.rng.uniform(-40, 40)
@@ -170,8 +176,28 @@ class Flier(Clock):
     def draw_wisp(self, s, t):
         pass  # all of it shines (below)
 
+    # the finch: a round little snowbird; its long tail streams out behind in aurora colours
+    def draw_finch(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        flap = math.sin(t * 18 + self.phase)
+        dark = mix(self.body, INK, 0.35)
+        pygame.draw.ellipse(s, dark, (x - 5 * z, y - 4 * z + 1, 10 * z, 8 * z))
+        pygame.draw.ellipse(s, self.body, (x - 5 * z, y - 4 * z, 10 * z, 8 * z))
+        pygame.draw.ellipse(s, (255, 214, 226), (x - 2 * z + f * z, y - 1 * z, 5 * z, 4 * z))  # a rosy breast
+        pygame.draw.polygon(s, mix(self.body, (150, 190, 255), 0.4),
+                            [(x - f * z, y - z), (x - f * 6 * z, y - (5 + 4 * flap) * z), (x - f * 7 * z, y + z)])
+        pygame.draw.polygon(s, (255, 200, 120), [(x + f * 4.5 * z, y - 1.5 * z), (x + f * 7 * z, y - z),
+                                                 (x + f * 4.5 * z, y)])
+        pygame.draw.rect(s, INK, (round(x + f * 2.5 * z), round(y - 2.5 * z), max(1, round(z)), max(1, round(z))))
+        for side in (-1, 0):  # a crest of two feathers
+            pygame.draw.line(s, self.body, (x + f * z, y - 4 * z), (x + f * (side - 1) * z, y - 7 * z))
+
+    # the jelly: a see-through bell of steam, drifting in pulses, trailing tentacles that crackle
+    def draw_jelly(self, s, t):
+        pass  # it is made of light (below)
+
     def light(self, lm, t):
-        if self.kind in ("moth", "wisp", "drake"):
+        if self.kind in ("moth", "wisp", "drake", "jelly", "finch"):
             glow(lm, self.x, self.y, int(30 * self.size), self.color, q(60 + 20 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
@@ -193,6 +219,45 @@ class Flier(Clock):
         elif self.kind == "drake":
             tx = x - self.facing * 22 * z
             glow(s, tx, y, int(6 * z), self.color, q(90 + 60 * k))
+        elif self.kind == "finch":
+            for i, (px, py) in enumerate(self.trail[1:]):  # the streamer of a tail
+                c = AURORA[(i + int(t * 3)) % len(AURORA)]
+                c = mix(c, (40, 40, 90), i / 9)
+                tx = px - self.facing * 6 * z
+                s.set_at((round(tx), round(py + 0.5 * z)), c)
+                if i < 4:
+                    s.set_at((round(tx), round(py + 1.5 * z)), c)
+            glow(s, x - self.facing * 6 * z, y, int(6 * z), AURORA[int(t * 2) % 4], q(50 + 60 * k))
+        elif self.kind == "jelly":
+            pulse = 0.5 + 0.5 * math.sin(t * 1.6 + self.phase)
+            bw = (9 + 2 * pulse) * z
+            bh = (8 - 1.5 * pulse) * z
+            glow(s, x, y, int(16 * z), (150, 200, 255), q(50 + 40 * k))
+            for i in range(5):  # tentacles, swaying
+                tx = x + (i - 2) * 3 * z
+                pts = [(tx + math.sin(t * 2.4 + i + j * 0.9 + self.phase) * 1.6 * z, y + 2 * z + j * 3 * z) for j in range(5)]
+                for j in range(len(pts) - 1):
+                    pygame.draw.line(s, mix(self.body, (60, 70, 150), j / 5), pts[j], pts[j + 1])
+            if math.sin(t * 5.3 + self.phase) * math.sin(t * 3.1) > 0.55 or k > 0.3:  # a spark crackles down one
+                i = int(t * 7) % 5
+                sx = x + (i - 2) * 3 * z
+                for j in range(3):
+                    s.set_at((round(sx + (j % 2) * z), round(y + (4 + j * 3) * z)), self.color)
+                glow(s, sx, y + 8 * z, int(5 * z), self.color, q(110))
+            dome = pygame.Rect(0, 0, round(bw * 2), round(bh * 2))
+            dome.center = (round(x), round(y + bh * 0.5))
+            edge = mix(self.body, (40, 50, 120), 0.45)
+            was = s.get_clip()  # only the top half of the ellipse: a bell
+            s.set_clip(pygame.Rect(dome.x - 2, dome.y - 2, dome.w + 4, dome.h // 2 + 2).clip(was))
+            pygame.draw.ellipse(s, edge, dome)
+            pygame.draw.ellipse(s, mix(self.body, (120, 150, 230), 0.35), dome.inflate(-2 * z, -2 * z))
+            s.set_clip(was)
+            pygame.draw.ellipse(s, self.body, (x - bw * 0.55, y - bh * 0.4, bw * 1.1, bh * 0.9))  # a glowing heart
+            for i in range(-4, 5):  # the bell's frilly rim
+                s.set_at((round(x + i * bw / 4.6), round(y + 2 * z + (i % 2) * z * 0.8)), edge)
+            pygame.draw.line(s, (255, 255, 255), (x - bw * 0.6, y - bh * 0.1), (x - bw * 0.4, y - bh * 0.4))
+            for ex in (-2, 2):
+                s.set_at((round(x + ex * z), round(y - z)), INK)
         else:  # the wisp
             flick = 0.75 + 0.25 * math.sin(t * 11 + self.phase) * math.sin(t * 7.3)
             for i, (px, py) in enumerate(self.trail[::-1]):
@@ -214,6 +279,11 @@ WALKERS = dict(
     sporeling=dict(species="Sporeling", body=(240, 232, 214), color=(200, 140, 255), speed=10),
     newt=dict(species="Rime Newt", body=(150, 210, 245), color=(200, 245, 255), speed=14),
     beetle=dict(species="Copper Beetle", body=(214, 128, 78), color=(255, 236, 120), speed=9),
+    # the far places (2026-10-27): the Snowy Ridge and the Hot Springs
+    fox=dict(species="Frost Kit", body=(232, 240, 255), color=(150, 255, 210), speed=22),
+    goat=dict(species="Fluffhorn", body=(246, 240, 232), color=(170, 220, 255), speed=8),
+    capy=dict(species="Steambara", body=(176, 124, 112), color=(255, 186, 90), speed=5),
+    gecko=dict(species="Ember Gecko", body=(118, 88, 112), color=(255, 140, 70), speed=30),
 )
 
 
@@ -439,7 +509,119 @@ class Walker(Clock):
         for side in (-1, 1):
             pygame.draw.line(s, dark, (hx, y - 6 * z), (hx + f * 4 * z, y - (8 + side * 2) * z))
 
+    # the frost kit: a snow-white fox cub, ears up, its huge fluffy tail tipped with aurora light
+    def draw_fox(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        shade = mix(self.body, (120, 140, 220), 0.35)
+        sway = math.sin(t * 2 + self.phase) * 1.5 * z
+        tail = [(x - f * 6 * z, y - 5 * z), (x - f * 11 * z, y - 9 * z + sway), (x - f * 12 * z, y - 15 * z + sway)]
+        for i, (px, py) in enumerate(tail):
+            pygame.draw.circle(s, shade, (round(px), round(py + 1)), max(2, round((3.6 - i * 0.4) * z)))
+        for i, (px, py) in enumerate(tail):
+            pygame.draw.circle(s, self.body, (round(px), round(py)), max(2, round((3.4 - i * 0.4) * z)))
+        for i in range(4):  # four little legs, trotting
+            lx = x + (i - 1.5) * 2.6 * z
+            lift = max(0.0, math.sin(self.step * 1.4 + i * 1.6)) * 1.5 * z if moving else 0
+            pygame.draw.line(s, shade, (lx, y - 3 * z), (lx, y - lift), max(1, round(z)))
+        pygame.draw.ellipse(s, shade, (x - 6 * z, y - 8 * z + 1, 12 * z, 6 * z))
+        pygame.draw.ellipse(s, self.body, (x - 6 * z, y - 8 * z, 12 * z, 6 * z))
+        hx, hy = x + f * 6 * z, y - 9 * z
+        pygame.draw.circle(s, self.body, (round(hx), round(hy)), max(2, round(3.4 * z)))
+        pygame.draw.polygon(s, self.body, [(hx + f * 2 * z, hy - z), (hx + f * 6.5 * z, hy + 1 * z), (hx + f * 2 * z, hy + 2.4 * z)])
+        s.set_at((round(hx + f * 6.5 * z), round(hy + 1 * z)), INK)
+        for e in (-1, 1):  # ears, with a blush of pink inside
+            ex = hx + e * 2 * z
+            pygame.draw.polygon(s, self.body, [(ex - 1.5 * z, hy - 2 * z), (ex + 1.5 * z, hy - 2 * z), (ex, hy - 7 * z)])
+            pygame.draw.line(s, (255, 196, 220), (ex, hy - 3 * z), (ex, hy - 5.5 * z))
+        self.eyes(s, hx + f * 1.5 * z, hy - 0.5 * z, 0.1)
+
+    # the fluffhorn: a wee mountain goat, a cloud of wool on spindly legs, frost on its curled horns
+    def draw_goat(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        bob = abs(math.sin(self.step * 0.8)) * 1.2 * z if moving else 0
+        leg = (90, 82, 110)
+        for i in range(4):
+            lx = x + (i - 1.5) * 3 * z
+            kick = math.sin(self.step + i * 1.7) * 1.2 * z if moving else 0
+            pygame.draw.line(s, leg, (lx, y - 5 * z), (lx + kick, y), max(1, round(z)))
+        y -= bob
+        wool = mix(self.body, (150, 150, 200), 0.3)
+        puffs = [(-4, -9, 4), (0, -10, 4.4), (4, -9, 4), (-2, -7, 4), (2, -7, 4)]
+        for px, py, r in puffs:
+            pygame.draw.circle(s, wool, (round(x + px * z), round(y + py * z + 1)), round(r * z))
+        for px, py, r in puffs:
+            pygame.draw.circle(s, self.body, (round(x + px * z), round(y + py * z)), round(r * z - 0.6))
+        for px, py in ((-3, -11), (2, -12), (4, -8)):
+            s.set_at((round(x + px * z), round(y + py * z)), (255, 255, 255))
+        hx, hy = x + f * 7 * z, y - 11 * z
+        face = (96, 90, 124)
+        pygame.draw.ellipse(s, face, (hx - 2.5 * z, hy - 2 * z, 5 * z, 6 * z))
+        pygame.draw.circle(s, self.body, (round(hx - f * 0.5 * z), round(hy - 2.4 * z)), max(2, round(2 * z)))  # a woolly fringe
+        horn, horn_d = (226, 220, 246), (150, 140, 190)
+        for side in (-1, 1):  # curled horns sweeping back over the fringe
+            hx0 = hx + side * 1.4 * z
+            pts = [(hx0, hy - 3 * z), (hx0 - f * 1.5 * z, hy - 6 * z), (hx0 - f * 4 * z, hy - 6.5 * z),
+                   (hx0 - f * 5 * z, hy - 4.5 * z), (hx0 - f * 4 * z, hy - 3 * z)]
+            pygame.draw.lines(s, horn_d if side < 0 else horn, False, pts, max(1, round(1.2 * z)))
+        pygame.draw.line(s, face, (hx + f * 2 * z, hy - z), (hx + f * 3.5 * z, hy))  # an ear
+        s.set_at((round(hx + f * z), round(hy)), (255, 236, 160))
+        s.set_at((round(hx), round(hy + 3 * z)), (40, 30, 60))
+
+    # the steambara: a round, sleepy capybara of the hot springs with a little glowing yuzu on its head
+    def draw_capy(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.35)
+        for i in range(2):
+            lx = x + (i * 2 - 1) * 4 * z
+            lift = max(0.0, math.sin(self.step + i * math.pi)) * z if moving else 0
+            pygame.draw.rect(s, dark, (lx - z, y - 3 * z - lift, 2.4 * z, 3 * z))
+        body = pygame.Rect(0, 0, round(16 * z), round(10 * z))
+        body.midbottom = (round(x), round(y - 1 * z))
+        pygame.draw.rect(s, dark, body.move(0, 1), border_radius=round(4 * z))
+        pygame.draw.rect(s, self.body, body, border_radius=round(4 * z))
+        pygame.draw.line(s, mix(self.body, (255, 230, 210), 0.3), (body.x + 3 * z, body.y + z), (body.right - 4 * z, body.y + z))
+        head = pygame.Rect(0, 0, round(8 * z), round(7 * z))
+        head.midbottom = (round(x + f * 8 * z), round(y - 3 * z))
+        pygame.draw.rect(s, self.body, head, border_radius=round(2.5 * z))
+        pygame.draw.rect(s, dark, (head.right - 2 * z if f > 0 else head.x, head.y + 3 * z, 2 * z, 2 * z))  # its nose
+        ex = head.centerx + f * z
+        pygame.draw.line(s, INK, (ex - z, head.y + 2 * z), (ex + z, head.y + 2 * z))  # eyes half shut, content
+        pygame.draw.rect(s, dark, (head.centerx - f * 2 * z, head.y - z, 2 * z, 1.6 * z))  # a little ear
+        yx, yy = head.centerx - f * z, head.y - 2.5 * z
+        pygame.draw.circle(s, (255, 190, 80), (round(yx), round(yy)), max(2, round(2 * z)))
+        pygame.draw.line(s, (120, 200, 110), (yx, yy - 2 * z), (yx + 1.5 * z, yy - 3 * z))
+
+    # the ember gecko: a charcoal lizard with cracks of lava glowing through, quick on splayed feet
+    def draw_gecko(self, s, t):
+        z, f, pts = self.size, self.facing, self.tail
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.4)
+        radii = [3.2, 3.4, 3.2, 2.7, 2.2, 1.8, 1.4, 1.1, 0.9, 0.7]
+        for i in (1, 3):  # splayed legs, scuttling
+            px, py = pts[i]
+            for side in (-1, 1):
+                step = math.sin(self.step * 1.5 + i + side) * 2 * z if moving else 0
+                pygame.draw.line(s, dark, (px, py - 2 * z), (px + f * step + side * z, py), max(1, round(z)))
+        for i, (px, py) in reversed(list(enumerate(pts))):
+            r = max(1, radii[i] * z)
+            pygame.draw.circle(s, dark, (round(px), round(py - 2 * z + 1)), round(r))
+        for i, (px, py) in reversed(list(enumerate(pts))):
+            pygame.draw.circle(s, self.body, (round(px), round(py - 2 * z)), round(max(1, radii[i] * z)))
+        hx, hy = pts[0]
+        hx += f * 3 * z
+        pygame.draw.ellipse(s, dark, (hx - 4 * z, hy - 6 * z + 1, 9 * z, 5.5 * z))
+        pygame.draw.ellipse(s, self.body, (hx - 4 * z, hy - 6 * z, 9 * z, 5.5 * z))
+        pygame.draw.line(s, mix(self.body, (255, 220, 200), 0.3), (hx - 2 * z, hy - 5.5 * z), (hx + 2 * z, hy - 5.5 * z))
+        ex, ey = round(hx + f * 1.6 * z), round(hy - 4.5 * z)
+        pygame.draw.rect(s, (255, 214, 120), (ex - 1, ey - 1, 2, 2))
+        s.set_at((ex, ey), INK)
+
     def light(self, lm, t):
+        if self.kind in ("fox", "gecko", "capy"):
+            glow(lm, self.x, self.y - 6 * self.size, int(20 * self.size), self.color, q(36 + 12 * math.sin(t * 2 + self.phase)))
         if self.kind in ("sporeling", "beetle", "mole"):
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 15 * math.sin(t * 2 + self.phase)))
 
@@ -474,6 +656,36 @@ class Walker(Clock):
                     s.set_at((round(px), round(py - 4 * z)), (240, 252, 255))
             if k > 0:
                 glow(s, x, y - 3 * z, int(12 * z), self.color, q(120 * k))
+        elif self.kind == "fox":
+            sway = math.sin(t * 2 + self.phase) * 1.5 * z
+            tx, ty = x - f * 12 * z, y - 15 * z + sway
+            c = AURORA[int(t * 0.8 + self.phase) % len(AURORA)]
+            glow(s, tx, ty, int(9 * z), c, q(80 + 60 * k))
+            pygame.draw.circle(s, mix(c, (255, 255, 255), 0.4), (round(tx), round(ty)), max(1, round(2 * z)))
+        elif self.kind == "goat":
+            hx, hy = x + f * 7 * z, y - 11 * z
+            for side in (-1, 1):  # frost glittering on its horns
+                if math.sin(t * 2.2 + side + self.phase) > 0:
+                    s.set_at((round(hx + side * 2.5 * z), round(hy - 5 * z)), (220, 245, 255))
+            if k > 0:
+                glow(s, hx, hy - 4 * z, int(8 * z), self.color, q(90 * k))
+        elif self.kind == "capy":
+            hx = x + f * 8 * z - f * z
+            yy = y - 3 * z - 7 * z - 2.5 * z
+            glow(s, hx, yy, int(7 * z), self.color, q(70 + 20 * math.sin(t * 1.5 + self.phase) + 60 * k))
+            for i in range(2):  # a wisp of steam off its warm back
+                kk = (t * 0.4 + i * 0.5 + self.phase) % 1.0
+                s.set_at((round(x - f * 2 * z + math.sin(t + i * 3) * 2 * z), round(y - 12 * z - kk * 10 * z)),
+                         mix((230, 226, 255), (40, 30, 70), kk))
+        elif self.kind == "gecko":
+            for i in (0, 2, 4, 6):  # lava glowing through the cracks down its back
+                px, py = self.tail[i]
+                b = 0.5 + 0.5 * math.sin(t * 2.5 - i * 0.8 + self.phase)
+                c = mix(self.color, (255, 236, 160), b * 0.6)
+                s.set_at((round(px), round(py - 2 * z - (2.6 - i * 0.25) * z * 0.6)), c)
+                if i < 4:
+                    s.set_at((round(px + z), round(py - 2 * z)), mix(c, self.body, 0.4))
+            glow(s, x, y - 3 * z, int(10 * z), self.color, q(40 + 80 * k))
         elif self.kind == "toad" and k > 0:
             glow(s, x, y - 6 * z, int(12 * z), self.color, q(80 * k))
 

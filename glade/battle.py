@@ -180,6 +180,9 @@ MOVES = {
     "Cross Chop": mv("Fighting", 100, 80, 5, c=1, highcrit=1),
     "Spore": mv("Grass", 0, 100, 15, st="slp"),
     "Heat Wave": mv("Fire", 100, 90, 10, sec=(10, "brn")),
+    "Icy Wind": mv("Ice", 55, 95, 15, sec=(100, {"spe": -1})),
+    "Fire Punch": mv("Fire", 75, 100, 15, c=1, sec=(10, "brn")),
+    "Headbutt": mv("Normal", 70, 100, 15, c=1, sec=(30, "flinch")),
     "Struggle": mv("???", 50, None, 1, c=1, recoil=4),
 }
 
@@ -240,6 +243,26 @@ SPECIES = {
     "Moon Owlet": dict(num=49, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
                        pool=["Peck", "Wing Attack", "Aerial Ace", "Air Cutter", "Hypnosis", "Confusion", "Return",
                              "Quick Attack"]),
+    # the far places (2026-10-27): the Snowy Ridge (left of the Forest) ...
+    "Frost Kit": dict(num=52, types=("Ice",), base=(45, 50, 40, 65, 50, 70), ability="Run Away",
+                      pool=["Powder Snow", "Icy Wind", "Ice Beam", "Aurora Beam", "Quick Attack", "Bite", "Agility",
+                            "Double Team", "Haze"]),
+    "Fluffhorn": dict(num=55, types=("Rock", "Normal"), base=(60, 65, 70, 30, 45, 40), ability="Rock Head",
+                      pool=["Headbutt", "Rock Slide", "Rock Tomb", "Take Down", "Double-Edge", "Iron Defense",
+                            "Body Slam", "Icy Wind", "Rest"]),
+    "Aurora Finch": dict(num=58, types=("Ice", "Flying"), base=(40, 45, 40, 65, 55, 70), ability="Keen Eye",
+                         pool=["Peck", "Aerial Ace", "Air Cutter", "Icy Wind", "Aurora Beam", "Powder Snow", "Agility",
+                               "Haze", "Gust"]),
+    # ... and the Hot Springs (right of the River)
+    "Steambara": dict(num=61, types=("Water", "Fire"), base=(75, 45, 55, 55, 55, 30), ability="Oblivious",
+                      pool=["Water Gun", "Surf", "Ember", "Flamethrower", "Rest", "Amnesia", "Body Slam", "Calm Mind",
+                            "Haze"]),
+    "Ember Gecko": dict(num=64, types=("Fire", "Ground"), base=(45, 65, 45, 55, 40, 70), ability="Flash Fire",
+                        pool=["Ember", "Fire Punch", "Flamethrower", "Mud Shot", "Mud-Slap", "Quick Attack", "Agility",
+                              "Will-O-Wisp", "Rock Tomb"]),
+    "Vapor Jelly": dict(num=67, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
+                        pool=["Water Pulse", "Bubble Beam", "Spark", "Shock Wave", "Thunderbolt", "Thunder Wave",
+                              "Confuse Ray", "Haze", "Recover"]),
     # middle evolutions (evolve.py): base totals about 410 (Ivysaur 405), same shape, a few
     # stronger moves; numbered right after their first stage
     "Glowtail": dict(num=2, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",

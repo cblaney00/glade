@@ -1099,3 +1099,98 @@ class Millipede(Clock):
 
 def make_rng(seed):
     return random.Random(seed)
+
+
+# --- weather of the far places (the Snowy Ridge and the Hot Springs) ---------------------------
+
+class Aurora:
+    """Curtains of pastel light hanging in the northern sky, slowly rippling. Two bands,
+    each a pre-painted strip that drifts sideways at its own pace and breathes brighter
+    and dimmer, added onto the sky after the lighting."""
+
+    def __init__(self, rng, top, height, colors):
+        self.top, self.height = top, height
+        self.bands = []
+        for i, (c1, c2) in enumerate(colors):
+            w = W * 2
+            levels = []
+            ph = rng.random() * 10
+            for lvl in (0.55, 0.8, 1.0):
+                surf = solid((w, height))
+                surf.fill((0, 0, 0))
+                for x in range(0, w, 2):
+                    # its foot waves along the sky; it tiles, so the strip can scroll forever
+                    a = x / w * math.tau
+                    foot = int(height * (0.62 + 0.16 * math.sin(a * 2 + ph) + 0.08 * math.sin(a * 5 + ph * 2)))
+                    k = 0.5 + 0.5 * math.sin(a * 3 + ph)
+                    col = mix(c1, c2, k)
+                    # whole stretches fade out, and within them fine vertical rays: the curtain's folds
+                    reach = max(0.0, math.sin(a * 2 + ph * 1.7)) ** 0.7
+                    rays = 0.35 + 0.65 * (0.5 + 0.5 * math.sin(x * 0.9 + 3 * math.sin(a * 11 + ph))) ** 3
+                    bright = reach * rays * lvl
+                    if bright < 0.04:
+                        continue
+                    ln = int(height * (0.3 + 0.35 * (0.5 + 0.5 * math.sin(a * 4 + ph * 3))) * (0.6 + 0.4 * rays))
+                    for y in range(max(0, foot - ln), foot, 2):  # fading up from a bright foot
+                        f = (y - (foot - ln)) / max(1, ln)
+                        v = bright * f ** 2.2
+                        c = tuple(int(cc * v * 0.42) for cc in col)
+                        surf.fill(c, (x, y, 2, 2))
+                    for dy, kk in ((0, 0.5), (1, 0.3), (2, 0.15)):  # the bright hem, a soft fringe below it
+                        surf.fill(tuple(int(cc * bright * kk) for cc in mix(col, (255, 255, 255), 0.2)), (x, foot + dy, 2, 1))
+                levels.append(surf)
+            self.bands.append((levels, 6 + i * 5, ph))
+
+    def shine(self, s, t):
+        for levels, speed, ph in self.bands:
+            k = 0.5 + 0.5 * math.sin(t * 0.3 + ph)
+            surf = levels[min(2, int(k * 3))]
+            off = int(t * speed) % surf.get_width()
+            s.blit(surf, (-off, self.top), special_flags=pygame.BLEND_RGB_ADD)
+            if surf.get_width() - off < W:
+                s.blit(surf, (surf.get_width() - off, self.top), special_flags=pygame.BLEND_RGB_ADD)
+
+
+class Snow:
+    """Snowflakes drifting down and swaying, nearer ones bigger and faster."""
+
+    def __init__(self, rng, rect, n, color=(236, 244, 255)):
+        self.rect, self.color = rect, color
+        self.items = [(rng.random(), rng.random(), rng.random() * math.tau, rng.uniform(0.4, 1.0)) for _ in range(n)]
+
+    def shine(self, s, t):
+        x0, y0, w, h = self.rect
+        for fx, fy, ph, near in self.items:
+            x = x0 + (fx * w + math.sin(t * 0.8 * near + ph) * 10 * near + t * 4) % w
+            y = y0 + (fy * h + t * 22 * near) % h
+            c = scale(self.color, 0.45 + 0.55 * near)
+            if near > 0.8:
+                s.fill(c, (int(x), int(y), 2, 2))
+            else:
+                s.set_at((int(x), int(y)), c)
+
+
+class Steam:
+    """Steam rising off warm water: soft puffs that swell, drift and fade."""
+
+    _PUFF = {}
+
+    def __init__(self, rng, sources, n_each=6, color=(230, 226, 255), height=90):
+        self.color, self.height = color, height
+        self.items = [(x, y, w, rng.random(), rng.uniform(0.6, 1.2)) for x, y, w in sources for _ in range(n_each)]
+
+    def puff(self, r):
+        r = max(3, int(r) // 2 * 2)
+        if r not in self._PUFF:
+            from art import soft_ellipse
+            self._PUFF[r] = soft_ellipse(r, int(r * 0.7), self.color, 90)
+        return self._PUFF[r]
+
+    def shine(self, s, t):
+        for x, y, w, ph, sp in self.items:
+            k = (ph + t * 0.08 * sp) % 1.0
+            px = x + (ph - 0.5) * w + math.sin(t * 0.6 + ph * 9) * 8 * k
+            py = y - k * self.height
+            img = self.puff(6 + k * 22)
+            img.set_alpha(int(255 * math.sin(k * math.pi) ** 1.5))
+            s.blit(img, (int(px - img.get_width() / 2), int(py - img.get_height() / 2)))

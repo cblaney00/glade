@@ -615,6 +615,43 @@ def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
     return lean
 
 
+def pine(s, rng, x, base, h, color, snow=None, trunk=None, side=-1):
+    """A fir: tiers of drooping, ragged boughs narrowing to a point, darker on the side
+    away from the moon, each tier's upper edge laden with snow (if `snow`)."""
+    w = h * 0.42
+    if trunk:
+        pygame.draw.rect(s, trunk, (x - max(1, h // 30), base - h * 0.16, max(2, h // 15), h * 0.16 + 1))
+    dark = mix(color, (12, 10, 40), 0.3)
+    lit = mix(color, (255, 255, 255), 0.12)
+    tiers = max(3, int(h / 14))
+    for i in range(tiers):
+        f0 = i / tiers
+        top = base - h + f0 * h * 0.82
+        bot = top + h / tiers * 1.7
+        half = w * (0.2 + 0.8 * (i + 1) / tiers) / 2
+        n = max(3, int(half / 3))
+        # a ragged, drooping hem, left to right
+        hem = [(x - half + 2 * half * k / n, bot + (2 if k % 2 else -1) + rng.randint(-1, 1)) for k in range(n + 1)]
+        pygame.draw.polygon(s, color, [(x, top)] + hem[::-1])
+        # shade on the half away from the moon
+        away = [(x, top)] + ([p for p in hem if p[0] >= x] if side < 0 else [p for p in hem if p[0] <= x])
+        if len(away) > 2:
+            pygame.draw.polygon(s, dark, [(x, top)] + sorted(away[1:], key=lambda p: p[0] * -side))
+        pygame.draw.line(s, lit, (x, top), hem[0] if side < 0 else hem[-1])
+        if snow:  # snow along the upper edges of the boughs
+            for k in range(int(half)):
+                for sgn in (-1, 1):
+                    px = x + sgn * k
+                    py = top + (bot - top) * 0.75 * k / max(1, half)
+                    if rng.random() < 0.85:
+                        s.set_at((int(px), int(py)), snow)
+                        if rng.random() < 0.5:
+                            s.set_at((int(px), int(py) + 1), mix(snow, color, 0.4))
+            for k in range(0, n + 1, 2):
+                hx, hy = hem[k]
+                s.set_at((int(hx), int(hy) - 1), mix(snow, color, 0.3))
+
+
 def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):
     """A jagged, faceted boulder sitting on y=cy; with `moss`, a soft cap of moss over
     its top. If `glow_pts` is a list, points along the moss cap are appended to it
