@@ -6,6 +6,7 @@ Run:  python glade/main.py            (Ctrl+Q quits)
 
 import glob
 import math
+import random
 import os
 import re
 import shlex
@@ -832,6 +833,9 @@ class Glade:
         ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
         if animal is not None:
             animal.nature = nature_of(animal.obj)  # its own nature, shown on the card
+            leave = getattr(animal.obj, "leave_at", None)  # looked at, and about to go: it stays a little
+            if leave is not None and leave < t + 15:        # longer, 10-45 seconds more (his numbers)
+                animal.obj.leave_at = t + random.uniform(10, 45)
         at, body = m, None
         if animal is not None:  # the card goes beside the animal itself, clear of all of it
             ax, ay = animal.pos()
