@@ -5,7 +5,8 @@ It has room for 260 animals. Each animal here is the first of three evolutions, 
 line takes three numbers in a row (SPECIES[...]["num"] in battle.py): the later two are
 "?" until they are made. Two tabs: the Dex (every slot, in pages) and Compare (every
 animal found so far in one table, sorted by whichever stat you click). The panel on the
-right shows the chosen one in full, with a living picture of it.
+right shows the chosen one in full, with a living picture of it, and has its own switch:
+Stats, or Lore (its story and where it lives, with a little map: lore.py).
 """
 
 import math
@@ -23,7 +24,10 @@ from pond import KOI, Fish, Water
 
 TOTAL = 260
 LEGEND_FROM = 259
-LEGENDS_ = ("Elderglow", "Moonward")  # the last two numbers: the legendaries
+LEGENDS_ = ("Elderglow", "Moonward")
+TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
+              rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs",
+              tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow")  # the last two numbers: the legendaries
 PER_PAGE = 48          # 8 x 6 slots
 STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
@@ -199,11 +203,13 @@ class Dex:
         self.pick = SPECIES[species]["num"] if species in SPECIES else 1
         self.page = (self.pick - 1) // PER_PAGE
         self.tab = "dex"
+        self.view = "stats"  # the entry's switch: "stats" or "lore"
         self.sort, self.desc = "No.", False
         self.buttons = []  # (rect, action), rebuilt every frame
         self.closed = False
         self.live = None  # (species, specimen, picture): the one shown in the entry, moving
         self.now = t
+        self.mouse = None
 
     def open_boxes(self):
         """Your creature boxes (storage.py) instead: the glade opens them as the dex closes."""
@@ -269,7 +275,79 @@ class Dex:
             self.grid(s, left, m)
         else:
             self.table(s, left, m)
+        self.mouse = m
         self.entry(s, right)
+
+    def wrap(self, words, width):
+        lines, line = [], ""
+        for w in words.split():
+            if line and self.font.size(line + " " + w)[0] > width:
+                lines.append(line)
+                line = w
+            else:
+                line = (line + " " + w).strip()
+        return lines + [line] if line else lines
+
+    def lore(self, s, area, name, x, y):
+        """The Lore side of an entry: its story, the places it lives, and a little map of them."""
+        from evolve import EVOLVED_FROM
+        from lore import LORE, STARTER_SPOT, WHERE
+        from scenes import LINKS, MAP
+        from starter import STARTERS
+        width = area.right - 12 - x
+        lh = self.font.get_height() + 2
+        self.text(s, "Lore", x, y, DIM)
+        y += lh + 2
+        for line in self.wrap(LORE.get(name, "Nobody has written about it yet."), width):
+            self.text(s, line, x, y, TEXT)
+            y += lh
+        y += 10
+        self.text(s, "Found in", x, y, DIM)
+        y += lh + 2
+        places = WHERE.get(name, ())
+        if name in (n for n, _, _ in STARTERS):
+            notes = [STARTER_SPOT]
+        elif places:
+            notes = [TITLES[p] for p in places]
+        else:
+            notes = [f"Not in the wild. Evolve a {EVOLVED_FROM.get(name, '?')}"]
+        if len(notes) > 4:  # a long list: two columns, so the map still fits
+            half = (len(notes) + 1) // 2
+            for i, note in enumerate(notes):
+                self.text(s, note, x + 10 + (i // half) * (width // 2), y + (i % half) * lh, WHITE)
+            y += half * lh
+        else:
+            for note in notes:
+                for line in self.wrap(note, width - 10):
+                    self.text(s, line, x + 10, y, WHITE if places else TEXT)
+                    y += lh
+        if not places:
+            return
+        # the little map: every place laid out as on the minimap, these ones lit
+        xs, ys = [p[0] for p in MAP.values()], [p[1] for p in MAP.values()]
+        cols, rows = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+        cell = max(14, min(26, (area.bottom - 10 - (y + 6) - 12) // rows))
+        board = pygame.Rect(0, 0, cols * cell + 12, rows * cell + 12)
+        board.midbottom = (area.centerx, area.bottom - 10)
+        if board.y < y + 6:  # never on top of the words
+            board.y = y + 6
+        cloth(s, board, mix(CLOTH, EDGE, 0.5), alpha=220)
+
+        def node(k):
+            gx, gy = MAP[k]
+            return (board.x + 6 + (gx - min(xs)) * cell + cell // 2, board.y + 6 + (gy - min(ys)) * cell + cell // 2)
+        for a, b in LINKS:
+            pygame.draw.line(s, mix(CLOTH, EDGE, 0.15), node(a), node(b), 2)
+        for k in MAP:
+            stone = pygame.Rect(0, 0, cell * 14 // 26, cell * 12 // 26)
+            stone.center = node(k)
+            if k in places:
+                glow(s, stone.centerx, stone.centery, 14, MINT, 110)
+                pygame.draw.rect(s, WHITE, stone.inflate(4, 4), border_radius=3)
+                pygame.draw.rect(s, MINT, stone, border_radius=2)
+            else:
+                pygame.draw.rect(s, EDGE, stone.inflate(2, 2), border_radius=3)
+                pygame.draw.rect(s, mix(CLOTH, EDGE, 0.3), stone, border_radius=2)
 
     def grid(self, s, area, m):
         cols, rows = 8, 6
@@ -371,6 +449,10 @@ class Dex:
         legend = self.pick >= LEGEND_FROM  # #259 and #260 are legendaries, not a line
         self.text(s, f"#{self.pick:03}", x, y, DIM)
         self.text(s, name or "???", x + 44, y, WHITE)
+        if name is not None:
+            for i, (label, v) in enumerate((("Stats", "stats"), ("Lore", "lore"))):
+                b = pygame.Rect(area.right - 114 + i * 52, y - 3, 50, 16)
+                self.button(s, b, label, lambda v=v: setattr(self, "view", v), self.mouse, on=self.view == v)
         y += 20
         if name is None:
             self.text(s, "?", area.centerx, area.centery - 30, DIM, center=True)
@@ -399,6 +481,9 @@ class Dex:
         from evolve import feet
         self.text(s, feet(name), frame.right - 6, frame.bottom - 16, TEXT, right=True)  # how tall it is
         y = frame.bottom + 8
+        if self.view == "lore":
+            self.lore(s, area, name, x, y)
+            return
         self.text(s, "Ability", x, y, DIM)
         self.text(s, sp["ability"], area.right - 12, y, TEXT, right=True)
         y += 20
