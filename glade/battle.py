@@ -189,95 +189,110 @@ MOVES = {
 # --- the animals ---------------------------------------------------------------------
 # base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed — first stages, totals 300-320
 # num: its Forest Dex number (dex.py). Each line of three evolutions takes three numbers in a
-# row, so the next new animal is #022 and its evolutions #023 and #024; room for 260.
+# row; the three starters' lines come first (#001-#009); room for 260.
 
 SPECIES = {
-    "Critter": dict(num=1, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
+    "Duskit": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                           "Swords Dance", "Agility"]),
-    "Squid": dict(num=4, types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
+    "Driftquid": dict(num=13, types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
                   pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                         "Hypnosis", "Recover", "Calm Mind"]),
-    "Slug": dict(num=7, types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
+    "Gloamslug": dict(num=16, types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
                  pool=["Sludge Bomb", "Sludge", "Toxic", "Acid Armor", "Giga Drain", "Mud-Slap", "Rest", "Curse",
                        "Pain Split", "Haze", "Body Slam"]),
-    "Snail": dict(num=10, types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
+    "Cairnsnail": dict(num=19, types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
                   pool=["Rock Slide", "Ancient Power", "Silver Wind", "Rock Tomb", "Iron Defense", "Withdraw",
                         "Protect", "Toxic", "Rest", "Leech Life", "Curse"]),
-    "Millipede": dict(num=13, types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
+    "Luminpede": dict(num=22, types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
                       pool=["Poison Tail", "Pin Missile", "Signal Beam", "Sludge Bomb", "Toxic", "Swords Dance",
                             "Agility", "Screech", "Rock Tomb"]),
-    "Koi": dict(num=16, types=("Water",), base=(53, 60, 45, 42, 49, 61), ability="Swift Swim",
+    "Lilyfin": dict(num=25, types=("Water",), base=(53, 60, 45, 42, 49, 61), ability="Swift Swim",
                 pool=["Waterfall", "Hydro Pump", "Surf", "Dragon Dance", "Return", "Bubble Beam", "Dragon Breath",
                       "Twister", "Ice Beam", "Body Slam"]),
-    "Tree Squid": dict(num=19, types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
+    "Canopod": dict(num=28, types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
                        pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
                              "Octazooka", "Synthesis", "Sleep Powder"]),
-    "Lantern Moth": dict(num=22, types=("Bug", "Fire"), base=(45, 35, 40, 75, 55, 70), ability="Shield Dust",
+    "Lantern Moth": dict(num=31, types=("Bug", "Fire"), base=(45, 35, 40, 75, 55, 70), ability="Shield Dust",
                          pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
                                "Morning Sun", "Gust"]),
-    "Dusk Bat": dict(num=25, types=("Dark", "Flying"), base=(50, 55, 40, 45, 45, 75), ability="Inner Focus",
+    "Dusk Bat": dict(num=34, types=("Dark", "Flying"), base=(50, 55, 40, 45, 45, 75), ability="Inner Focus",
                      pool=["Bite", "Crunch", "Wing Attack", "Aerial Ace", "Faint Attack", "Confuse Ray", "Supersonic",
                            "Leech Life", "Screech"]),
-    "Glimmer Drake": dict(num=28, types=("Dragon", "Flying"), base=(46, 62, 43, 50, 44, 75), ability="Levitate",
+    "Glimmer Drake": dict(num=37, types=("Dragon", "Flying"), base=(46, 62, 43, 50, 44, 75), ability="Levitate",
                           pool=["Dragon Breath", "Twister", "Dragon Claw", "Dragon Dance", "Wing Attack", "Aerial Ace",
                                 "Quick Attack", "Silver Wind", "Double Team"]),
-    "Mist Wisp": dict(num=31, types=("Ghost",), base=(40, 35, 45, 70, 60, 60), ability="Levitate",
+    "Mist Wisp": dict(num=40, types=("Ghost",), base=(40, 35, 45, 70, 60, 60), ability="Levitate",
                       pool=["Shadow Ball", "Night Shade", "Lick", "Astonish", "Confuse Ray", "Will-O-Wisp",
                             "Hypnosis", "Psybeam", "Pain Split"]),
-    "Brawl Toad": dict(num=34, types=("Fighting",), base=(60, 70, 55, 30, 45, 50), ability="Thick Fat",
+    "Brawl Toad": dict(num=43, types=("Fighting",), base=(60, 70, 55, 30, 45, 50), ability="Thick Fat",
                        pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
                              "Rock Tomb", "Bubble Beam"]),
-    "Moss Mole": dict(num=37, types=("Ground",), base=(55, 65, 60, 30, 40, 60), ability="Rock Head",
+    "Moss Mole": dict(num=46, types=("Ground",), base=(55, 65, 60, 30, 40, 60), ability="Rock Head",
                       pool=["Mud Shot", "Earthquake", "Mud-Slap", "Take Down", "Fury Swipes", "Sand-Attack",
                             "Rock Slide", "Rock Tomb"]),
-    "Sporeling": dict(num=40, types=("Grass", "Poison"), base=(60, 45, 55, 65, 60, 25), ability="Effect Spore",
+    "Sporeling": dict(num=49, types=("Grass", "Poison"), base=(60, 45, 55, 65, 60, 25), ability="Effect Spore",
                       pool=["Absorb", "Mega Drain", "Giga Drain", "Sludge Bomb", "Stun Spore", "Sleep Powder",
                             "Poison Powder", "Leech Seed", "Synthesis"]),
-    "Rime Newt": dict(num=43, types=("Water", "Ice"), base=(50, 45, 50, 65, 50, 60), ability="Water Absorb",
+    "Rime Newt": dict(num=52, types=("Water", "Ice"), base=(50, 45, 50, 65, 50, 60), ability="Water Absorb",
                       pool=["Powder Snow", "Aurora Beam", "Ice Beam", "Water Gun", "Bubble Beam", "Surf", "Haze",
                             "Amnesia", "Quick Attack"]),
-    "Copper Beetle": dict(num=46, types=("Steel", "Electric"), base=(50, 60, 70, 45, 45, 40), ability="Static",
+    "Copper Beetle": dict(num=55, types=("Steel", "Electric"), base=(50, 60, 70, 45, 45, 40), ability="Static",
                           pool=["Metal Claw", "Iron Tail", "Iron Defense", "Harden", "Spark", "Shock Wave",
                                 "Thunder Wave", "Thunderbolt"]),
-    "Moon Owlet": dict(num=49, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
+    "Moon Owlet": dict(num=58, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
                        pool=["Peck", "Wing Attack", "Aerial Ace", "Air Cutter", "Hypnosis", "Confusion", "Return",
                              "Quick Attack"]),
     # the far places (2026-10-27): the Snowy Ridge (left of the Forest) ...
-    "Frost Kit": dict(num=52, types=("Ice",), base=(45, 50, 40, 65, 50, 70), ability="Run Away",
+    "Frost Kit": dict(num=61, types=("Ice",), base=(45, 50, 40, 65, 50, 70), ability="Run Away",
                       pool=["Powder Snow", "Icy Wind", "Ice Beam", "Aurora Beam", "Quick Attack", "Bite", "Agility",
                             "Double Team", "Haze"]),
-    "Fluffhorn": dict(num=55, types=("Rock", "Normal"), base=(60, 65, 70, 30, 45, 40), ability="Rock Head",
+    "Fluffhorn": dict(num=64, types=("Rock", "Normal"), base=(60, 65, 70, 30, 45, 40), ability="Rock Head",
                       pool=["Headbutt", "Rock Slide", "Rock Tomb", "Take Down", "Double-Edge", "Iron Defense",
                             "Body Slam", "Icy Wind", "Rest"]),
-    "Aurora Finch": dict(num=58, types=("Ice", "Flying"), base=(40, 45, 40, 65, 55, 70), ability="Keen Eye",
+    "Aurora Finch": dict(num=67, types=("Ice", "Flying"), base=(40, 45, 40, 65, 55, 70), ability="Keen Eye",
                          pool=["Peck", "Aerial Ace", "Air Cutter", "Icy Wind", "Aurora Beam", "Powder Snow", "Agility",
                                "Haze", "Gust"]),
     # ... and the Hot Springs (right of the River)
-    "Steambara": dict(num=61, types=("Water", "Fire"), base=(75, 45, 55, 55, 55, 30), ability="Oblivious",
+    "Steambara": dict(num=70, types=("Water", "Fire"), base=(75, 45, 55, 55, 55, 30), ability="Oblivious",
                       pool=["Water Gun", "Surf", "Ember", "Flamethrower", "Rest", "Amnesia", "Body Slam", "Calm Mind",
                             "Haze"]),
-    "Ember Gecko": dict(num=64, types=("Fire", "Ground"), base=(45, 65, 45, 55, 40, 70), ability="Flash Fire",
+    "Ember Gecko": dict(num=73, types=("Fire", "Ground"), base=(45, 65, 45, 55, 40, 70), ability="Flash Fire",
                         pool=["Ember", "Fire Punch", "Flamethrower", "Mud Shot", "Mud-Slap", "Quick Attack", "Agility",
                               "Will-O-Wisp", "Rock Tomb"]),
-    "Vapor Jelly": dict(num=67, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
+    "Vapor Jelly": dict(num=76, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
                         pool=["Water Pulse", "Bubble Beam", "Spark", "Shock Wave", "Thunderbolt", "Thunder Wave",
                               "Confuse Ray", "Haze", "Recover"]),
+    # the three starters (2026-10-27): you choose one before your first battle (starter.py).
+    # Each line's final form is designed already, so its theme leads somewhere: Mossfawn ->
+    # Lichenhart -> Elderhart (Grass/Ghost, an ancient spirit stag, antlers a moss-hung tree of
+    # spirit lanterns); Kindlet -> Smoldershell -> Pyreclad (Fire/Steel, an armoured molten
+    # knight of a pangolin that rolls as a blazing wheel); Pippalotl -> Frillotl -> Leviolotl
+    # (Water/Dragon, a great river dragon of an axolotl, gills worn as a crown).
+    "Mossfawn": dict(num=1, types=("Grass",), base=(45, 55, 45, 60, 60, 52), ability="Overgrow",
+                     pool=["Absorb", "Magical Leaf", "Giga Drain", "Leech Seed", "Synthesis", "Take Down",
+                           "Quick Attack", "Astonish", "Confuse Ray"]),
+    "Kindlet": dict(num=4, types=("Fire",), base=(46, 58, 62, 48, 50, 46), ability="Blaze",
+                    pool=["Ember", "Fire Punch", "Flamethrower", "Metal Claw", "Iron Defense", "Rock Tomb",
+                          "Quick Attack", "Iron Tail"]),
+    "Pippalotl": dict(num=7, types=("Water",), base=(52, 48, 50, 60, 58, 46), ability="Torrent",
+                      pool=["Water Gun", "Bubble Beam", "Water Pulse", "Surf", "Dragon Breath", "Twister", "Amnesia",
+                            "Haze", "Rest"]),
     # middle evolutions (evolve.py): base totals about 410 (Ivysaur 405), same shape, a few
     # stronger moves; numbered right after their first stage
-    "Glowtail": dict(num=2, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",
+    "Glowtail": dict(num=11, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",
                      pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                            "Swords Dance", "Agility", "Slash", "Hyper Fang"]),
-    "Nimbusquid": dict(num=5, types=("Water", "Psychic"), base=(59, 50, 54, 88, 74, 84), ability="Levitate",
+    "Nimbusquid": dict(num=14, types=("Water", "Psychic"), base=(59, 50, 54, 88, 74, 84), ability="Levitate",
                        pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                              "Hypnosis", "Recover", "Calm Mind", "Hydro Pump"]),
-    "Beacon Moth": dict(num=23, types=("Bug", "Fire"), base=(58, 45, 51, 96, 70, 90), ability="Shield Dust",
+    "Beacon Moth": dict(num=32, types=("Bug", "Fire"), base=(58, 45, 51, 96, 70, 90), ability="Shield Dust",
                         pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
                               "Morning Sun", "Gust", "Heat Wave"]),
-    "Bruiser Toad": dict(num=35, types=("Fighting",), base=(79, 92, 73, 40, 59, 66), ability="Thick Fat",
+    "Bruiser Toad": dict(num=44, types=("Fighting",), base=(79, 92, 73, 40, 59, 66), ability="Thick Fat",
                          pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
                                "Rock Tomb", "Bubble Beam", "Cross Chop"]),
-    "Sporestride": dict(num=41, types=("Grass", "Poison"), base=(79, 59, 73, 86, 79, 33), ability="Effect Spore",
+    "Sporestride": dict(num=50, types=("Grass", "Poison"), base=(79, 59, 73, 86, 79, 33), ability="Effect Spore",
                         pool=["Absorb", "Mega Drain", "Giga Drain", "Sludge Bomb", "Stun Spore", "Sleep Powder",
                               "Poison Powder", "Leech Seed", "Synthesis", "Spore"]),
 }
@@ -291,6 +306,9 @@ CRIT = (1 / 16, 1 / 8, 1 / 4, 1 / 3, 1 / 2)
 ACC = ((33, 100), (36, 100), (43, 100), (50, 100), (60, 100), (75, 100), (1, 1),
        (133, 100), (166, 100), (2, 1), (233, 100), (133, 50), (3, 1))
 LEVEL = 100
+
+
+STARTER_ABILITY = {"Overgrow": "Grass", "Blaze": "Fire", "Torrent": "Water"}
 
 
 def staged(value, n):
@@ -318,16 +336,19 @@ def moveset(species, rng):
 
 
 class Mon:
-    def __init__(self, species, rng, foe=False):
+    def __init__(self, species, rng, foe=False, ivs=None, moves=None, label=None):
+        """`ivs`: its own IVs (team.py), all 31 if not given; `moves`: its four, or random ones."""
         sp = SPECIES[species]
         self.species, self.types, self.ability = species, sp["types"], sp["ability"]
-        self.name = ("Foe " if foe else "") + species
+        self.name = label or (("Foe " if foe else "") + species)
+        self.ivs = tuple(ivs) if ivs else (31,) * 6
         hp, *rest = sp["base"]
-        # Gen 3: ((2*Base + IV + EV/4) * Level / 100) + 5, HP + Level + 10; IV 31, EV 84
-        self.maxhp = (2 * hp + 31 + 21) * LEVEL // 100 + LEVEL + 10
-        self.stats = {k: (2 * b + 31 + 21) * LEVEL // 100 + 5 for k, b in zip(STATS, rest)}
+        # Gen 3: ((2*Base + IV + EV/4) * Level / 100) + 5, HP + Level + 10; EV 84
+        self.maxhp = (2 * hp + self.ivs[0] + 21) * LEVEL // 100 + LEVEL + 10
+        self.stats = {k: (2 * b + iv + 21) * LEVEL // 100 + 5 for k, b, iv in zip(STATS, rest, self.ivs[1:])}
         self.hp = self.maxhp
-        self.moves = [[m, MOVES[m]["pp"]] for m in moveset(species, rng)]
+        picked = [m for m in (moves or []) if m in MOVES] or moveset(species, rng)
+        self.moves = [[m, MOVES[m]["pp"]] for m in picked]
         self.status, self.sleep, self.toxic, self.confused = None, 0, 0, 0
         self.boosts = dict.fromkeys(STATS + ("acc", "eva"), 0)
         self.flinch, self.protected, self.protect_run = False, False, 0
@@ -342,46 +363,145 @@ class Mon:
         return [i for i, (_, pp) in enumerate(self.moves) if pp > 0]
 
 
-class Battle:
-    """The rules. `turn(i)` plays a whole turn with your move `i`; what happened is added to
-    `events`: (text, (your hp, its hp), (your status, its status), who was hit, who acted) —
-    sides are 0 (yours) and 1; "who acted" is -1 - side when that side faints."""
+def as_mon(x, rng, foe):
+    """A Mon from a species name, a (species, ivs, moves) tuple, or a team.Kept."""
+    if isinstance(x, Mon):
+        return x
+    if isinstance(x, str):
+        return Mon(x, rng, foe)
+    if isinstance(x, tuple):
+        species, ivs, moves = (list(x) + [None, None])[:3]
+        return Mon(species, rng, foe, ivs, moves)
+    return Mon(x.species, rng, foe, x.ivs, x.moves)
 
-    def __init__(self, mine, theirs, rng=None):
+
+class Battle:
+    """The rules. Each side is a team of one to six (Gen 3 singles: one out at a time).
+    `turn(action)` plays a whole turn: `action` is a move's number, ("switch", i) or
+    ("jar",) — a glow jar thrown at a wild animal. What happened is added to `events`:
+    (text, (your hp, its hp), (your status, its status), who was hit, who acted, who is out)
+    — sides are 0 (yours) and 1; "who acted" is -1 - side when that side faints; "who is out"
+    is each side's place in its team. When yours faints and you have more, `need` is 0 until
+    you send the next one out with ("switch", i)."""
+
+    def __init__(self, mine, theirs, rng=None, wild=False, intro=None):
         self.rng = rng or random.Random()
-        self.mons = [Mon(mine, self.rng), Mon(theirs, self.rng, foe=True)]
+        mine = mine if isinstance(mine, list) else [mine]
+        theirs = theirs if isinstance(theirs, list) else [theirs]
+        self.teams = [[as_mon(x, self.rng, False) for x in mine][:6], [as_mon(x, self.rng, True) for x in theirs][:6]]
+        self.active = [0, 0]
+        self.wild = wild
+        self.need = None
+        self.caught = None
         self.events = []
         self.winner = None
         self.number = 0
-        self.say(f"A wild battle! {self.mons[0].name} vs. {self.mons[1].name}!")
+        a, b = self.mons
+        self.say(intro or (f"A wild {b.species} appeared! Go, {a.name}!" if wild else
+                           f"A wild battle! {a.name} vs. {b.name}!"))
+
+    @property
+    def mons(self):
+        return [self.teams[0][self.active[0]], self.teams[1][self.active[1]]]
+
+    def left(self, side):
+        """How many on that side can still fight."""
+        return sum(1 for m in self.teams[side] if m.hp > 0)
 
     # --- reporting ---
     def say(self, text, hit=None, by=None):
         a, b = self.mons
-        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit, by))
+        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit, by, tuple(self.active)))
 
     def side(self, mon):
         return self.mons.index(mon)
 
     # --- a turn ---
-    def turn(self, i):
+    def turn(self, action):
         if self.winner is not None:
             return
+        if self.need == 0:  # yours fainted: sending the next one out is not a turn
+            if isinstance(action, tuple) and action[0] == "switch":
+                self.switch_in(0, action[1])
+                self.need = None
+            return
         self.number += 1
-        me, foe = self.mons
-        picks = [self.move_of(me, i), self.move_of(foe, self.choose())]
         for m in self.mons:
             m.protected = False
-        order = sorted(range(2), key=lambda s: (MOVES[picks[s]].get("prio", 0), self.mons[s].speed(),
-                                                self.rng.random()), reverse=True)
-        for n, s in enumerate(order):
+        acted = [False, False]
+        if isinstance(action, tuple) and action[0] == "switch":  # switching goes before any move
+            self.switch_in(0, action[1])
+            acted[0] = True
+        elif isinstance(action, tuple) and action[0] == "jar":
+            self.jar()
+            acted[0] = True
             if self.winner is not None:
-                break
-            self.act(self.mons[s], self.mons[1 - s], picks[s], first=n == 0)
-        if self.winner is None:
-            self.end_of_turn(order)
+                return
+        foe_pick = self.move_of(self.mons[1], self.choose())
+        picks = [None if acted[0] else self.move_of(self.mons[0], action), foe_pick]
+        order = sorted((s for s in range(2) if picks[s]),
+                       key=lambda s: (MOVES[picks[s]].get("prio", 0), self.mons[s].speed(), self.rng.random()),
+                       reverse=True)
+        for n, s in enumerate(order):
+            if any(m.hp <= 0 for m in self.mons):
+                break  # someone is down: the rest of the turn has nobody to aim at
+            self.act(self.mons[s], self.mons[1 - s], picks[s], first=n == 0 and not acted[0])
+        self.end_of_turn([0, 1])
         for m in self.mons:
             m.flinch = False
+        self.resolve()
+
+    def resolve(self):
+        """After a turn: who has lost, and who has to send in the next one."""
+        for side in (1, 0):
+            if self.mons[side].hp > 0 or self.winner is not None:
+                continue
+            if self.left(side) == 0:
+                self.winner = 1 - side
+                if self.winner == 0:
+                    self.say(f"You win! {self.mons[0].name} is the champion of the glade!" if len(self.teams[1]) == 1
+                             else "You won the battle!")
+                else:
+                    self.say(f"You lost... {self.mons[1].name} wins!" if len(self.teams[0]) == 1
+                             else "You're out of creatures who can fight... You lost.")
+            elif side == 1:  # the foe sends in its next one
+                nxt = next(i for i, m in enumerate(self.teams[1]) if m.hp > 0)
+                self.switch_in(1, nxt)
+            else:
+                self.need = 0
+                self.say("Who will you send out next?")
+
+    def switch_in(self, side, i):
+        team = self.teams[side]
+        if not (0 <= i < len(team)) or team[i].hp <= 0 or i == self.active[side]:
+            return
+        old = self.mons[side]
+        old.boosts = dict.fromkeys(old.boosts, 0)
+        old.confused, old.seeded, old.protect_run, old.flinch = 0, False, 0, False
+        if old.status == "tox":
+            old.toxic = 0
+        self.active[side] = i
+        new = self.mons[side]
+        if side == 0:
+            self.say(f"Come back, {old.name}! Go, {new.name}!" if old.hp > 0 else f"Go, {new.name}!")
+        else:
+            self.say(f"The foe sent out {new.species}!")
+
+    def jar(self):
+        """Throw a glow jar at a wild animal: it wobbles, and holds or breaks open."""
+        from team import catch_shakes
+        f = self.mons[1]
+        self.say("You threw a glow jar!")
+        n = catch_shakes(f.maxhp, f.hp, f.status, self.rng)
+        for _ in range(min(n, 3)):
+            self.say("... the jar wobbles ...")
+        if n == 4:
+            self.caught = f
+            self.winner = 0
+            self.say(f"Gotcha! {f.species} was caught!")
+        else:
+            self.say(("Oh no! It broke free!", "Aww! It appeared to be caught!", "Argh! Almost had it!",
+                      "Shoot! It was so close, too!")[min(n, 3)])
 
     def move_of(self, mon, i):
         if not mon.usable():
@@ -430,7 +550,7 @@ class Battle:
         return True
 
     def act(self, u, f, name, first):
-        if u.hp <= 0 or not self.can_move(u):
+        if u.hp <= 0 or f.hp <= 0 or not self.can_move(u):
             return
         m = MOVES[name]
         self.say(f"{u.name} used {name}!", by=self.side(u))
@@ -471,6 +591,8 @@ class Battle:
             a = a * 15 // 10
         if f.ability == "Thick Fat" and t in ("Fire", "Ice"):
             a //= 2
+        if u.hp * 3 <= u.maxhp and STARTER_ABILITY.get(u.ability) == t:  # Overgrow, Blaze, Torrent
+            a = a * 15 // 10
         dmg = (a * m["p"] * (2 * LEVEL // 5 + 2) // d) // 50
         if phys and u.status == "brn" and u.ability != "Guts":
             dmg //= 2
@@ -656,15 +778,10 @@ class Battle:
         self.say(f"{mon.name}'s {nm} {word}")
 
     def check_faint(self, mon):
-        if mon.hp <= 0 and self.winner is None:
+        if mon.hp <= 0 and not getattr(mon, "down", False):
             mon.hp = 0
+            mon.down = True
             self.say(f"{mon.name} fainted!", by=-1 - self.side(mon))
-            other = self.mons[1 - self.side(mon)]
-            self.winner = self.side(other)
-            if self.winner == 0:
-                self.say(f"You win! {other.name} is the champion of the glade!")
-            else:
-                self.say(f"You lost... {other.name} wins!")
 
     def end_of_turn(self, order):
         for s in order:
@@ -686,8 +803,8 @@ class Battle:
                 self.say(f"{m.name}'s health is sapped by Leech Seed!", hit=s)
                 self.check_faint(m)
                 self.check_faint(other)
-                if self.winner is not None:
-                    return
+                if m.hp <= 0:
+                    continue
             if m.status == "brn":
                 m.hp = max(0, m.hp - max(1, m.maxhp // 8))
                 self.say(f"{m.name} is hurt by its burn!", hit=s)
@@ -699,8 +816,6 @@ class Battle:
                 m.hp = max(0, m.hp - max(1, m.maxhp * m.toxic // 16))
                 self.say(f"{m.name} is hurt by poison!", hit=s)
             self.check_faint(m)
-            if self.winner is not None:
-                return
 
     # --- the opponent ---
     def choose(self):
@@ -755,15 +870,17 @@ def species_of(obj):
         return obj.species
     name = type(obj).__name__
     if name in ("Squid", "Nibbler", "HollowSquid"):
-        return "Squid"
+        return "Driftquid"
     if name == "Slug":
-        return "Snail" if getattr(obj, "shell", None) else "Slug"
+        return "Cairnsnail" if getattr(obj, "shell", None) else "Gloamslug"
     if name == "Fish":
-        return "Koi"
-    if name in ("Millipede", "Critter"):
-        return name
+        return "Lilyfin"
+    if name == "Millipede":
+        return "Luminpede"
+    if name == "Critter":
+        return "Duskit"
     if name == "TreeSquid":
-        return "Moon Owlet" if getattr(obj, "kind", "squid") == "owlet" else "Tree Squid"
+        return "Moon Owlet" if getattr(obj, "kind", "squid") == "owlet" else "Canopod"
     return None
 
 
@@ -974,16 +1091,24 @@ def draw_elsewhere(s, a, at, t, scratch, alpha=255, cut=None, R=56):
 
 
 class Arena:
-    """The whole egg: choosing two animals, then the battle box. It goes with him from place
-    to place: he can pick an animal in one and its opponent in another, and the field
-    and fighters are in whichever place he is looking at (`scene`/`lower`, kept up to date
-    by the glade)."""
+    """The battle box. Three ways in:
+    - "pick" (the moon egg): click two animals anywhere; one each, borrowed for the fight.
+    - "wild" (an animal's stats card, "Battle it!"): your party (team.py) against that wild
+      animal, and a glow jar to catch it with. With nobody caught yet, you click any animal
+      to fight for you.
+    - "tower" (the Battle Tower, tower.py): your chosen team against a trainer's six.
+    It goes with him from place to place (`scene`/`lower`, kept up to date by the glade): the
+    field and fighters are in whichever place he is looking at."""
 
     W, H = 380, 206
 
-    def __init__(self, scene, lower, font, t):
+    def __init__(self, scene, lower, font, t, mode="pick", foe=None, mine=None, foes=None, intro=None, after=None):
+        """`foe`: (animal, species, its place) for a wild battle; `mine`: your team (team.Kept
+        list); `foes`: the other side's team for the tower; `after(arena, t)`: the tower's
+        buttons once a battle is over, [(label, action)]."""
         self.scene, self.lower, self.font = scene, lower, font
         self.rect = pygame.Rect(10, 540 - 10 - self.H, self.W, self.H)
+        self.mode, self.foe, self.mine, self.foes, self.intro, self.after = mode, foe, mine or [], foes, intro, after
         self.phase = "pick"
         self.picked = []          # [(animal, species, the place it lives)]
         self.battle = None
@@ -992,14 +1117,25 @@ class Arena:
         self.hp = [0.0, 0.0]      # the bars, easing towards `target`
         self.target = [0, 0]
         self.status = [None, None]
+        self.shown = [0, 0]       # who is out on each side, as far as the log has got
         self.hits = []            # (side, time): a glow on the animal that was hurt
         self.buttons = []         # (rect, action)
+        self.menu = None          # "switch": choosing who to send in
         self.done = False
         self.t0 = t
         self.mouse = None  # the top view's pointer, set by the glade
-        self.fighters = []
+        self.out = {}      # side -> the Fighter out on the field
+        self.leavers = []  # fighters walking off (switched out) or fading (fainted)
+        self.bodies = {}   # (side, place in team) -> a body made to be drawn (team.body)
+        self.caught = None  # the wild animal, once it is in a jar
         self.leaving = None   # when they set off home
         self.scratch = art.solid()
+        if mode == "tower" or (mode == "wild" and self.mine):
+            self.start(t)
+
+    @property
+    def fighters(self):
+        return list(self.out.values()) + self.leavers
 
     # --- clicks ---
     def click(self, glade, t):
@@ -1024,7 +1160,7 @@ class Arena:
             hit = self.animal_at(m, low, t)
             if hit is not None:
                 self.picked.append((*hit, self.scene))
-                if len(self.picked) == 2:
+                if len(self.picked) == (1 if self.mode == "wild" else 2):
                     self.start(t)
                 return True
         return False
@@ -1044,20 +1180,76 @@ class Arena:
                 and sp.boards[2].colliderect(cover)]
 
     def animal_at(self, m, low, t):
-        return animal_under(self.scene, self.lower, m, low, t, skip=[p[0].obj for p in self.picked])
+        skip = [p[0].obj for p in self.picked] + ([self.foe[0].obj] if self.foe else [])
+        return animal_under(self.scene, self.lower, m, low, t, skip=skip)
 
+    # --- the battle ---
     def start(self, t):
-        self.battle = Battle(self.picked[0][1], self.picked[1][1])
+        from team import ivs_of
+        own = lambda a, sp: (sp, ivs_of(a.obj), None)  # noqa: E731  an animal of the glade, with its own IVs
+        if self.mode == "pick":
+            (a, sa, _), (b, sb, _) = self.picked
+            self.battle = Battle([own(a, sa)], [own(b, sb)])
+        elif self.mode == "wild":
+            mine = self.mine or [own(self.picked[0][0], self.picked[0][1])]
+            self.battle = Battle(mine, [own(self.foe[0], self.foe[1])], wild=True)
+        else:
+            self.battle = Battle(self.mine, self.foes, intro=self.intro)
+        self.caught = None
+        self.begin(t)
+
+    def begin(self, t):
         a, b = self.battle.mons
         self.hp, self.target = [float(a.hp), float(b.hp)], [a.hp, b.hp]
+        self.status = [None, None]
         self.phase = "fight"
+        self.menu = None
         self.log, self.queue = [], []
-        if not self.fighters:  # they walk out onto the field, then the battle begins
-            self.fighters = [Fighter(animal, side, t, home) for side, (animal, _, home) in enumerate(self.picked)]
+        first = not self.out
+        for side in (0, 1):
+            self.send_out(side, self.battle.active[side], t)
+        self.shown = list(self.battle.active)
+        if first:  # they walk out onto the field, then the battle begins
             self.next_at = t + WALK
-        for f in self.fighters:
-            f.fainted = None
         self.feed(t)
+
+    def restart(self, foes, intro, t):
+        """The tower's next challenger: your team healed, a new team against it."""
+        self.foes, self.intro = foes, intro
+        self.battle = Battle(self.mine, foes, intro=intro)
+        for side in (0, 1):  # whoever is out goes off; the new ones come on
+            old = self.out.pop(side, None)
+            if old is not None and old.fainted is None:
+                old.going_home = t
+                self.leavers.append(old)
+        self.bodies = {}
+        self.begin(t)
+        self.next_at = t + WALK
+
+    def animal(self, side, i):
+        """What to draw for that side's i-th: a real animal of the glade, or a body made for it."""
+        if self.mode == "pick":
+            a, _, home = self.picked[side]
+            return a, home
+        if side == 1 and self.mode == "wild":
+            return self.foe[0], self.foe[2]
+        if side == 0 and self.mode == "wild" and not self.mine:
+            a, _, home = self.picked[0]
+            return a, home
+        key = (side, i)
+        if key not in self.bodies:
+            from team import body
+            self.bodies[key] = body(self.battle.teams[side][i].species, at=(300 + 360 * side, 260 + 40 * i))
+        return self.bodies[key], None
+
+    def send_out(self, side, i, t):
+        old = self.out.get(side)
+        if old is not None:
+            if old.fainted is None:
+                old.going_home = t
+            self.leavers.append(old)
+        a, home = self.animal(side, i)
+        self.out[side] = Fighter(a, side, t, home)
 
     def leave(self, t):
         """Everyone goes home; the field fades away."""
@@ -1068,21 +1260,41 @@ class Arena:
             f.going_home = t
 
     def finish(self):
-        """Every animal back where it lives, and seen again."""
+        """Every animal back where it lives, and seen again — except one caught in a jar."""
         for f in self.fighters:
-            f.hide(False)
-        self.fighters = []
+            if self.caught is not None and f.a.obj is self.caught:
+                f.saved = None
+                f.a.obj.gone = True
+                f.a.obj.caught = True  # it lives in your boxes now (storm.py leaves it be)
+            else:
+                f.hide(False)
+        self.out, self.leavers = {}, []
 
     def feed(self, t):
         self.queue.extend(self.battle.events)
         self.battle.events = []
         self.next_at = max(self.next_at, t)
 
-    def use(self, i, t):
+    def act(self, action, t):
         if self.queue or self.battle.winner is not None:
             return
-        self.battle.turn(i)
+        self.menu = None
+        self.battle.turn(action)
+        b = self.battle
+        if b.caught is not None and self.caught is None and self.foe:
+            from team import Collection, Kept
+            box = Collection()
+            where = box.add(Kept(b.caught.species, b.caught.ivs, [m for m, _ in b.caught.moves]))
+            if where is not None:
+                box.save()
+                self.caught = self.foe[0].obj
+                b.say(f"{b.caught.species} joined your party!" if where == "party" else f"{b.caught.species} was sent to {where}.")
+            else:
+                b.say("But your boxes are all full! It was let go.")
         self.feed(t)
+
+    def use(self, i, t):
+        self.act(i, t)
 
     def run(self, t):
         if self.phase == "pick" or self.battle is None or self.battle.winner is not None:
@@ -1091,7 +1303,7 @@ class Arena:
         if self.queue:
             return
         self.battle.winner = 1
-        self.battle.say("You got away safely!")
+        self.battle.say("You gave up the challenge." if self.mode == "tower" else "You got away safely!")
         self.feed(t)
 
     def again(self, t):
@@ -1100,13 +1312,19 @@ class Arena:
     # --- time passing ---
     def update(self, dt, t):
         while self.queue and t >= self.next_at:
-            text, hp, st, hit, by = self.queue.pop(0)
+            text, hp, st, hit, by, active = self.queue.pop(0)
+            for side in (0, 1):
+                if active[side] != self.shown[side]:
+                    self.send_out(side, active[side], t)
+                    self.shown[side] = active[side]
             self.target, self.status = list(hp), list(st)
-            if by is not None and self.fighters:
-                if by >= 0:
-                    self.fighters[by].lunge = t
-                else:
-                    self.fighters[-1 - by].fainted = t
+            if by is not None and self.out:
+                f = self.out.get(by if by >= 0 else -1 - by)
+                if f is not None:
+                    if by >= 0:
+                        f.lunge = t
+                    else:
+                        f.fainted = t
             if text:
                 self.log = (self.log + [text])[-3:]
             if hit is not None:
@@ -1116,6 +1334,16 @@ class Arena:
             gap = self.target[s] - self.hp[s]
             self.hp[s] += gap * min(1.0, dt * 6) if abs(gap) > 0.5 else gap
         self.hits = [(s, h) for s, h in self.hits if t - h < 0.6]
+        keep = []
+        for f in self.leavers:  # off the field: a real animal is home and seen again
+            gone = (f.fainted is not None and t - f.fainted > 1.0) or (f.going_home is not None and t - f.going_home > WALK)
+            if gone and self.leaving is None:
+                if f.scene is not None and f.a.obj is not self.caught and \
+                        all(f.a.obj is not o.a.obj for o in self.out.values()):
+                    f.hide(False)
+            else:
+                keep.append(f)
+        self.leavers = keep
         if self.leaving is not None and t - self.leaving > WALK:
             self.finish()
             self.done = True
@@ -1139,7 +1367,6 @@ class Arena:
     def cloth(self, s, r, tint, hot=False, alpha=200):
         cloth(s, r, tint, hot, alpha)
 
-
     def bar(self, s, x, y, w, hp, maxhp):
         f = max(0.0, min(1.0, hp / maxhp))
         c = (130, 255, 160) if f > 0.5 else (255, 220, 110) if f > 0.2 else (255, 110, 120)
@@ -1149,8 +1376,22 @@ class Arena:
             pygame.draw.line(s, mix(c, (255, 255, 255), 0.5), (x + 1, y + 1), (x + max(1, round(w * f)) - 2, y + 1))
         pygame.draw.rect(s, (*mix(c, EDGE, 0.3),), (x, y, w, 5), 1, border_radius=2)
 
+    def orbs(self, s, side, x, y):
+        """A glowing orb for each of that side's team: bright while it can fight, dark once down."""
+        team = self.battle.teams[side]
+        if len(team) < 2:
+            return
+        c = MINE if side == 0 else THEIRS
+        for i, mon in enumerate(team):
+            ox = x - i * 9
+            if mon.hp > 0 or (i == self.shown[side] and self.hp[side] > 0.5):
+                pygame.draw.circle(s, mix(c, (255, 255, 255), 0.3), (ox, y), 3)
+                s.set_at((ox - 1, y - 1), (255, 255, 255))
+            else:
+                pygame.draw.circle(s, mix(c, EDGE, 0.7), (ox, y), 3, 1)
+
     def panel(self, s, side, x, y, w, tint):
-        mon = self.battle.mons[side]
+        mon = self.battle.teams[side][self.shown[side]]
         self.cloth(s, pygame.Rect(x, y, w, 30), tint, alpha=170)
         nx = x + 6 + self.text(s, mon.name, x + 6, y + 3, (255, 255, 255))
         nx += 6 + self.text(s, "Lv100", nx + 6, y + 3, DIM)
@@ -1162,7 +1403,8 @@ class Arena:
         self.bar(s, x + 6, y + 20, w - 12, self.hp[side], mon.maxhp)
         hp = max(0, round(self.hp[side]))
         label = f"{hp}/{mon.maxhp}" if side == 0 else f"{math.ceil(100 * hp / mon.maxhp)}%"
-        self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
+        lw = self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
+        self.orbs(s, side, x + w - 14 - lw, y + 9)
 
     def draw(self, s, low, t):
         """`low`: drawing the lower screen (only animals on their way go there)."""
@@ -1172,7 +1414,7 @@ class Arena:
         for f in self.fighters:
             f.draw(s, ox, oy, t, self.scratch, self.scene)
             for side, h in self.hits:
-                if side == f.side:
+                if f is self.out.get(side):
                     x, y = f.where(t, self.scene)
                     glow(s, x - ox, y - oy, 26, (255, 255, 255), q(140 * (1 - (t - h) / 0.6)))
         self.rings(s, low, t)
@@ -1185,14 +1427,17 @@ class Arena:
             h = 48
             box = pygame.Rect(r.x, r.bottom - h, r.w, h)
             self.cloth(s, box, CLOTH, alpha=round(240 * k))
-            if not self.picked:
+            if self.mode == "wild":
+                line1, line2 = f"Battle the {self.foe[1]}!", "Nobody caught yet: click an animal to fight for you."
+            elif not self.picked:
                 line1, line2 = "BATTLE!", "Click an animal to be yours."
             else:
                 line1, line2 = f"{self.picked[0][1]} is ready!", "Now click the animal it will fight."
             self.text(s, line1, box.x + 8, box.y + 7, MINE if self.picked else (255, 255, 255))
-            self.text(s, line2, box.x + 8, box.y + 25)
+            self.text(s, self.fit(line2, box.w - 84), box.x + 8, box.y + 25)
             self.button(s, pygame.Rect(box.right - 66, box.y + 8, 58, 18), "Cancel", self.run, t)
             return
+        b = self.battle
         self.cloth(s, r, CLOTH, alpha=245)
         self.panel(s, 1, r.x + 6, r.y + 6, r.w - 12, THEIRS)
         self.panel(s, 0, r.x + 6, r.y + 40, r.w - 12, MINE)
@@ -1202,24 +1447,63 @@ class Arena:
             self.text(s, self.fit(line, r.w - 20), r.x + 10, r.y + 76 + i * 13, c)
         busy = bool(self.queue)
         y0 = r.y + 118
-        if self.battle.winner is None:
-            me = self.battle.mons[0]
-            bw = (r.w - 18) // 2
-            for i, (name, pp) in enumerate(me.moves):
-                m = MOVES[name]
-                br = pygame.Rect(r.x + 6 + (i % 2) * (bw + 6), y0 + (i // 2) * 34, bw, 30)
-                ok = not busy and pp > 0
-                self.move_button(s, br, name, m, pp, ok, t, i)
-            self.button(s, pygame.Rect(r.right - 50, r.bottom - 17, 44, 13), "Run", self.run, t, small=True,
-                        enabled=not busy)
+        if b.winner is None:
+            forced = b.need == 0
+            if (self.menu == "switch" or forced) and not busy:
+                self.switch_menu(s, r, y0, t, forced)
+            else:
+                me = b.mons[0]
+                bw = (r.w - 18) // 2
+                for i, (name, pp) in enumerate(me.moves):
+                    m = MOVES[name]
+                    br = pygame.Rect(r.x + 6 + (i % 2) * (bw + 6), y0 + (i // 2) * 34, bw, 30)
+                    self.move_button(s, br, name, m, pp, not busy and pp > 0, t, i)
+            x = r.right - 6
+            for label, action, show in (("Give up" if self.mode == "tower" else "Run", self.run, not forced),
+                                        ("Glow jar", lambda t: self.act(("jar",), t), b.wild and not forced),
+                                        ("Switch", self.open_switch, len(b.teams[0]) > 1 and not forced)):
+                if show:
+                    w = self.font.size(label)[0] + 12
+                    x -= w
+                    self.button(s, pygame.Rect(x, r.bottom - 17, w, 13), label, action, t, small=True,
+                                enabled=not busy, gold=label == "Glow jar")
+                    x -= 4
             if busy:
                 self.text(s, "...", r.x + 8, r.bottom - 16, DIM)
+            elif forced:
+                self.text(s, "Choose who goes out next", r.x + 8, r.bottom - 16, DIM)
             else:
-                self.text(s, f"Turn {self.battle.number + 1}: choose a move", r.x + 8, r.bottom - 16, DIM)
+                self.text(s, f"Turn {b.number + 1}", r.x + 8, r.bottom - 16, DIM)
         elif not busy:
-            self.button(s, pygame.Rect(r.x + 6, y0 + 10, (r.w - 18) // 2, 28), "Battle again", self.again, t)
-            self.button(s, pygame.Rect(r.x + 12 + (r.w - 18) // 2, y0 + 10, (r.w - 18) // 2, 28), "Close",
-                        self.close, t)
+            bw = (r.w - 18) // 2
+            if self.mode == "tower" and self.after:
+                choices = self.after(self, t)
+            elif self.mode == "pick":
+                choices = [("Battle again", self.again), ("Close", self.close)]
+            else:
+                choices = [("Close", self.close)]
+            for i, (label, action) in enumerate(choices):
+                w = (r.w - 12 - 6 * (len(choices) - 1)) // len(choices)
+                self.button(s, pygame.Rect(r.x + 6 + i * (w + 6), y0 + 10, w, 28), label, action, t)
+
+    def open_switch(self, t):
+        self.menu = None if self.menu == "switch" else "switch"
+
+    def switch_menu(self, s, r, y0, t, forced):
+        """Your team, to pick who goes in: name and health; the one out and the fainted can't."""
+        team = self.battle.teams[0]
+        bw = (r.w - 24) // 3
+        for i, mon in enumerate(team):
+            br = pygame.Rect(r.x + 6 + (i % 3) * (bw + 6), y0 + (i // 3) * 34, bw, 30)
+            ok = mon.hp > 0 and i != self.battle.active[0]
+            hot = ok and self.hot(br)
+            self.cloth(s, br, MINE if hot else mix(CLOTH, EDGE, 0.2 if ok else 0.55), hot=hot, alpha=215 if ok else 140)
+            self.text(s, self.fit(mon.species, bw - 10), br.x + 5, br.y + 3, (255, 255, 255) if hot else TEXT if ok else DIM)
+            self.bar(s, br.x + 5, br.y + 19, bw - 10, mon.hp, mon.maxhp)
+            if ok:
+                self.buttons.append((br, lambda t, i=i: self.act(("switch", i), t)))
+        if not forced:
+            self.button(s, pygame.Rect(r.x + 8, r.bottom - 17, 44, 13), "Back", self.open_switch, t, small=True)
 
     def close(self, t):
         self.leave(t)
@@ -1233,9 +1517,10 @@ class Arena:
         m = self.mouse() if self.mouse else None
         return bool(m) and r.collidepoint(m)
 
-    def button(self, s, r, label, action, t, small=False, enabled=True):
+    def button(self, s, r, label, action, t, small=False, enabled=True, gold=False):
         hot = enabled and self.hot(r)
-        self.cloth(s, r, MINE if hot else mix(CLOTH, EDGE, 0.2), hot=hot, alpha=210)
+        tint = (255, 214, 120) if gold else mix(CLOTH, EDGE, 0.2)
+        self.cloth(s, r, MINE if hot else tint, hot=hot, alpha=210)
         img = self.font.render(label, False, (255, 255, 255) if hot else TEXT if enabled else DIM)
         s.blit(img, img.get_rect(center=r.center))
         if enabled:
@@ -1253,22 +1538,23 @@ class Arena:
             self.buttons.append((r, lambda t, i=i: self.use(i, t)))
 
     def rings(self, s, low, t):
-        """A soft glowing ring around each chosen animal (mint: yours, pink: its foe), and a
-        flash on whichever one is hurt."""
-        if self.fighters:
+        """A soft glowing ring around each chosen animal (mint: yours, pink: its foe)."""
+        if self.out:
             return
         ox, oy = OFFSET if low else (0, 0)
-        for n, (a, _, home) in enumerate(self.picked):
-            if home is not self.scene:
+        chosen = list(self.picked) + ([self.foe] if self.foe else [])
+        for n, (a, _, home) in enumerate(chosen):
+            if a is None or home is not self.scene:
                 continue
             x, y = a.pos()
             if (y >= OFFSET[1]) != low:
                 continue
             x, y = x - ox, y - oy
-            c = MINE if n == 0 else THEIRS
+            c = THEIRS if (self.foe and a is self.foe[0]) or n == 1 else MINE
             k = 0.6 + 0.4 * math.sin(t * 3 + n)
             glow(s, x, y, 18, c, round(40 * k))
             pygame.draw.ellipse(s, mix(c, (255, 255, 255), 0.3 * k), (round(x) - 13, round(y) - 9, 26, 18), 1)
+
 
     def field(self, s, t):
         """Two mossy platforms, glowing in each side's colour, growing out of the grass when
@@ -1307,6 +1593,35 @@ def stat_color(v):
             else (150, 240, 130) if v < 120 else (110, 230, 220))
 
 
+IV_AXES = ("HP", "Atk", "Def", "Spe", "SpD", "SpA")  # round the web, clockwise from the top
+IV_ORDER = (0, 1, 2, 5, 4, 3)                        # where each axis's IV sits in (HP, Atk, Def, SpA, SpD, Spe)
+
+
+def iv_web(s, font, ivs, centre, r, t=0.0):
+    """A creature's IVs as a six-sided web: one spoke per stat, its point as far out as its
+    IV (31, the best, at the rim), the shape filled in glowing mint, each number at its spoke."""
+    cx, cy = centre
+    ang = [-math.pi / 2 + i * math.tau / 6 for i in range(6)]
+    for ring in (1.0, 0.66, 0.33):  # the guide rings
+        pts = [(cx + math.cos(a) * r * ring, cy + math.sin(a) * r * ring) for a in ang]
+        pygame.draw.polygon(s, mix(CLOTH, EDGE, 0.55 if ring < 1 else 0.3), pts, 1)
+    for a in ang:
+        pygame.draw.line(s, mix(CLOTH, EDGE, 0.55), (cx, cy), (cx + math.cos(a) * r, cy + math.sin(a) * r))
+    vals = [ivs[IV_ORDER[i]] for i in range(6)]
+    pts = [(cx + math.cos(a) * r * max(0.06, v / 31), cy + math.sin(a) * r * max(0.06, v / 31)) for a, v in zip(ang, vals)]
+    fill = pygame.Surface(s.get_size(), pygame.SRCALPHA)
+    pygame.draw.polygon(fill, (*MINE, 90), pts)
+    s.blit(fill, (0, 0))
+    pygame.draw.polygon(s, mix(MINE, (255, 255, 255), 0.3), pts, 1)
+    for (px, py), v in zip(pts, vals):
+        s.set_at((round(px), round(py)), (255, 255, 255))
+    for a, label, v in zip(ang, IV_AXES, vals):
+        lx, ly = cx + math.cos(a) * (r + 16), cy + math.sin(a) * (r + 10)
+        c = (255, 255, 255) if v == 31 else mix(stat_color(v * 4), TEXT, 0.3)
+        img = font.render(f"{label} {v}", False, c)
+        s.blit(img, img.get_rect(center=(round(lx), round(ly))))
+
+
 class Card:
     """A small board next to an animal with what it would be in a battle: its kind, types,
     ability and base stats, and a button that opens the Forest Dex at it (dex.py). Any
@@ -1315,18 +1630,23 @@ class Card:
     W = 200
     ROWS = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 
-    def __init__(self, font, view, at, species, t, animal=None, evolves=None):
+    WEB = 132  # the IV web's height
+
+    def __init__(self, font, view, at, species, t, animal=None, evolves=None, ivs=None, fight=True):
         """`animal`: the one right-clicked; `evolves`: what it can evolve into, if anything
-        (evolve.py) — then the card has an Evolve button too."""
+        (evolve.py) — then the card has an Evolve button too; `ivs`: its own IVs (team.py),
+        drawn as a six-sided web; `fight`: whether it has a "Battle it!" button."""
         self.font, self.view, self.species, self.t = font, view, species, t
-        self.animal, self.evolves = animal, evolves
-        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + 24 + (22 if evolves else 0)
+        self.animal, self.evolves, self.ivs = animal, evolves, ivs
+        web = self.WEB if ivs else 0
+        h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + web + 24 + (22 if evolves else 0) + (22 if fight else 0)
         self.rect = pygame.Rect(round(at[0]) + 12, round(at[1]) - h // 2, self.W, h)
         if self.rect.right > view.w - 4:  # no room on the right: open on the left
             self.rect.right = round(at[0]) - 12
         self.rect.clamp_ip(pygame.Rect(2, 2, view.w - 4, view.h - 4))
         self.button = pygame.Rect(self.rect.x + 8, self.rect.bottom - 24, self.W - 16, 18)
-        self.evolve = self.button.move(0, -22) if evolves else None
+        self.fight = self.button.move(0, -22) if fight else None
+        self.evolve = (self.fight or self.button).move(0, -22) if evolves else None
 
     def text(self, s, words, x, y, color=TEXT, right=False):
         img = self.font.render(words, False, color)
@@ -1365,6 +1685,9 @@ class Card:
         pygame.draw.line(surf, mix(CLOTH, EDGE, 0.4), (8, y - 2), (self.W - 8, y - 2))
         self.text(surf, "Total", 8, y, DIM)
         self.text(surf, str(sum(sp["base"])), 92, y, (255, 255, 255), right=True)
+        if self.ivs:
+            self.text(surf, "IVs: this one's own strength", 8, y + 16, DIM)
+            iv_web(surf, self.font, self.ivs, (self.W // 2, y + 80), 36, t)
         surf.set_alpha(round(255 * k))
         s.blit(surf, self.rect)
         mouse = getattr(self.view, "mouse", None)
@@ -1373,6 +1696,11 @@ class Card:
         cloth(s, self.button, MINE if hot else mix(CLOTH, EDGE, 0.2), hot=hot, alpha=round(220 * k))
         img = self.font.render("Open in Forest Dex", False, (255, 255, 255) if hot else TEXT)
         s.blit(img, img.get_rect(center=self.button.center))
+        if self.fight is not None:
+            hot = bool(m) and self.fight.collidepoint(m)
+            cloth(s, self.fight, (255, 150, 214) if hot else mix(THEIRS, EDGE, 0.25), hot=hot, alpha=round(220 * k))
+            img = self.font.render("Battle it!", False, (255, 255, 255) if hot else TEXT)
+            s.blit(img, img.get_rect(center=self.fight.center))
         if self.evolve is not None:  # glowing gold: something special
             hot = bool(m) and self.evolve.collidepoint(m)
             cloth(s, self.evolve, (255, 214, 120), hot=hot, alpha=round(225 * k))

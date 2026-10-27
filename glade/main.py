@@ -19,7 +19,11 @@ import art
 from apex import Hunt, Listener
 from battle import Arena, Card, animal_under
 from dex import Dex
+from starter import StarterBoard
+from storage import Storage
 import storm
+from team import Collection, ivs_of
+from tower import Run, TowerBoard
 from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
@@ -166,7 +170,7 @@ EDGE = (24, 14, 34)
 TEXT = (255, 238, 214)
 HOT = (255, 172, 228)
 # the glow inside each kind of banner: paths to other places, and apps / files
-MIST = dict(go=(110, 255, 180), app=(196, 140, 255), grow=(190, 255, 120))
+MIST = dict(go=(110, 255, 180), app=(196, 140, 255), grow=(190, 255, 120), tower=(255, 150, 214), boxes=(255, 214, 120))
 
 
 class Signs:
@@ -338,9 +342,10 @@ class Minimap:
     Pointing at another place shows its name; clicking it goes there."""
 
     NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
-                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs")
+                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower")
     COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
-                  forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110))
+                  forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110),
+                  tower=(255, 214, 236))
     CELL = 22  # canvas pixels between neighbouring places
 
     def __init__(self, font):
@@ -578,6 +583,8 @@ class Glade:
         self.popup = None  # the right-click menu, while it is open
         self.card = None   # an animal's battle stats (battle.py), from a right-click
         self.dex = None    # the Forest Dex (dex.py), opened from that card
+        self.board = None  # the Battle Tower's team picker (tower.py) or your creature boxes (storage.py)
+        self.run = None    # a go at the Battle Tower
         self.storm = None  # a thunderstorm (storm.py): the animals take turns
         self.storm_scratch = art.solid()
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
@@ -621,9 +628,26 @@ class Glade:
             self.history.append(self.here.key)
         self.fade_to, self.picked = key, None
 
+    def after_board(self, board, t):
+        """A board has closed: begin the tower challenge, or open the boxes, if that was asked."""
+        if getattr(board, "chosen", None) and board.then:
+            board.then(t)
+        elif getattr(board, "begin", False) and self.arena is None:
+            self.run = Run(board.team(), self)
+            self.arena = self.run.open(t)
+        elif getattr(board, "boxes", False):
+            self.board = Storage(self.signs.font, t)
+
     def activate(self, view, content, sp, t):
         if sp.kind == "grow":  # the seed sign: grow another tree for the squid
             content.colony.grow(t)
+            return
+        if sp.kind == "tower":  # the Battle Tower's door
+            if self.arena is None:
+                self.board = TowerBoard(self.signs.font, t)
+            return
+        if sp.kind == "boxes":  # the shrine where your creatures are kept
+            self.board = Storage(self.signs.font, t)
             return
         if sp.kind == "go":
             self.go(sp.target)
@@ -645,11 +669,24 @@ class Glade:
             if m and storm.button_rect(view).collidepoint(m):
                 self.storm, self.card, self.dex = storm.Storm(self, t), None, None
                 return
+        if self.board is not None:  # the tower's board or the boxes: like the dex
+            m = self.top.mouse()
+            board = self.board
+            if m and board.rect.collidepoint(m):
+                board.click(m)
+            else:
+                board.close()
+            if board.closed:
+                self.board = None
+                self.after_board(board, t)
+            return
         if self.dex is not None:  # the dex takes clicks on it; one outside it closes it
             m = self.top.mouse()
             if m and self.dex.rect.collidepoint(m):
                 self.dex.click(m)
                 if self.dex.closed:
+                    if getattr(self.dex, "boxes", False):
+                        self.board = Storage(self.signs.font, t)
                     self.dex = None
             else:
                 self.dex = None
@@ -659,6 +696,18 @@ class Glade:
             m = card.view.mouse()
             if m and card.button.collidepoint(m):
                 self.dex = Dex(self.signs.font, card.species, t)
+            elif m and card.fight is not None and card.fight.collidepoint(m) and self.arena is None:
+                def fight(t, animal=card.animal, species=card.species, here=self.here):
+                    if self.arena is not None or here is not self.here:
+                        return
+                    low = self.lower() if self.bottom else None  # a wild battle: your party against it
+                    self.arena = Arena(self.here, low, self.signs.font, t, mode="wild",
+                                       foe=(animal, species, self.here), mine=Collection().members())
+                    self.arena.mouse = self.top.mouse
+                if Collection().members():
+                    fight(t)
+                else:  # nobody in your party yet: first, choose your starter
+                    self.board = StarterBoard(self.signs.font, t, then=fight)
             elif m and card.evolve is not None and card.evolve.collidepoint(m) and self.evolution is None:
                 self.evolution = Evolution(card.animal, card.species, t)
                 self.evolution.font, self.evolution.scene = self.signs.font, self.here
@@ -709,6 +758,10 @@ class Glade:
         """Right-click an animal to see its battle stats; right-click a squid to open or
         remove it (or see its stats); right-click a tree he grew to take it away."""
         self.popup, self.card = None, None
+        if self.board is not None:
+            self.board.close()
+            board, self.board = self.board, None
+            return
         if self.dex is not None:
             self.dex = None
             return
@@ -729,7 +782,7 @@ class Glade:
                 choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
                            (gone, lambda t, sq=sq: colony.remove(sq)),
                            ("Battle stats", lambda t, v=view, m=m, sq=sq: self.show_card(
-                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Tree Squid", t))]
+                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Canopod", t))]
             elif sp is None:
                 low = self.lower() if self.bottom else None
                 found = animal_under(self.here, low, m, view is self.bottom, t)
@@ -759,7 +812,9 @@ class Glade:
 
     def show_card(self, view, m, species, t, animal=None):
         evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
-        self.card = Card(self.signs.font, view, m, species, t, animal, evolves)
+        ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
+        self.card = Card(self.signs.font, view, m, species, t, animal, evolves, ivs,
+                         fight=animal is not None and self.arena is None)
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that
@@ -929,6 +984,8 @@ class Glade:
                 self.card.draw(view.canvas, t)
             if self.dex is not None and view is self.top:
                 self.dex.draw(view.canvas, view.mouse(), t)
+            if self.board is not None and view is self.top:
+                self.board.draw(view.canvas, view.mouse(), t)
             if self.evolution is not None:
                 self.evolution.draw(view.canvas, view is self.bottom, t)
             if self.storm_view() is view:

@@ -42,7 +42,7 @@ def roster(content):
         return []
     out, seen = [], set()
     for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
-        if id(o) not in seen and type(o).__name__ in ROTATE:
+        if id(o) not in seen and type(o).__name__ in ROTATE and not getattr(o, "caught", False):  # caught: in your boxes
             seen.add(id(o))
             out.append(o)
     return out

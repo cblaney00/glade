@@ -44,25 +44,25 @@ def specimen(species):
         return thing
     rng = random.Random(7)
     cx, cy = PW // 2, PH - 12
-    if species == "Critter":
+    if species == "Duskit":
         return Critter(rng, lambda x: cy + 8, (cx + 18, cx + 18))
-    if species == "Squid":
+    if species == "Driftquid":
         return Squid(rng, (cx, cy - 12, 0, 0), GLOW["cyan"], size=1.1)
-    if species in ("Slug", "Snail"):
-        snail = species == "Snail"
+    if species in ("Gloamslug", "Cairnsnail"):
+        snail = species == "Cairnsnail"
         o = Slug(rng, Track([(2, cy + 4), (PW - 2, cy + 4)]), (220, 196, 180) if snail else (214, 170, 222),
                  size=1.3, speed=0, shell=(226, 170, 140) if snail else None)
         o.dir, o.d = 1, o.track.length * 0.78
         return o
-    if species == "Millipede":
+    if species == "Luminpede":
         o = Millipede(rng, Track([(-10, cy + 4), (PW - 4, cy + 4)]), (150, 110, 184), GLOW["cyan"], n=14, speed=0)
         o.dir, o.d = 1, o.track.length - 6
         return o
-    if species == "Koi":
+    if species == "Lilyfin":
         f = Fish(rng, Water(cx, cy, 20, 8), KOI[1], (78, 138, 228))
         f.pts = [[cx + 16 - i * Fish.SEG * 0.8, cy - 6 + (i % 2) * 0.5] for i in range(7)]
         return f
-    if species in ("Tree Squid", "Moon Owlet"):
+    if species in ("Canopod", "Moon Owlet"):
         return ("perch", "owlet" if species == "Moon Owlet" else "squid")
     for kind, spec in FLIERS.items():
         if spec["species"] == species:
@@ -137,6 +137,10 @@ class Dex:
         self.live = None  # (species, specimen, picture): the one shown in the entry, moving
         self.now = t
 
+    def open_boxes(self):
+        """Your creature boxes (storage.py) instead: the glade opens them as the dex closes."""
+        self.boxes, self.closed = True, True
+
     # --- clicks ---
     def click(self, m):
         for r, action in self.buttons:
@@ -189,6 +193,7 @@ class Dex:
                     on=self.tab == "dex")
         self.button(s, pygame.Rect(r.x + 314, r.y + 7, 76, 18), "Compare", lambda: setattr(self, "tab", "compare"),
                     m, on=self.tab == "compare")
+        self.button(s, pygame.Rect(r.x + 394, r.y + 7, 112, 18), "Your creatures", self.open_boxes, m)
         self.button(s, pygame.Rect(r.right - 66, r.y + 7, 56, 18), "Close", lambda: setattr(self, "closed", True), m)
         left = pygame.Rect(r.x + 10, r.y + 34, 540, r.h - 44)
         right = pygame.Rect(left.right + 10, left.y, r.right - left.right - 20, left.h)

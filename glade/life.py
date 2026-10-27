@@ -906,6 +906,25 @@ class Slug(Clock):
         self.mottle = [(rng.randrange(1, self.n - 1), rng.uniform(0.6, 1.6), rng.uniform(-0.6, 0.6))
                        for _ in range(int(10 * size))]
         self.mantle = mix(body, (255, 255, 255), 0.12)
+        self.roam = None  # every stretch of ground in its place, for it to wander about (scenes.py)
+
+    def wander(self):
+        """At the end of its track: on to somewhere new in its place, gliding there."""
+        body_len = self.seg * self.n
+        behind = [self.track.at(self.d - self.dir * k)[:2] for k in range(int(body_len) + 8, -1, -3)]
+        hx, hy = behind[-1]
+        ground, xr = self.rng.choice(self.roam)
+        tx = self.rng.uniform(*xr)
+        n = max(2, int(abs(tx - hx) / 8))
+        ahead = []
+        for i in range(1, n + 1):
+            f = i / n
+            x = hx + (tx - hx) * f
+            ahead.append((x, hy * (1 - f) + ground(x) * f))
+        pts = [p for i, p in enumerate(behind) if i == 0 or math.hypot(p[0] - behind[i - 1][0], p[1] - behind[i - 1][1]) > 0.5]
+        self.track = Track(pts + ahead)
+        self.d = self.track.lens[len(pts) - 1]
+        self.dir = 1
 
     def poke(self, x, y, t):
         hx, hy = self.head
@@ -927,8 +946,12 @@ class Slug(Clock):
             self.d += self.dir * self.speed * dt * (0.6 + 0.4 * math.sin(t * 2.2 + self.ph))
             if self.d > L - 2 or self.d < body_len + 2:
                 if self.d < body_len + 2 and self.dir < 0 or self.d > L - 2 and self.dir > 0:
-                    self.dir = -self.dir
-                    self.d = max(body_len + 2, min(L - 2, self.d))
+                    if self.roam and self.track.up is None:
+                        self.wander()
+                        L = self.track.length
+                    else:
+                        self.dir = -self.dir
+                        self.d = max(body_len + 2, min(L - 2, self.d))
             if self.rng.random() < dt * 0.05:
                 self.wait = self.rng.uniform(2, 7)
             if self.rng.random() < dt * 0.02:

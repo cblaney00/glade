@@ -206,13 +206,25 @@ class Lower(art.Lighting):
         from storm import newcomer
         from scenes import FLY, WALK
         out = spec.get("out", ())
+        roam = []  # every walker's stretch of ground: they all wander between them
+        if pond:
+            cx, cy, rx, ry = pond
+            wet = lambda x, y: ((x - cx) / (rx + 16)) ** 2 + ((y - cy) / (ry + 16)) ** 2 < 1  # noqa: E731
+        else:
+            wet = None
         for kind in spec.get("walkers", WALK):
             for _ in range(80):
                 x0, y0 = rng.randint(60, w - 280), rng.randint(90, h - 40)
                 if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)):
-                    wk = Walker(rng, lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200), kind, 2.0)
+                    line = (lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200))
+                    roam.append(line)
+                    wk = Walker(rng, line[0], line[1], kind, 2.0, roam=roam, avoid=wet)
                     crawlers.append(wk if kind in out else newcomer(wk))
                     break
+        if roam and not pond:  # the slugs wander between the same stretches (not where there is a pond)
+            for c in crawlers:
+                if type(c).__name__ == "Slug":
+                    c.roam = roam
         for kind in spec.get("fliers", FLY):
             fl = Flier(rng, (60, 20, w - 120, h // 2), kind, 2.0)
             crawlers.append(fl if kind in out else newcomer(fl))

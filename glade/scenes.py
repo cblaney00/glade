@@ -34,9 +34,10 @@ MAP = {
     "river": (1, 0),
     "ridge": (-2, 0),
     "springs": (2, 0),
+    "tower": (0, 2),
 }
 LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
-         ("forest", "ridge"), ("river", "springs")]
+         ("forest", "ridge"), ("river", "springs"), ("rocks", "tower")]
 
 
 def heading(here, there):
@@ -101,6 +102,10 @@ class Scene(art.Lighting):
         return thing
 
     def done(self):
+        roam = getattr(self, "roam", None) or [MEADOW]
+        for o in self.lives:  # slugs on the ground wander all over it (not the ones up a tree)
+            if type(o).__name__ == "Slug" and o.track.up is None:
+                o.roam = roam
         for sp in self.spots:  # every path points the way its place lies on the map
             if sp.kind == "go":
                 sp.direction = heading(self.key, sp.target)
@@ -134,6 +139,7 @@ class Scene(art.Lighting):
 
 
 FLY = ("bat", "moth", "drake", "wisp")
+MEADOW = (lambda x: 512 + 3 * math.sin(x / 45), (60, 900))  # the near grass, in every place
 WALK = ("toad", "mole", "sporeling", "newt", "beetle")
 
 
@@ -146,9 +152,11 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=()):
         f = sc.live(Flier(rng, sky, kind, 1.1))
         if kind not in out:
             newcomer(f)
+    roam = list(grounds) + [MEADOW]  # they wander all over the ground of their place
+    sc.roam = roam
     for i, kind in enumerate(walkers):
         ground, x_range = grounds[i % len(grounds)]
-        w = sc.live(Walker(rng, ground, x_range, kind, 1.1))
+        w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam))
         if kind not in out:
             newcomer(w)
 
@@ -850,8 +858,10 @@ def build_rocks():
     earth, edge = sc.col("earth", 0.12), sc.col("earth_edge", 0.12)
     # the way back up to the Glade, climbing away into the distance
     art.path(lay, [(600, 556), (640, 504), (696, 470), (744, 450), (768, 438)], [112, 76, 46, 22, 10], earth, edge, rng=rng)
+    # and the way down to the Battle Tower, on down the lower screen
+    art.path(lay, [(320, 466), (316, 500), (312, 530), (312, 556)], [16, 52, 80, 96], earth, edge, rng=random.Random(82))
     near_moss = []
-    for x in (260, 860, 900, 360):  # clear of the path
+    for x in (240, 860, 900, 420):  # clear of the paths
         art.rock(lay, rng, x, 480 + rng.randint(0, 40), rng.randint(28, 52), rng.randint(12, 20),
                  sc.col("stone", 0.1), moss=sc.col("moss", 0.1), glow_pts=near_moss)
     sc.add(lay, 0.12, texture=0.6)
@@ -889,7 +899,9 @@ def build_rocks():
     sc.spots = [
         Spot("go", (700, 420, 120, 64), "Back to the Glade", "glade", (756, 446), sign=(780, 404)),
     ]
-    sc.lower = dict(ground=0.14, props=["rocks"], fly=GLOW["pink"])
+    sc.lower = dict(ground=0.14, props=["rocks"], fly=GLOW["pink"], paths=[dict(
+        pts=[(232, -4), (230, 80), (226, 200), (220, 320), (214, 460)], widths=[96, 104, 116, 128, 140],
+        sign=(370, 240), spot=((150, 150, 160, 220), "The Battle Tower", "tower", (224, 300)))])
     return sc.done()
 
 
@@ -1142,6 +1154,118 @@ def build_springs():
     return sc.done()
 
 
+# --- The Battle Tower (below the Mossy Rocks) ------------------------------------------------------
+
+def build_tower():
+    rng = make_rng(77)
+    p = pal(sky=[(10, 8, 40), (28, 20, 78), (60, 40, 120), (110, 70, 160)],
+            mist=(96, 74, 150), shade=(14, 10, 44), ambient=((236, 230, 255), (92, 80, 150)))
+    sc = Scene("tower", "The Battle Tower", p, rng)
+    sc.live(Stars(rng, 240, 260, avoid=lambda x, y: 420 < x < 560))
+    moon(sc, 790, 84, 18)
+
+    lay = art.plane()
+    art.mountains(lay, rng, 300, 70, sc.col("lav", 0.9), scales=(170, 58, 20), side=p["moon_side"])
+    sc.add(lay, 0.9, veil=0.05)
+    lay = art.plane()
+    art.ridge(lay, rng, 350, 24, sc.col("leaf3", 0.7), scales=(120, 40, 14))
+    for x in (60, 150, 260, 700, 820, 910):
+        art.trunk(lay, rng, x, 240, 350, 6, sc.col("leaf3", 0.72), branches=1)
+        art.foliage(lay, rng, x, 250, 22, 40, sc.col("leaf3", 0.72), p)
+    sc.add(lay, 0.7, veil=0.05, low=0.1)
+
+    # the tower: an old stone spire, round windows glowing in pastels, a beacon crystal on top
+    lay = art.plane()
+    spire = [(424, 440), (432, 300), (444, 170), (456, 96), (472, 64), (488, 64), (504, 96), (516, 170), (528, 300),
+             (536, 440)]
+    art.crag(lay, spire, sc.col("stone", 0.38), 77, side=p["moon_side"], strata=(10, 18))
+    for y in (130, 210, 290, 370):  # a carved band at every floor
+        half = 16 + (y - 64) * 0.13
+        pygame.draw.line(lay, mix(sc.col("stone", 0.38), (255, 255, 255), 0.18), (480 - half, y), (480 + half, y))
+        pygame.draw.line(lay, mix(sc.col("stone", 0.38), (12, 10, 40), 0.35), (480 - half, y + 1), (480 + half, y + 1))
+    windows = []
+    for i, (wx, wy) in enumerate(((480, 112), (468, 176), (492, 238), (466, 262), (480, 330), (500, 352))):
+        c = (GLOW["pink"], GLOW["cyan"], GLOW["violet"], GLOW["amber"], GLOW["moss"], GLOW["pink"])[i]
+        pygame.draw.circle(lay, (24, 14, 40), (wx, wy), 6)
+        pygame.draw.circle(lay, c, (wx, wy), 4)
+        pygame.draw.line(lay, (24, 14, 40), (wx - 4, wy), (wx + 4, wy))
+        pygame.draw.line(lay, (24, 14, 40), (wx, wy - 4), (wx, wy + 4))
+        windows.append((wx, wy, 40, c, 70, i * 1.3))
+        sc.emit.set_at((wx - 2, wy - 2), art.scale(c, 0.8))
+    # the door: a tall arch, glowing from within
+    pygame.draw.ellipse(lay, (24, 14, 40), (458, 386, 44, 40))
+    pygame.draw.rect(lay, (24, 14, 40), (458, 404, 44, 38))
+    pygame.draw.ellipse(lay, (255, 210, 236), (464, 392, 32, 30))
+    pygame.draw.rect(lay, (255, 210, 236), (464, 406, 32, 36))
+    for x in range(466, 496, 4):  # light pouring out across the threshold
+        pygame.draw.line(lay, (255, 236, 246), (x, 410), (x, 440))
+    # banners either side of the door, in your colours and the challengers'
+    for bx, c in ((440, (110, 255, 180)), (520, (255, 150, 214))):
+        pygame.draw.line(lay, sc.col("wood", 0.3), (bx, 330), (bx, 440), 2)
+        pygame.draw.polygon(lay, c, [(bx, 334), (bx + (12 if bx > 480 else -12), 338), (bx + (10 if bx > 480 else -10), 368),
+                                     (bx, 362)])
+    sc.add(lay, 0.38, veil=0.02)
+    sc.live(Pulses(windows, speed=0.7))
+    sc.lamp(480, 420, 120, (255, 190, 230), 90)
+    sc.live(Lantern(480, 52, (200, 170, 255), reach=160))  # the beacon crystal
+    lay = art.plane()
+    pygame.draw.polygon(lay, (220, 200, 255), [(480, 30), (488, 50), (480, 62), (472, 50)])
+    pygame.draw.polygon(lay, (255, 255, 255), [(480, 32), (484, 48), (480, 56)])
+    sc.raw(lay)
+    sc.live(Vines(rng, list(range(440, 524, 9)), lambda x: 170 + abs(x - 480) // 2, (14, 60), sc.col("leaf3", 0.3),
+                  sc.col("leaf2", 0.3), flower=p["pink"], glow_tip=GLOW["cyan"]))
+
+    # the plaza: a ring of flagstones before the door, a storage shrine, the path back up
+    lay = art.plane()
+    art.ridge(lay, rng, 440, 8, sc.col("leaf2", 0.2), scales=(120, 40, 14))
+    art.grass_bed(lay, rng, (0, 440, W, 100), sc.col("leaf", 0.18), 1300, 6)
+    art.flowers(lay, rng, (0, 470, W, 70), p["flowers"], 50)
+    stone = sc.col("stone", 0.2)
+    pygame.draw.ellipse(lay, mix(stone, (12, 10, 40), 0.3), (300, 432, 360, 84))
+    pygame.draw.ellipse(lay, stone, (306, 434, 348, 76))
+    for ring, n in ((0.35, 8), (0.65, 14), (0.95, 22)):  # the joints between the flags
+        pygame.draw.ellipse(lay, mix(stone, (12, 10, 40), 0.25), (480 - 174 * ring, 472 - 38 * ring, 348 * ring, 76 * ring), 1)
+        for i in range(n):
+            a = i / n * math.tau + ring
+            x0, y0 = 480 + math.cos(a) * 174 * (ring - 0.3), 472 + math.sin(a) * 38 * (ring - 0.3)
+            x1, y1 = 480 + math.cos(a) * 174 * ring, 472 + math.sin(a) * 38 * ring
+            pygame.draw.line(lay, mix(stone, (12, 10, 40), 0.25), (x0, y0), (x1, y1))
+    earth, edge = sc.col("earth", 0.15), sc.col("earth_edge", 0.15)
+    art.path(lay, [(150, 556), (170, 510), (200, 476), (240, 452), (270, 440)], [100, 72, 48, 30, 18], earth, edge, rng=rng)
+    sc.add(lay, 0.18, texture=0.5)
+    lay = art.plane()  # the shrine: a little stone house of drawers, glowing amber
+    sx, sy = 760, 470
+    pygame.draw.rect(lay, sc.col("stone", 0.12), (sx - 30, sy - 46, 60, 46))
+    pygame.draw.polygon(lay, sc.col("wood", 0.12), [(sx - 38, sy - 46), (sx, sy - 66), (sx + 38, sy - 46)])
+    for row in range(2):
+        for col in range(3):
+            d = pygame.Rect(sx - 26 + col * 18, sy - 40 + row * 18, 16, 16)
+            pygame.draw.rect(lay, (255, 214, 140), d, border_radius=2)
+            pygame.draw.rect(lay, mix((255, 214, 140), (60, 30, 40), 0.5), d, 1, border_radius=2)
+            sc.emit.set_at(d.center, (120, 90, 40))
+    sc.add(lay, 0.12, texture=0.4)
+    sc.lamp(sx, sy - 24, 90, GLOW["amber"], 80)
+    glowmoss(sc, art.plane(), 100, 500, 60, 14)
+
+    second_wave(sc, rng, (100, 80, 760, 180), [(lambda x: 500 + 3 * math.sin(x / 50), (300, 640)),
+                                              (lambda x: 516 + 2 * math.sin(x / 40), (700, 900))])
+    sc.live(Slug(rng, Track([(580, 520), (680, 524), (800, 520)]), (220, 190, 240), size=1.5, speed=3, spots=GLOW["pink"]))
+    bugs = sc.live(Fireflies(rng, (0, 200, W, 280), 24, color=GLOW["pink"]))
+    sc.bugs.append(bugs)
+    sc.live(Motes(rng, (0, 0, W, 460), 30, GLOW["violet"]))
+    squids(sc, rng, (100, 100, 760, 200), [GLOW["violet"], GLOW["pink"]])
+    front_frame(sc, rng, top=False)
+
+    door = Spot("tower", (452, 380, 56, 64), "Battle Tower", "tower", (480, 414), sign=(480, 372))
+    shrine = Spot("boxes", (726, 404, 68, 70), "Your creatures", "boxes", (760, 440), sign=(760, 392))
+    sc.spots = [
+        Spot("go", (150, 430, 120, 90), "Back to the Mossy Rocks", "rocks", (210, 470), sign=(250, 424)),
+        door, shrine,
+    ]
+    sc.lower = dict(ground=0.16, props=["rocks"], fly=GLOW["pink"])
+    return sc.done()
+
+
 BUILDERS = {
     "glade": build_glade,
     "waterfall": build_waterfall,
@@ -1150,4 +1274,5 @@ BUILDERS = {
     "rocks": build_rocks,
     "ridge": build_ridge,
     "springs": build_springs,
+    "tower": build_tower,
 }

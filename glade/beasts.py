@@ -284,6 +284,10 @@ WALKERS = dict(
     goat=dict(species="Fluffhorn", body=(246, 240, 232), color=(170, 220, 255), speed=8),
     capy=dict(species="Steambara", body=(176, 124, 112), color=(255, 186, 90), speed=5),
     gecko=dict(species="Ember Gecko", body=(118, 88, 112), color=(255, 140, 70), speed=30),
+    # the three starters (starter.py): not found in the wild, only chosen
+    fawn=dict(species="Mossfawn", body=(222, 190, 160), color=(150, 255, 190), speed=16),
+    pangolin=dict(species="Kindlet", body=(156, 104, 120), color=(255, 150, 80), speed=10),
+    axolotl=dict(species="Pippalotl", body=(255, 184, 214), color=(255, 120, 200), speed=9),
 )
 
 
@@ -292,7 +296,10 @@ class Walker(Clock):
     hops, a mole that never strays far from its hole, a waddling mushroom, a newt with a
     long wriggling tail, a beetle on six busy legs. Click it and it reacts."""
 
-    def __init__(self, rng, ground, x_range, kind, size=1.0):
+    def __init__(self, rng, ground, x_range, kind, size=1.0, roam=None, avoid=None):
+        """`roam`: every stretch of ground in its place, [(ground, x_range)], for it to wander
+        between; `avoid(x, y)`: somewhere it must not cross (a pond)."""
+        self.roam, self.avoid, self.blend = roam, avoid, None
         spec = WALKERS[kind]
         self.rng, self.ground, self.xr, self.kind, self.size = rng, ground, x_range, kind, size
         self.species, self.body, self.color, self.speed = spec["species"], spec["body"], spec["color"], spec["speed"]
@@ -316,15 +323,48 @@ class Walker(Clock):
             self.hop = 0.01
         return True
 
+    def retarget(self):
+        """Somewhere new to go: along this stretch of ground, or now and then over to another
+        anywhere in its place (walking across between them)."""
+        self.target = self.rng.uniform(*self.xr)
+        if not self.roam or self.rng.random() > 0.45:
+            return
+        for _ in range(6):
+            ground, xr = self.rng.choice(self.roam)
+            if self.kind == "mole":
+                xr = (xr[0] + 12, xr[1] - 12)
+                if xr[0] >= xr[1]:
+                    continue
+            tx = self.rng.uniform(*xr)
+            x0, y0, ty = self.x, self.ground(self.x), ground(tx)
+            if self.avoid and any(self.avoid(x0 + (tx - x0) * k / 8, y0 + (ty - y0) * k / 8) for k in range(9)):
+                continue
+            old = self.ground
+            span = (tx - x0) or 1.0
+
+            def between(x, old=old, new=ground, x0=x0, span=span):
+                f = max(0.0, min(1.0, (x - x0) / span))
+                return old(x) * (1 - f) + new(x) * f
+            near = (tx - 10 * self.size, tx + 10 * self.size) if self.kind == "mole" else xr
+            self.blend = (between, ground, tx, near)
+            self.ground, self.target = between, tx
+            self.xr = (min(self.xr[0], tx - 1), max(self.xr[1], tx + 1))
+            return
+
     def update(self, dt, t):
         if self.wait > 0:
             self.wait -= dt
             if self.wait <= 0:
-                self.target = self.rng.uniform(*self.xr)
+                self.retarget()
         else:
             d = self.target - self.x
             if abs(d) < 2:
                 self.wait = self.rng.uniform(1.5, 6)
+                if self.blend is not None:  # it has arrived on its new stretch of ground
+                    self.ground, self.xr = self.blend[1], self.blend[3]
+                    self.blend = None
+                    if self.kind == "mole":  # and digs a new hole there
+                        self.home = self.x
             else:
                 self.facing = 1 if d > 0 else -1
                 if self.kind == "toad":  # it gets about in hops
@@ -619,7 +659,98 @@ class Walker(Clock):
         pygame.draw.rect(s, (255, 214, 120), (ex - 1, ey - 1, 2, 2))
         s.set_at((ex, ey), INK)
 
+    # Mossfawn: a slender fawn with a mantle of moss down its back, dappled with glowing
+    # spots, and a lichen sprout between its ears that will one day be a whole tree
+    def draw_fawn(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.35)
+        for i, lx in enumerate((-4, -2, 3, 5)):
+            kick = math.sin(self.step * 1.2 + i * 1.6) * 1.4 * z if moving else 0
+            pygame.draw.line(s, dark if i % 2 else mix(self.body, INK, 0.2), (x + lx * z, y - 6 * z),
+                             (x + lx * z + kick, y), max(1, round(z)))
+        pygame.draw.ellipse(s, dark, (x - 7 * z, y - 11 * z + 1, 14 * z, 7 * z))
+        pygame.draw.ellipse(s, self.body, (x - 7 * z, y - 11 * z, 14 * z, 7 * z))
+        moss = (110, 176, 130)
+        pygame.draw.ellipse(s, moss, (x - 6 * z, y - 11.5 * z, 11 * z, 3.5 * z))  # the moss mantle
+        for i in range(5):
+            s.set_at((round(x - 5 * z + i * 2.4 * z), round(y - 9 * z + (i % 2))), mix(moss, INK, 0.3))
+        pygame.draw.ellipse(s, (250, 240, 226), (x - 3 * z, y - 7 * z, 7 * z, 2.5 * z))  # a pale belly
+        pygame.draw.line(s, self.body, (x - f * 7 * z, y - 9 * z), (x - f * 9 * z, y - 11 * z), max(1, round(z)))  # tail
+        nx, ny = x + f * 6 * z, y - 12 * z
+        pygame.draw.line(s, self.body, (x + f * 4 * z, y - 10 * z), (nx, ny), max(2, round(2.2 * z)))  # neck
+        hx, hy = nx + f * 1.5 * z, ny - 2 * z
+        pygame.draw.ellipse(s, self.body, (hx - 3 * z, hy - 2.5 * z, 6 * z, 5 * z))
+        pygame.draw.ellipse(s, self.body, (hx + f * 1.5 * z - 1.5 * z, hy - 0.5 * z, 4 * z, 3 * z))  # muzzle
+        s.set_at((round(hx + f * 3.3 * z), round(hy + 0.5 * z)), INK)
+        for e in (-1, 1):  # big soft ears
+            ex = hx - f * 1.5 * z + e * 1.2 * z
+            pygame.draw.ellipse(s, self.body, (ex - (4 * z if e < 0 else 0), hy - 4 * z, 4 * z, 2.2 * z))
+        self.eyes(s, hx + f * 0.8 * z, hy - 0.5 * z, 0.1)
+        sx, sy = hx - f * 0.5 * z, hy - 3 * z  # the sprout
+        pygame.draw.line(s, moss, (sx, sy), (sx, sy - 3 * z))
+        for side in (-1, 1):
+            pygame.draw.ellipse(s, (150, 230, 160), (sx + (side - 1) * 1.6 * z + (1 if side > 0 else 0), sy - 4.5 * z, 3.2 * z, 1.8 * z))
+
+    # Kindlet: a tiny pangolin, rows of scales over its back with embers glowing between
+    # them; a curled tail with a hot tip. One day it is a knight in molten armour.
+    def draw_pangolin(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.4)
+        for i in range(2):
+            lx = x + (i * 2 - 1) * 3.5 * z
+            lift = max(0.0, math.sin(self.step * 1.4 + i * math.pi)) * z if moving else 0
+            pygame.draw.rect(s, dark, (lx - z, y - 3 * z - lift, 2.2 * z, 3 * z))
+            pygame.draw.line(s, (240, 220, 210), (lx + f * z, y - lift), (lx + f * 2.2 * z, y - lift))  # claws
+        tx = x - f * 8 * z
+        pygame.draw.circle(s, dark, (round(tx), round(y - 5 * z)), max(2, round(3.4 * z)))  # the curled tail
+        pygame.draw.circle(s, self.body, (round(tx), round(y - 5 * z)), max(1, round(2.4 * z)))
+        pygame.draw.ellipse(s, dark, (x - 7 * z, y - 11 * z + 1, 14 * z, 10 * z))
+        pygame.draw.ellipse(s, self.body, (x - 7 * z, y - 11 * z, 14 * z, 10 * z))
+        for row in range(3):  # overlapping scales, row on row
+            ry = y - (9.5 - row * 2.6) * z
+            n = 3 + row
+            for k in range(n):
+                cx_ = x - 5 * z + (k + 0.5) * 10 * z / n
+                pygame.draw.arc(s, mix(self.body, (255, 230, 220), 0.25), (cx_ - 2 * z, ry - z, 4 * z, 3 * z), 0.2, 2.9, 1)
+        hx, hy = x + f * 7 * z, y - 5 * z
+        pygame.draw.polygon(s, mix(self.body, (255, 220, 210), 0.35),
+                            [(hx - f * 2 * z, hy - 2.5 * z), (hx + f * 4 * z, hy + 0.5 * z), (hx - f * 2 * z, hy + 2 * z)])
+        s.set_at((round(hx + f * 4 * z), round(hy + 0.5 * z)), INK)
+        self.eyes(s, hx + f * 0.5 * z, hy - 1 * z, 0.1)
+
+    # Pippalotl: a pastel axolotl with a wide smile and three feathery glowing gills on each
+    # side of its head; a soft fin down its tail. One day a river dragon wearing them as a crown.
+    def draw_axolotl(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.3)
+        sway = math.sin(t * 2.5 + self.phase) * z
+        tail = [(x - f * (4 + i * 2.2) * z, y - 4 * z + math.sin(t * 3 + i * 0.8 + self.phase) * 0.8 * z * i / 3) for i in range(5)]
+        for i, (px, py) in enumerate(tail):  # tail with its fin
+            pygame.draw.circle(s, mix(self.body, (255, 255, 255), 0.25), (round(px), round(py - 1.5 * z)), max(1, round((2.6 - i * 0.4) * z)))
+            pygame.draw.circle(s, self.body, (round(px), round(py)), max(1, round((2.2 - i * 0.35) * z)))
+        for i, lx in enumerate((-3, 3)):
+            kick = math.sin(self.step + i * math.pi) * 1.2 * z if moving else 0
+            pygame.draw.line(s, dark, (x + lx * z, y - 3 * z), (x + lx * z + kick + f * z, y), max(1, round(z)))
+        pygame.draw.ellipse(s, dark, (x - 6 * z, y - 7 * z + 1, 12 * z, 6 * z))
+        pygame.draw.ellipse(s, self.body, (x - 6 * z, y - 7 * z, 12 * z, 6 * z))
+        hx, hy = x + f * 6 * z, y - 6 * z
+        for g in range(3):  # gills, drawn behind the head
+            for side in (-1, 1):
+                a = -math.pi / 2 - f * 0.9 + side * (0.35 + g * 0.4)
+                ln = (5 - g) * z
+                gx, gy = hx - f * 2 * z + math.cos(a) * ln, hy - 1 * z + math.sin(a) * ln * (1 if side < 0 else -0.6) + sway * 0.4
+                pygame.draw.line(s, (255, 140, 200), (hx - f * 2 * z, hy - 1 * z), (gx, gy), max(1, round(z)))
+        pygame.draw.ellipse(s, self.body, (hx - 4.5 * z, hy - 3.5 * z, 9 * z, 6 * z))
+        pygame.draw.arc(s, dark, (hx - 2 * z + f * z, hy - 0.5 * z, 4 * z, 2.5 * z), math.pi + 0.3, 2 * math.pi - 0.3)  # smile
+        for e in (-1.5, 1.8):
+            pygame.draw.circle(s, INK, (round(hx + e * z + f * 0.5 * z), round(hy - 1.5 * z)), max(1, round(0.8 * z)))
+
     def light(self, lm, t):
+        if self.kind in ("fawn", "pangolin", "axolotl"):
+            glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 12 * math.sin(t * 2 + self.phase)))
         if self.kind in ("fox", "gecko", "capy"):
             glow(lm, self.x, self.y - 6 * self.size, int(20 * self.size), self.color, q(36 + 12 * math.sin(t * 2 + self.phase)))
         if self.kind in ("sporeling", "beetle", "mole"):
@@ -686,6 +817,34 @@ class Walker(Clock):
                 if i < 4:
                     s.set_at((round(px + z), round(py - 2 * z)), mix(c, self.body, 0.4))
             glow(s, x, y - 3 * z, int(10 * z), self.color, q(40 + 80 * k))
+        elif self.kind == "fawn":  # its dapples and its sprout glow
+            hx, hy = x + f * 7.5 * z, y - 14 * z
+            b = 0.5 + 0.5 * math.sin(t * 1.8 + self.phase)
+            glow(s, hx - f * 0.5 * z, hy - 6 * z, int(7 * z), self.color, q(60 + 40 * b + 60 * k))
+            for i, (dx, dy) in enumerate(((-4, -9.5), (-1, -10), (2, -9.5), (-2.5, -8))):
+                if math.sin(t * 1.3 + i * 1.7 + self.phase) > -0.3:
+                    s.set_at((round(x + dx * z), round(y + dy * z)), mix(self.color, (255, 255, 255), 0.5))
+        elif self.kind == "pangolin":  # embers between its scales
+            for row in range(3):
+                ry = y - (8.5 - row * 2.6) * z
+                n = 3 + row
+                for kk in range(n):
+                    b = 0.5 + 0.5 * math.sin(t * 2.2 + row + kk * 1.3 + self.phase)
+                    if b > 0.35:
+                        s.set_at((round(x - 5 * z + (kk + 0.5) * 10 * z / n + 2 * z), round(ry)), mix(self.color, (255, 236, 160), b * 0.5))
+            tx = x - f * 8 * z
+            glow(s, tx, y - 7 * z, int(6 * z), self.color, q(70 + 60 * k))
+            s.set_at((round(tx), round(y - 8 * z)), (255, 220, 140))
+        elif self.kind == "axolotl":  # the gill tips glow
+            hx, hy = x + f * 6 * z, y - 6 * z
+            sway = math.sin(t * 2.5 + self.phase) * z
+            for g in range(3):
+                for side in (-1, 1):
+                    a = -math.pi / 2 - f * 0.9 + side * (0.35 + g * 0.4)
+                    ln = (5 - g) * z
+                    gx, gy = hx - f * 2 * z + math.cos(a) * ln, hy - 1 * z + math.sin(a) * ln * (1 if side < 0 else -0.6) + sway * 0.4
+                    s.set_at((round(gx), round(gy)), (255, 200, 236))
+            glow(s, hx - f * 2 * z, hy - 4 * z, int(8 * z), self.color, q(50 + 70 * k))
         elif self.kind == "toad" and k > 0:
             glow(s, x, y - 6 * z, int(12 * z), self.color, q(80 * k))
 

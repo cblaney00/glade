@@ -25,7 +25,7 @@ from apex import OFFSET, ease
 from art import glow, mix
 from battle import cloth, draw_elsewhere, species_of
 
-EVOLVES = {"Critter": "Glowtail", "Squid": "Nimbusquid", "Lantern Moth": "Beacon Moth",
+EVOLVES = {"Duskit": "Glowtail", "Driftquid": "Nimbusquid", "Lantern Moth": "Beacon Moth",
            "Brawl Toad": "Bruiser Toad", "Sporeling": "Sporestride"}
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself

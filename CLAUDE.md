@@ -99,6 +99,31 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   `walkers`/`fliers`/`out` keys of `sc.lower`), and `owlet()`, the Moon Owlet, a tree dweller that can hold the icons instead of
   the tree squid (`TreeSquid.kind`). Dex #022-#049. More areas are coming, so not every typing
   is covered yet.
+- **Catching, teams and the Battle Tower** (2026-10-27, his asks):
+  - `glade/team.py` — every animal has its **own IVs** (`ivs_of`, rolled once per animal), drawn on
+    its stats card as a six-sided web (`battle.iv_web`; his choice over stars/numbers). Caught
+    creatures live in `~/.local/state/glade/creatures.json` as a `Collection`: a party of 6 and 8
+    boxes of 30, **like Emerald's PC boxes**. His party starts **empty**.
+  - `glade/starter.py` — the first "Battle it!" with an empty party opens **choose your starter**:
+    Mossfawn (Grass), Kindlet (Fire), Pippalotl (Water), Dex #001/#004/#007 (the first nine numbers
+    are their lines; everything else moved down 9). Final forms are designed, not built: Elderhart
+    Grass/Ghost spirit stag, Pyreclad Fire/Steel molten pangolin knight, Leviolotl Water/Dragon
+    axolotl river dragon. Starter abilities Overgrow/Blaze/Torrent work. Starters are never wild.
+  - Battles: `battle.Battle` is now team v team (1-6 a side) with switching, forced switches and a
+    **glow jar** (Gen 3 catch formula, `team.catch_shakes`) in wild battles. `battle.Arena` modes:
+    "pick" (the moon egg, unchanged), "wild" (the stats card's **Battle it!**), "tower".
+  - `glade/storage.py` — the boxes screen (party left, box grid middle, info + IV web right; click
+    to pick up, click to put down/swap). Opened at the Tower's shrine or the Dex's "Your creatures".
+  - `glade/tower.py` — **The Battle Tower**, a place below the Mossy Rocks (path down the lower
+    screen). Your party as it is (no separate picking — his call) vs endless trainers' sixes; IVs
+    rise with the streak; best streak saved.
+  - Generic names were renamed (his ask): Critter→Duskit, Squid→Driftquid, Slug→Gloamslug,
+    Snail→Cairnsnail, Millipede→Luminpede, Koi→Lilyfin, Tree Squid→Canopod (species names only;
+    the Python classes keep their old names).
+- **Roaming** (2026-10-27): walkers wander between every stretch of ground in their place
+  (`Walker.roam`, `scenes.MEADOW` + each place's grounds; a mole digs a new hole where it stops),
+  ground slugs glide on to new spots (`Slug.wander`); climbers, fliers and fish keep to their
+  own element. On the lower screen they never cross the pond.
 - `glade/storm.py` — **animals take turns**. Not all are out at once: newcomers start
   `gone` (`storm.newcomer`). While a stats card or the Forest Dex is open, a **Thunderstorm**
   button shows in the lower screen's top-right corner. It brings rain and lightning, everyone
