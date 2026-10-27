@@ -194,16 +194,16 @@ MOVES = {
 # row; the three starters' lines come first (#001-#009); room for 260.
 
 SPECIES = {
-    "Duskit": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
+    "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                           "Swords Dance", "Agility"]),
-    "Driftquid": dict(num=13, types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
+    "Driftlet": dict(num=13, types=("Water", "Psychic"), base=(46, 39, 42, 69, 58, 66), ability="Levitate",
                   pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                         "Hypnosis", "Recover", "Calm Mind"]),
-    "Gloamslug": dict(num=16, types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
+    "Gloamooze": dict(num=16, types=("Poison",), base=(73, 48, 56, 48, 64, 16), ability="Liquid Ooze",
                  pool=["Sludge Bomb", "Sludge", "Toxic", "Acid Armor", "Giga Drain", "Mud-Slap", "Rest", "Curse",
                        "Pain Split", "Haze", "Body Slam"]),
-    "Cairnsnail": dict(num=19, types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
+    "Cairncurl": dict(num=19, types=("Bug", "Rock"), base=(51, 47, 91, 32, 67, 12), ability="Shell Armor",
                   pool=["Rock Slide", "Ancient Power", "Silver Wind", "Rock Tomb", "Iron Defense", "Withdraw",
                         "Protect", "Toxic", "Rest", "Leech Life", "Curse"]),
     "Luminpede": dict(num=22, types=("Bug", "Poison"), base=(43, 66, 55, 31, 43, 62), ability="Poison Point",
@@ -215,63 +215,63 @@ SPECIES = {
     "Canopod": dict(num=28, types=("Water", "Grass"), base=(50, 42, 50, 62, 65, 46), ability="Suction Cups",
                        pool=["Giga Drain", "Mega Drain", "Magical Leaf", "Surf", "Water Pulse", "Bubble Beam",
                              "Octazooka", "Synthesis", "Sleep Powder"]),
-    "Lantern Moth": dict(num=31, types=("Bug", "Fire"), base=(45, 35, 40, 75, 55, 70), ability="Shield Dust",
+    "Lanternwing": dict(num=31, types=("Bug", "Fire"), base=(45, 35, 40, 75, 55, 70), ability="Shield Dust",
                          pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
                                "Morning Sun", "Gust"]),
-    "Dusk Bat": dict(num=34, types=("Dark", "Flying"), base=(50, 55, 40, 45, 45, 75), ability="Inner Focus",
+    "Gloomflit": dict(num=34, types=("Dark", "Flying"), base=(50, 55, 40, 45, 45, 75), ability="Inner Focus",
                      pool=["Bite", "Crunch", "Wing Attack", "Aerial Ace", "Faint Attack", "Confuse Ray", "Supersonic",
                            "Leech Life", "Screech"]),
-    "Glimmer Drake": dict(num=37, types=("Dragon", "Flying"), base=(46, 62, 43, 50, 44, 75), ability="Levitate",
+    "Glimmerfly": dict(num=37, types=("Dragon", "Flying"), base=(46, 62, 43, 50, 44, 75), ability="Levitate",
                           pool=["Dragon Breath", "Twister", "Dragon Claw", "Dragon Dance", "Wing Attack", "Aerial Ace",
                                 "Quick Attack", "Silver Wind", "Double Team"]),
-    "Mist Wisp": dict(num=40, types=("Ghost",), base=(40, 35, 45, 70, 60, 60), ability="Levitate",
+    "Mistwisp": dict(num=40, types=("Ghost",), base=(40, 35, 45, 70, 60, 60), ability="Levitate",
                       pool=["Shadow Ball", "Night Shade", "Lick", "Astonish", "Confuse Ray", "Will-O-Wisp",
                             "Hypnosis", "Psybeam", "Pain Split"]),
-    "Brawl Toad": dict(num=43, types=("Fighting",), base=(60, 70, 55, 30, 45, 50), ability="Thick Fat",
+    "Brawlhop": dict(num=43, types=("Fighting",), base=(60, 70, 55, 30, 45, 50), ability="Thick Fat",
                        pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
                              "Rock Tomb", "Bubble Beam"]),
-    "Moss Mole": dict(num=46, types=("Ground",), base=(55, 65, 60, 30, 40, 60), ability="Rock Head",
+    "Mossdelve": dict(num=46, types=("Ground",), base=(55, 65, 60, 30, 40, 60), ability="Rock Head",
                       pool=["Mud Shot", "Earthquake", "Mud-Slap", "Take Down", "Fury Swipes", "Sand-Attack",
                             "Rock Slide", "Rock Tomb"]),
     "Sporeling": dict(num=49, types=("Grass", "Poison"), base=(60, 45, 55, 65, 60, 25), ability="Effect Spore",
                       pool=["Absorb", "Mega Drain", "Giga Drain", "Sludge Bomb", "Stun Spore", "Sleep Powder",
                             "Poison Powder", "Leech Seed", "Synthesis"]),
-    "Rime Newt": dict(num=52, types=("Water", "Ice"), base=(50, 45, 50, 65, 50, 60), ability="Water Absorb",
+    "Rimeslink": dict(num=52, types=("Water", "Ice"), base=(50, 45, 50, 65, 50, 60), ability="Water Absorb",
                       pool=["Powder Snow", "Aurora Beam", "Ice Beam", "Water Gun", "Bubble Beam", "Surf", "Haze",
                             "Amnesia", "Quick Attack"]),
-    "Copper Beetle": dict(num=55, types=("Steel", "Electric"), base=(50, 60, 70, 45, 45, 40), ability="Static",
+    "Coppernib": dict(num=55, types=("Steel", "Electric"), base=(50, 60, 70, 45, 45, 40), ability="Static",
                           pool=["Metal Claw", "Iron Tail", "Iron Defense", "Harden", "Spark", "Shock Wave",
                                 "Thunder Wave", "Thunderbolt"]),
-    "Moon Owlet": dict(num=58, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
+    "Moonhoot": dict(num=58, types=("Normal", "Flying"), base=(55, 45, 45, 55, 55, 55), ability="Keen Eye",
                        pool=["Peck", "Wing Attack", "Aerial Ace", "Air Cutter", "Hypnosis", "Confusion", "Return",
                              "Quick Attack"]),
     # the far places (2026-10-27): the Snowy Ridge (left of the Forest) ...
-    "Frost Kit": dict(num=61, types=("Ice",), base=(45, 50, 40, 65, 50, 70), ability="Run Away",
+    "Frostpaw": dict(num=61, types=("Ice",), base=(45, 50, 40, 65, 50, 70), ability="Run Away",
                       pool=["Powder Snow", "Icy Wind", "Ice Beam", "Aurora Beam", "Quick Attack", "Bite", "Agility",
                             "Double Team", "Haze"]),
     "Fluffhorn": dict(num=64, types=("Rock", "Normal"), base=(60, 65, 70, 30, 45, 40), ability="Rock Head",
                       pool=["Headbutt", "Rock Slide", "Rock Tomb", "Take Down", "Double-Edge", "Iron Defense",
                             "Body Slam", "Icy Wind", "Rest"]),
-    "Aurora Finch": dict(num=67, types=("Ice", "Flying"), base=(40, 45, 40, 65, 55, 70), ability="Keen Eye",
+    "Shimmerchirp": dict(num=67, types=("Ice", "Flying"), base=(40, 45, 40, 65, 55, 70), ability="Keen Eye",
                          pool=["Peck", "Aerial Ace", "Air Cutter", "Icy Wind", "Aurora Beam", "Powder Snow", "Agility",
                                "Haze", "Gust"]),
     # ... and the Hot Springs (right of the River)
     "Steambara": dict(num=70, types=("Water", "Fire"), base=(75, 45, 55, 55, 55, 30), ability="Oblivious",
                       pool=["Water Gun", "Surf", "Ember", "Flamethrower", "Rest", "Amnesia", "Body Slam", "Calm Mind",
                             "Haze"]),
-    "Ember Gecko": dict(num=73, types=("Fire", "Ground"), base=(45, 65, 45, 55, 40, 70), ability="Flash Fire",
+    "Embercling": dict(num=73, types=("Fire", "Ground"), base=(45, 65, 45, 55, 40, 70), ability="Flash Fire",
                         pool=["Ember", "Fire Punch", "Flamethrower", "Mud Shot", "Mud-Slap", "Quick Attack", "Agility",
                               "Will-O-Wisp", "Rock Tomb"]),
-    "Vapor Jelly": dict(num=76, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
+    "Vaporwobble": dict(num=76, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
                         pool=["Water Pulse", "Bubble Beam", "Spark", "Shock Wave", "Thunderbolt", "Thunder Wave",
                               "Confuse Ray", "Haze", "Recover"]),
     # the three starters (2026-10-27): you choose one before your first battle (starter.py).
-    # Each line's final form is designed already, so its theme leads somewhere: Mossfawn ->
-    # Lichenhart -> Elderhart (Grass/Ghost, an ancient spirit stag, antlers a moss-hung tree of
+    # Each line's final form is designed already, so its theme leads somewhere: Mossprance ->
+    # Lichenmane -> Eldermane (Grass/Ghost, an ancient spirit stag, antlers a moss-hung tree of
     # spirit lanterns); Kindlet -> Smoldershell -> Pyreclad (Fire/Steel, an armoured molten
     # knight of a pangolin that rolls as a blazing wheel); Pippalotl -> Frillotl -> Leviolotl
     # (Water/Dragon, a great river dragon of an axolotl, gills worn as a crown).
-    "Mossfawn": dict(num=1, types=("Grass",), base=(45, 55, 45, 60, 60, 52), ability="Overgrow",
+    "Mossprance": dict(num=1, types=("Grass",), base=(45, 55, 45, 60, 60, 52), ability="Overgrow",
                      pool=["Absorb", "Magical Leaf", "Giga Drain", "Leech Seed", "Synthesis", "Take Down",
                            "Quick Attack", "Astonish", "Confuse Ray"]),
     "Kindlet": dict(num=4, types=("Fire",), base=(46, 58, 62, 48, 50, 46), ability="Blaze",
@@ -281,10 +281,10 @@ SPECIES = {
                       pool=["Water Gun", "Bubble Beam", "Water Pulse", "Surf", "Dragon Breath", "Twister", "Amnesia",
                             "Haze", "Rest"]),
     # the starters' later stages (2026-10-27): middle ~405, final 530, like Hoenn's starters
-    "Lichenhart": dict(num=2, types=("Grass",), base=(60, 68, 58, 80, 76, 63), ability="Overgrow",
+    "Lichenmane": dict(num=2, types=("Grass",), base=(60, 68, 58, 80, 76, 63), ability="Overgrow",
                        pool=["Magical Leaf", "Giga Drain", "Leech Seed", "Synthesis", "Calm Mind", "Take Down",
                              "Quick Attack", "Astonish", "Confuse Ray"]),
-    "Elderhart": dict(num=3, types=("Grass", "Ghost"), base=(80, 85, 75, 110, 100, 80), ability="Overgrow",
+    "Eldermane": dict(num=3, types=("Grass", "Ghost"), base=(80, 85, 75, 110, 100, 80), ability="Overgrow",
                       pool=["Giga Drain", "Magical Leaf", "Shadow Ball", "Leech Seed", "Calm Mind", "Synthesis",
                             "Will-O-Wisp", "Confuse Ray", "Psychic", "Pain Split"]),
     "Smoldershell": dict(num=5, types=("Fire",), base=(62, 78, 82, 62, 64, 57), ability="Blaze",
@@ -304,13 +304,13 @@ SPECIES = {
     "Glowtail": dict(num=11, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",
                      pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
                            "Swords Dance", "Agility", "Slash", "Hyper Fang"]),
-    "Nimbusquid": dict(num=14, types=("Water", "Psychic"), base=(59, 50, 54, 88, 74, 84), ability="Levitate",
+    "Nimbusdrift": dict(num=14, types=("Water", "Psychic"), base=(59, 50, 54, 88, 74, 84), ability="Levitate",
                        pool=["Surf", "Water Pulse", "Octazooka", "Psychic", "Psybeam", "Ice Beam", "Confuse Ray",
                              "Hypnosis", "Recover", "Calm Mind", "Hydro Pump"]),
-    "Beacon Moth": dict(num=32, types=("Bug", "Fire"), base=(58, 45, 51, 96, 70, 90), ability="Shield Dust",
+    "Beaconwing": dict(num=32, types=("Bug", "Fire"), base=(58, 45, 51, 96, 70, 90), ability="Shield Dust",
                         pool=["Ember", "Flamethrower", "Silver Wind", "Signal Beam", "Will-O-Wisp", "Stun Spore",
                               "Morning Sun", "Gust", "Heat Wave"]),
-    "Bruiser Toad": dict(num=44, types=("Fighting",), base=(79, 92, 73, 40, 59, 66), ability="Thick Fat",
+    "Thudhop": dict(num=44, types=("Fighting",), base=(79, 92, 73, 40, 59, 66), ability="Thick Fat",
                          pool=["Karate Chop", "Brick Break", "Mach Punch", "Bulk Up", "Mud-Slap", "Body Slam",
                                "Rock Tomb", "Bubble Beam", "Cross Chop"]),
     "Sporestride": dict(num=50, types=("Grass", "Poison"), base=(79, 59, 73, 86, 79, 33), ability="Effect Spore",
@@ -914,17 +914,17 @@ def species_of(obj):
         return obj.species
     name = type(obj).__name__
     if name in ("Squid", "Nibbler", "HollowSquid"):
-        return "Driftquid"
+        return "Driftlet"
     if name == "Slug":
-        return "Cairnsnail" if getattr(obj, "shell", None) else "Gloamslug"
+        return "Cairncurl" if getattr(obj, "shell", None) else "Gloamooze"
     if name == "Fish":
         return "Lilyfin"
     if name == "Millipede":
         return "Luminpede"
     if name == "Critter":
-        return "Duskit"
+        return "Duskling"
     if name == "TreeSquid":
-        return "Moon Owlet" if getattr(obj, "kind", "squid") == "owlet" else "Canopod"
+        return "Moonhoot" if getattr(obj, "kind", "squid") == "owlet" else "Canopod"
     return None
 
 

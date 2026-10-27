@@ -17,8 +17,8 @@ from dex import MINT, PH, PW, WHITE, paint, specimen
 from team import Collection, Kept, roll_ivs
 
 STARTERS = (
-    ("Mossfawn", "A shy fawn of the deep glade, a lichen sprout between its ears.",
-     "One day: Elderhart, Grass/Ghost - an ancient spirit stag."),
+    ("Mossprance", "A shy fawn of the deep glade, a lichen sprout between its ears.",
+     "One day: Eldermane, Grass/Ghost - an ancient spirit stag."),
     ("Kindlet", "A tiny pangolin with embers glowing between its scales.",
      "One day: Pyreclad, Fire/Steel - a knight in molten armour."),
     ("Pippalotl", "A pastel axolotl whose feathery gills glow in the dark.",

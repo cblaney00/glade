@@ -70,7 +70,7 @@ def choose(animals, rng, n=None, before=None):
 
 
 def dwellers(colony, rng):
-    """Mix up who holds the icons in the trees: each one is a tree squid or a Moon Owlet,
+    """Mix up who holds the icons in the trees: each one is a tree squid or a Moonhoot,
     with always some of both when there are two or more."""
     squid = list(colony.squid.values())
     for sq in squid:

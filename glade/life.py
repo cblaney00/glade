@@ -745,7 +745,7 @@ class Squid(Clock):
                                          (tipx, tipy)])
         pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.5), (round(self.x + ux * 4 - px_), round(self.y + uy * 4 - py_)),
                          (round(self.x + ux * ln * 0.8 - px_), round(self.y + uy * ln * 0.8 - py_)))
-        big = getattr(self, "stage", 1) > 1  # Nimbusquid, its evolution (evolve.py)
+        big = getattr(self, "stage", 1) > 1  # Nimbusdrift, its evolution (evolve.py)
         if big:  # a frilled crest down both sides of the mantle
             for j, i in enumerate(range(4, int(ln) - 1, 3)):
                 cx, cy = self.x + ux * (i + 2), self.y + uy * (i + 2)

@@ -1,8 +1,8 @@
 """Evolution — like Pokémon.
 
 Five animals can evolve so far, into their middle stage (his test, 2026-10-26; the final
-stages are not made yet): Critter → Glowtail, Squid → Nimbusquid, Lantern Moth → Beacon
-Moth, Brawl Toad → Bruiser Toad, Sporeling → Sporestride. An evolved animal is the same
+stages are not made yet): Critter → Glowtail, Squid → Nimbusdrift, Lanternwing → Beacon
+Moth, Brawlhop → Thudhop, Sporeling → Sporestride. An evolved animal is the same
 one, bigger, with more to it: each class draws its extras when `stage` is 2 (life.py,
 beasts.py). Its battle stats are its new species' (battle.SPECIES).
 
@@ -25,10 +25,10 @@ from apex import OFFSET, ease
 from art import glow, mix
 from battle import cloth, draw_elsewhere, species_of
 
-EVOLVES = {"Duskit": "Glowtail", "Driftquid": "Nimbusquid", "Lantern Moth": "Beacon Moth",
-           "Brawl Toad": "Bruiser Toad", "Sporeling": "Sporestride",
+EVOLVES = {"Duskling": "Glowtail", "Driftlet": "Nimbusdrift", "Lanternwing": "Beaconwing",
+           "Brawlhop": "Thudhop", "Sporeling": "Sporestride",
            # the starters' lines, all three stages (2026-10-27)
-           "Mossfawn": "Lichenhart", "Lichenhart": "Elderhart",
+           "Mossprance": "Lichenmane", "Lichenmane": "Eldermane",
            "Kindlet": "Smoldershell", "Smoldershell": "Pyreclad",
            "Pippalotl": "Frillotl", "Frillotl": "Leviolotl"}
 SIZE = {1: 1.0, 2: 1.3, 3: 1.6}  # how much bigger each stage is

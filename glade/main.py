@@ -30,6 +30,7 @@ from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
 from lower import Lower
+from making import Making
 from scenes import BUILDERS, LINKS, MAP
 
 HOME = "glade"
@@ -567,6 +568,7 @@ class Glade:
         self.scenes, self.lowers = {}, {}
         self.signs = Signs()
         self.minimap = Minimap(self.signs.font)
+        self.making = Making()  # the progress board while new creatures are being made
         self.here = self.scene(HOME)
         self.fade, self.fade_to = 0.0, None
         self.flash = None
@@ -803,7 +805,7 @@ class Glade:
                 choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
                            (gone, lambda t, sq=sq: colony.remove(sq)),
                            ("Battle stats", lambda t, v=view, m=m, sq=sq: self.show_card(
-                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Canopod", t,
+                               v, m, "Moonhoot" if getattr(sq, "kind", "squid") == "owlet" else "Canopod", t,
                                Perched(sq)))]
             elif sp is None:
                 low = self.lower() if self.bottom else None
@@ -820,7 +822,7 @@ class Glade:
 
     def unless_animal(self, view, sp, m, t):
         """A path's wide clickable area gives way to an animal drawn right under the
-        pointer (the Moss Mole lives inside the Mossy Rocks path's); its sign never does."""
+        pointer (the Mossdelve lives inside the Mossy Rocks path's); its sign never does."""
         if sp is None or sp.kind != "go" or sp.boards[2].collidepoint(m):
             return sp
         low = self.lower() if self.bottom else None
@@ -1040,6 +1042,8 @@ class Glade:
                 self.evolution.draw(view.canvas, view is self.bottom, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
+            if view is (self.bottom or self.top):
+                self.making.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
             if view is self.map_view() and self.board is None and self.dex is None:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
                 vision.draw_dex_button(view.canvas, view, self.signs.font)

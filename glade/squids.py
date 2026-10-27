@@ -325,7 +325,7 @@ class TreeSquid:
             return
         sz, x, y = self.size * self.fade, self.x, self.y
         how = self.moving()
-        if getattr(self, "kind", "squid") == "owlet":  # a Moon Owlet holds this one (beasts.py)
+        if getattr(self, "kind", "squid") == "owlet":  # a Moonhoot holds this one (beasts.py)
             owlet(s, x, y, sz, self.color, t, self.phase, how, self.poked)
             return
         breathe = math.sin(t * 1.1 + self.phase)

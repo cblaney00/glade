@@ -86,17 +86,17 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   violet slug lives in the middle strip of grass because the corner is the field.
 - `glade/dex.py` — the **Forest Dex** (his Pokédex), opened from the stats card's "Open in
   Forest Dex" button. It has room for **260**. Each line of 3 evolutions takes 3 numbers in a row
-  (`num` in `battle.SPECIES`; Critter #001 … Moon Owlet #049, next new one #052), each with a
+  (`num` in `battle.SPECIES`; Critter #001 … Moonhoot #049, next new one #052), each with a
   picture (`dex.specimen`: one made just to be drawn; the entry's moves, the slots' are still),
   and the rest are "?" slots. Dex tab: pages of 48 slots. Compare tab: a table of everything
   found so far, sorted by clicking a column. On the right, the chosen one's stats and moves.
 - `glade/beasts.py` — the **second wave** of animals (2026-10-26, his ask: 10 more first-stage
-  creatures, varied typing, in keeping with the glade): `Flier` (Dusk Bat, Lantern Moth,
-  Glimmer Drake, Mist Wisp), `Walker` (Brawl Toad, Moss Mole, Sporeling, Rime Newt, Copper
-  Beetle), the far places' own animals (2026-10-27, Dex #052-#067: Frost Kit, Fluffhorn and
-  Aurora Finch on the Ridge; Steambara, Ember Gecko and Vapor Jelly at the Springs — they live
+  creatures, varied typing, in keeping with the glade): `Flier` (Gloomflit, Lanternwing,
+  Glimmerfly, Mistwisp), `Walker` (Brawlhop, Mossdelve, Sporeling, Rimeslink, Copper
+  Beetle), the far places' own animals (2026-10-27, Dex #052-#067: Frostpaw, Fluffhorn and
+  Shimmerchirp on the Ridge; Steambara, Embercling and Vaporwobble at the Springs — they live
   only there, and are out from the start; `second_wave(..., fliers, walkers, out)` and the
-  `walkers`/`fliers`/`out` keys of `sc.lower`), and `owlet()`, the Moon Owlet, a tree dweller that can hold the icons instead of
+  `walkers`/`fliers`/`out` keys of `sc.lower`), and `owlet()`, the Moonhoot, a tree dweller that can hold the icons instead of
   the tree squid (`TreeSquid.kind`). Dex #022-#049. More areas are coming, so not every typing
   is covered yet.
 - **Catching, teams and the Battle Tower** (2026-10-27, his asks):
@@ -109,8 +109,8 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
     the Tower". Glow jars stay greyed out until a Tower run has been tried (`Collection.tried`), and
     Tower trainers bring as many creatures as you have (1v1 on the first run, up to 6v6).
   - `glade/starter.py` — the starter choice:
-    Mossfawn (Grass), Kindlet (Fire), Pippalotl (Water), Dex #001/#004/#007 (the first nine numbers
-    are their lines; everything else moved down 9). Final forms are designed, not built: Elderhart
+    Mossprance (Grass), Kindlet (Fire), Pippalotl (Water), Dex #001/#004/#007 (the first nine numbers
+    are their lines; everything else moved down 9). Final forms are designed, not built: Eldermane
     Grass/Ghost spirit stag, Pyreclad Fire/Steel molten pangolin knight, Leviolotl Water/Dragon
     axolotl river dragon. Starter abilities Overgrow/Blaze/Torrent work. Starters are never wild.
   - Battles: `battle.Battle` is now team v team (1-6 a side) with switching, forced switches and a
@@ -122,12 +122,12 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   - `glade/tower.py` — **The Battle Tower**, a place below the Mossy Rocks (path down the lower
     screen). Your party as it is (no separate picking — his call) vs endless trainers' sixes; IVs
     rise with the streak; best streak saved.
-  - Generic names were renamed (his ask): Critter→Duskit, Squid→Driftquid, Slug→Gloamslug,
-    Snail→Cairnsnail, Millipede→Luminpede, Koi→Lilyfin, Tree Squid→Canopod (species names only;
+  - Generic names were renamed (his ask): Critter→Duskling, Squid→Driftlet, Slug→Gloamooze,
+    Snail→Cairncurl, Millipede→Luminpede, Koi→Lilyfin, Tree Squid→Canopod (species names only;
     the Python classes keep their old names).
 - **Animals come and go, like wild Pokémon** (2026-10-27, his design): `storm.Lifespans` — every animal out has its own random time (0-5 min, `storm.LIFE`); when it is up it slips away for good and a *new* animal (fresh IVs, `storm.fresh`) emerges in its place, quietly, one at a time. No big event. Places off screen change at once; animals in a battle, evolving or with their card open stay.
 - **Evolved animals in the wild** (2026-10-27, his odds): `evolve.wild_stage` — each animal that comes out is its middle stage 7% of the time, its final stage 1% (lines without one give the middle instead; `SET_STAGE_3` once final stages are drawn).
-- **Starters fully evolved** (2026-10-27, Dex #001-#009): Mossfawn → Lichenhart → Elderhart (Grass/Ghost), Kindlet → Smoldershell → Pyreclad (Fire/Steel), Pippalotl → Frillotl → Leviolotl (Water/Dragon); totals 405 / 530. Stages are 1-3 now (`evolve.EVOLVES` chains, `species_at`, `stage_of`, `SIZE`); a Walker draws `draw_<kind><stage>` / `shine_<kind><stage>` when it has one.
+- **Starters fully evolved** (2026-10-27, Dex #001-#009): Mossprance → Lichenmane → Eldermane (Grass/Ghost), Kindlet → Smoldershell → Pyreclad (Fire/Steel), Pippalotl → Frillotl → Leviolotl (Water/Dragon); totals 405 / 530. Stages are 1-3 now (`evolve.EVOLVES` chains, `species_at`, `stage_of`, `SIZE`); a Walker draws `draw_<kind><stage>` / `shine_<kind><stage>` when it has one.
 - **Your creatures evolve** (2026-10-27): each `Kept` has a `uid` and `wins`; a creature that fought in a won Tower battle gets a win (`Battle.fought`, `tower.Run.count_wins`); at 3, then 9, it evolves through `evolve_party.EvolveBoard`, which has a Stop button (his choice).
 - **Predator vision** (`glade/vision.py`, 2026-10-27): a golden button in the lower screen's top-left; for ~5 s everything turns grey except the animals, which keep their colour inside a golden outline.
 - **Twice as many animals out** (his ask): a second of each second-wave animal per place (`scenes.second_wave`, `lower.py`), and `storm.crowd` doubles who is out at the start.
@@ -145,8 +145,8 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   The trees always hold a mix of squid and owlets (each one is either), re-mixed by a storm. Places
   not on screen are re-shuffled at once. Animals in a battle are left alone.
 - `glade/evolve.py` — **evolution** (his test, 2026-10-26): only the middle stages of his five
-  best designs so far — Critter → Glowtail, Squid → Nimbusquid, Lantern Moth → Beacon Moth,
-  Brawl Toad → Bruiser Toad, Sporeling → Sporestride. They have base totals of about 410 and are
+  best designs so far — Critter → Glowtail, Squid → Nimbusdrift, Lanternwing → Beaconwing,
+  Brawlhop → Thudhop, Sporeling → Sporestride. They have base totals of about 410 and are
   numbered right after their first stage. An evolved animal is the same object with `stage = 2`
   (`set_stage`), and each class draws its extras for it, growing on the old look the way
   Pokémon does. The stats card's gold "Evolve into …" button plays a ~4 s evolution: dim, a
@@ -167,3 +167,12 @@ around 10 ms for both screens.
 
 It is installed on his system from a copy in the config repo (`pkgs/glade`), which is
 started at login under Hyprland. Changing the installed copy is a config change → `ccn`.
+- **Progress board** (`glade/making.py`, 2026-10-27, his ask; it stays as a feature): while a Claude
+  session makes new creatures, it writes `~/.local/state/glade/making.json`
+  (`{"what": "Making new creatures", "done": N, "total": M, "names": [...]}`) as each one is
+  finished. The lower screen's top-right shows a mint board with a progress bar (under the
+  Thunderstorm button when that shows); at `done == total` it becomes a "M new creatures are
+  ready!" notice for 9 s. **Always use it when making creatures for him.**
+- **Naming rule (his, 2026-10-27):** a creature's name is one word with no real animal's name in
+  it, even attached (only an attached "fly" is fine, e.g. Glimmerfly). Every older name was
+  renamed to fit; `team.RENAMED` maps old saves' names to the new ones.

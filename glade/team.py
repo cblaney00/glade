@@ -1,7 +1,7 @@
 """Your creatures: the ones you have caught, and every animal's own strength.
 
 - **IVs** (Gen 3 individual values, 0-31 in each of the six stats): every single animal in
-  the glade has its own, rolled the first time anything asks (`ivs_of`), so two Frost Kits
+  the glade has its own, rolled the first time anything asks (`ivs_of`), so two Frostpaws
   can be a strong one and a weak one. The stats card draws them as a six-sided web.
 - **Catching**: battle a wild animal from its stats card, wear it down, then throw a glow
   jar (`catch_shakes`, the Gen 3 formula). What you catch leaves the wild and is kept in
@@ -95,9 +95,38 @@ class Kept:
                     evs=list(self.evs), uid=self.uid, wins=self.wins)
 
 
+# His naming rule (2026-10-27): one word, no real animal in it (only an attached "fly"). Old
+# saves still say the old names, so they are read through this.
+RENAMED = {
+    "Lantern Moth": "Lanternwing",
+    "Beacon Moth": "Beaconwing",
+    "Dusk Bat": "Gloomflit",
+    "Glimmer Drake": "Glimmerfly",
+    "Mist Wisp": "Mistwisp",
+    "Bruiser Toad": "Thudhop",
+    "Brawl Toad": "Brawlhop",
+    "Moss Mole": "Mossdelve",
+    "Rime Newt": "Rimeslink",
+    "Copper Beetle": "Coppernib",
+    "Moon Owlet": "Moonhoot",
+    "Frost Kit": "Frostpaw",
+    "Aurora Finch": "Shimmerchirp",
+    "Ember Gecko": "Embercling",
+    "Vapor Jelly": "Vaporwobble",
+    "Gloamslug": "Gloamooze",
+    "Cairnsnail": "Cairncurl",
+    "Driftquid": "Driftlet",
+    "Nimbusquid": "Nimbusdrift",
+    "Mossfawn": "Mossprance",
+    "Lichenhart": "Lichenmane",
+    "Elderhart": "Eldermane",
+    "Duskit": "Duskling",
+}
+
+
 def _kept(d):
     try:
-        return Kept(d["species"], d["ivs"], d["moves"], d.get("nature"), d.get("evs"), d.get("uid"),
+        return Kept(RENAMED.get(d["species"], d["species"]), d["ivs"], d["moves"], d.get("nature"), d.get("evs"), d.get("uid"),
                     d.get("wins", 0)) if d else None
     except (KeyError, TypeError):
         return None

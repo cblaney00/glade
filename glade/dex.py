@@ -47,12 +47,12 @@ def specimen(species):
         return thing
     rng = random.Random(7)
     cx, cy = PW // 2, PH - 12
-    if species == "Duskit":
+    if species == "Duskling":
         return Critter(rng, lambda x: cy + 8, (cx + 18, cx + 18))
-    if species == "Driftquid":
+    if species == "Driftlet":
         return Squid(rng, (cx, cy - 12, 0, 0), GLOW["cyan"], size=1.1)
-    if species in ("Gloamslug", "Cairnsnail"):
-        snail = species == "Cairnsnail"
+    if species in ("Gloamooze", "Cairncurl"):
+        snail = species == "Cairncurl"
         o = Slug(rng, Track([(2, cy + 4), (PW - 2, cy + 4)]), (220, 196, 180) if snail else (214, 170, 222),
                  size=1.3, speed=0, shell=(226, 170, 140) if snail else None)
         o.dir, o.d = 1, o.track.length * 0.78
@@ -65,8 +65,8 @@ def specimen(species):
         f = Fish(rng, Water(cx, cy, 20, 8), KOI[1], (78, 138, 228))
         f.pts = [[cx + 16 - i * Fish.SEG * 0.8, cy - 6 + (i % 2) * 0.5] for i in range(7)]
         return f
-    if species in ("Canopod", "Moon Owlet"):
-        return ("perch", "owlet" if species == "Moon Owlet" else "squid")
+    if species in ("Canopod", "Moonhoot"):
+        return ("perch", "owlet" if species == "Moonhoot" else "squid")
     for kind, spec in FLIERS.items():
         if spec["species"] == species:
             return Flier(rng, (cx, cy - 14, 0, 0), kind, 1.4)

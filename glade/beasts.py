@@ -1,11 +1,11 @@
 """The second wave of the glade's animals (see battle.py for what they are in a battle).
 
 Two kinds of mover, each drawing one of several animals:
-- `Flier`: Dusk Bat, Lantern Moth, Glimmer Drake (a dragonfly) and Mist Wisp, roaming a
+- `Flier`: Gloomflit, Lanternwing, Glimmerfly (a dragonfly) and Mistwisp, roaming a
   patch of sky;
-- `Walker`: Brawl Toad, Moss Mole, Sporeling (a walking mushroom), Rime Newt and
-  Copper Beetle, wandering along the ground.
-Plus `owlet()`, which draws a Moon Owlet where a tree squid would be (squids.py): the
+- `Walker`: Brawlhop, Mossdelve, Sporeling (a walking mushroom), Rimeslink and
+  Coppernib, wandering along the ground.
+Plus `owlet()`, which draws a Moonhoot where a tree squid would be (squids.py): the
 trees' other dwellers, holding the app icons in their talons.
 
 They are not all out at once: a place's animals take turns (storm.py), so most of these
@@ -30,13 +30,13 @@ def ease(f):
 # --- in the air -------------------------------------------------------------------------
 
 FLIERS = dict(
-    bat=dict(species="Dusk Bat", body=(86, 64, 128), color=(255, 120, 190), speed=80, turn=0.9),
-    moth=dict(species="Lantern Moth", body=(250, 214, 170), color=GLOW["amber"], speed=34, turn=1.6),
-    drake=dict(species="Glimmer Drake", body=(110, 220, 210), color=GLOW["cyan"], speed=110, turn=1.2),
-    wisp=dict(species="Mist Wisp", body=(214, 220, 255), color=(170, 190, 255), speed=16, turn=4.0),
+    bat=dict(species="Gloomflit", body=(86, 64, 128), color=(255, 120, 190), speed=80, turn=0.9),
+    moth=dict(species="Lanternwing", body=(250, 214, 170), color=GLOW["amber"], speed=34, turn=1.6),
+    drake=dict(species="Glimmerfly", body=(110, 220, 210), color=GLOW["cyan"], speed=110, turn=1.2),
+    wisp=dict(species="Mistwisp", body=(214, 220, 255), color=(170, 190, 255), speed=16, turn=4.0),
     # the far places (2026-10-27): the Snowy Ridge and the Hot Springs
-    finch=dict(species="Aurora Finch", body=(236, 240, 255), color=(150, 255, 210), speed=70, turn=1.0),
-    jelly=dict(species="Vapor Jelly", body=(196, 228, 255), color=(255, 236, 120), speed=12, turn=3.5),
+    finch=dict(species="Shimmerchirp", body=(236, 240, 255), color=(150, 255, 210), speed=70, turn=1.0),
+    jelly=dict(species="Vaporwobble", body=(196, 228, 255), color=(255, 236, 120), speed=12, turn=3.5),
 )
 AURORA = [(140, 255, 200), (120, 220, 255), (190, 150, 255), (255, 150, 220)]
 
@@ -140,7 +140,7 @@ class Flier(Clock):
             pygame.draw.ellipse(s, wing, (x + (0 if side > 0 else -w1), y - 8 * z, w1, 9 * z))
             w2 = 7 * z * open_
             pygame.draw.ellipse(s, mix(wing, INK, 0.2), (x + (0 if side > 0 else -w2), y - 1 * z, w2, 6 * z))
-        big = getattr(self, "stage", 1) > 1  # Beacon Moth, its evolution (evolve.py)
+        big = getattr(self, "stage", 1) > 1  # Beaconwing, its evolution (evolve.py)
         if big:  # bands of colour across the wings
             for side in (-1, 1):
                 w1 = 10 * z * open_
@@ -274,18 +274,18 @@ class Flier(Clock):
 # --- on the ground ----------------------------------------------------------------------
 
 WALKERS = dict(
-    toad=dict(species="Brawl Toad", body=(96, 176, 128), color=(255, 120, 110), speed=26),
-    mole=dict(species="Moss Mole", body=(96, 76, 120), color=(255, 150, 200), speed=12),
+    toad=dict(species="Brawlhop", body=(96, 176, 128), color=(255, 120, 110), speed=26),
+    mole=dict(species="Mossdelve", body=(96, 76, 120), color=(255, 150, 200), speed=12),
     sporeling=dict(species="Sporeling", body=(240, 232, 214), color=(200, 140, 255), speed=10),
-    newt=dict(species="Rime Newt", body=(150, 210, 245), color=(200, 245, 255), speed=14),
-    beetle=dict(species="Copper Beetle", body=(214, 128, 78), color=(255, 236, 120), speed=9),
+    newt=dict(species="Rimeslink", body=(150, 210, 245), color=(200, 245, 255), speed=14),
+    beetle=dict(species="Coppernib", body=(214, 128, 78), color=(255, 236, 120), speed=9),
     # the far places (2026-10-27): the Snowy Ridge and the Hot Springs
-    fox=dict(species="Frost Kit", body=(232, 240, 255), color=(150, 255, 210), speed=22),
+    fox=dict(species="Frostpaw", body=(232, 240, 255), color=(150, 255, 210), speed=22),
     goat=dict(species="Fluffhorn", body=(246, 240, 232), color=(170, 220, 255), speed=8),
     capy=dict(species="Steambara", body=(176, 124, 112), color=(255, 186, 90), speed=5),
-    gecko=dict(species="Ember Gecko", body=(118, 88, 112), color=(255, 140, 70), speed=30),
+    gecko=dict(species="Embercling", body=(118, 88, 112), color=(255, 140, 70), speed=30),
     # the three starters (starter.py): not found in the wild, only chosen
-    fawn=dict(species="Mossfawn", body=(222, 190, 160), color=(150, 255, 190), speed=16),
+    fawn=dict(species="Mossprance", body=(222, 190, 160), color=(150, 255, 190), speed=16),
     pangolin=dict(species="Kindlet", body=(156, 104, 120), color=(255, 150, 80), speed=10),
     axolotl=dict(species="Pippalotl", body=(255, 184, 214), color=(255, 120, 200), speed=9),
 )
@@ -426,7 +426,7 @@ class Walker(Clock):
         pygame.draw.line(s, (230, 80, 90), (hx - 4 * z, y - 8 * z), (hx + 4 * z, y - 8 * z), max(1, round(z)))
         pygame.draw.line(s, (230, 80, 90), (hx - f * 4 * z, y - 8 * z), (hx - f * 7 * z, y - 6 * z), 1)
         pygame.draw.line(s, dark, (hx + f * z, y - 5 * z), (hx + f * 4 * z, y - 5 * z))
-        if getattr(self, "stage", 1) > 1:  # Bruiser Toad, its evolution (evolve.py)
+        if getattr(self, "stage", 1) > 1:  # Thudhop, its evolution (evolve.py)
             for i in range(3):  # stripes down its back
                 bx = x - f * (3 - i * 2.5) * z
                 pygame.draw.line(s, dark, (bx, y - 9 * z), (bx - f * z, y - 6 * z))
@@ -661,7 +661,7 @@ class Walker(Clock):
         pygame.draw.rect(s, (255, 214, 120), (ex - 1, ey - 1, 2, 2))
         s.set_at((ex, ey), INK)
 
-    # Mossfawn: a slender fawn with a mantle of moss down its back, dappled with glowing
+    # Mossprance: a slender fawn with a mantle of moss down its back, dappled with glowing
     # spots, and a lichen sprout between its ears that will one day be a whole tree
     def draw_fawn(self, s, t):
         z, x, y, f = self.size, self.x, self.y, self.facing
@@ -876,7 +876,7 @@ class Walker(Clock):
         nx, ny = x + f * 6 * z, y - 12 * z
         return nx + f * 1.5 * z, ny - 2 * z
 
-    # Lichenhart: the fawn grown into a young stag, its first antlers hung with moss
+    # Lichenmane: the fawn grown into a young stag, its first antlers hung with moss
     def draw_fawn2(self, s, t):
         self.draw_fawn(s, t)
         z, f = self.size, self.facing
@@ -894,7 +894,7 @@ class Walker(Clock):
         for i in range(4):  # lichen patches on the mantle
             s.set_at((round(x - 4 * z + i * 2.5 * z), round(y - 10.5 * z)), (200, 236, 190))
 
-    # Elderhart: an ancient spirit stag, grey-green and half there, its antlers a whole moss-hung
+    # Eldermane: an ancient spirit stag, grey-green and half there, its antlers a whole moss-hung
     # tree with little spirit lanterns at the tips, mist where its hooves should be
     def draw_fawn3(self, s, t):
         z, x, y, f = self.size, self.x, self.y, self.facing
@@ -1206,7 +1206,7 @@ class Walker(Clock):
 # --- the owlet: a tree dweller --------------------------------------------------------
 
 def owlet(s, x, y, sz, color, t, phase, how, poked):
-    """A Moon Owlet perched where a tree squid would be, the app icon (drawn below it,
+    """A Moonhoot perched where a tree squid would be, the app icon (drawn below it,
     at y + 19) gripped in its talons. It blinks slowly, turns its head now and then, and
     flaps when it is moving to another tree."""
     body = mix((200, 186, 230), color, 0.25)
