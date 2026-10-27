@@ -876,7 +876,10 @@ class Glade:
         return None if animal_under(self.here, low, m, view is self.bottom, t, exact=True) else sp
 
     def storm_view(self):
-        """Where the Thunderstorm button is, while it is shown (else None)."""
+        """Where the Thunderstorm button is, while it is shown (else None). With a newer glade
+        waiting it is always there, battle or not: it is the only way to load it."""
+        if self.updater.waiting:
+            return self.bottom or self.top
         if self.storm is not None or self.evolution is not None or \
                 (self.card is None and self.dex is None and not self.updater.waiting):
             return None
@@ -1098,7 +1101,7 @@ class Glade:
                 storm.draw_button(view.canvas, view, self.signs.font)
                 if self.updater.waiting:  # the notice: a newer glade to check out
                     b = storm.button_rect(view)
-                    msg = "Newer glade ready! Thunderstorm loads it" if not resume.busy(self) else "Newer glade ready after this battle"
+                    msg = "Newer glade ready! Thunderstorm loads it"
                     w = self.signs.font.size(msg)[0] + 14
                     r = pygame.Rect(b.x - w - 6, b.y, w, b.h)
                     from battle import cloth

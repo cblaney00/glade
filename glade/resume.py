@@ -4,8 +4,8 @@ After a rebuild the computer has a newer glade installed than the one running. E
 the running glade checks; when there is a newer one, a notice shows by the Thunderstorm button
 (which shows too), and pressing Thunderstorm loads it (his choice): it notes where you are (the
 place, the Forest Dex's page and creature, the boxes) and steps aside; the desktop starts the new
-one at once (pkgs/glade's glade-desktop loop), and it opens where you were. Not during a battle, a
-Battle Tower run or an evolution: then the button waits.
+one at once (pkgs/glade's glade-desktop loop), and it opens where you were. The button is the only
+way it ever updates, and it always works when pressed, even mid-battle (his rule, 2026-10-27).
 """
 
 import json
@@ -15,10 +15,6 @@ import time
 
 PATH = os.path.expanduser("~/.local/state/glade/resume.json")
 FRESH = 600  # a note older than this (a reboot the next day, say) is not used
-
-
-def busy(glade):
-    return glade.arena is not None or glade.run is not None or glade.evolution is not None
 
 
 def installed():
@@ -45,8 +41,8 @@ class Updater:
         self.waiting = bool(new) and new != RUNNING and new.startswith("/nix/store/")
 
     def load(self, glade):
-        """Switch to the newer glade now (the Thunderstorm button), if nothing is going on."""
-        if not self.waiting or busy(glade):
+        """Switch to the newer glade now (the Thunderstorm button), whatever is going on."""
+        if not self.waiting:
             return False
         save(glade)
         os._exit(0)  # the desktop starts the new glade straight away
