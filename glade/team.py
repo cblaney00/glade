@@ -115,9 +115,9 @@ class Collection:
             self.boxes.append(row + [None] * (PER_BOX - len(row)))
         self.names = (data.get("box_names") or [f"Box {i + 1}" for i in range(BOXES)])[:BOXES]
         self.best = data.get("tower_best", 0)
+        self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
         if data and any(k and not (d or {}).get("nature") for k, d in zip(self.party, data.get("party", []))):
             self.save()  # creatures caught before natures existed: theirs is chosen now, for good
-        self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
 
     def members(self):
         return [k for k in self.party if k]
