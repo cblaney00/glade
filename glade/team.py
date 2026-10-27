@@ -43,6 +43,36 @@ def ivs_of(obj):
     return ivs
 
 
+# --- natures (Gen 3: 25 of them; each raises one stat by 10% and lowers another, five are neutral) ---
+
+NATURE_STATS = ("atk", "def", "spe", "spa", "spd")  # the Gen 3 order of the table
+NATURES = ["Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", "Relaxed", "Impish", "Lax",
+           "Timid", "Hasty", "Serious", "Jolly", "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash",
+           "Calm", "Gentle", "Sassy", "Careful", "Quirky"]
+EVS = (84,) * 6  # every creature's effort values: 84 in each stat, the standard spread here
+
+
+def nature_effect(nature):
+    """(the stat it raises, the stat it lowers), or (None, None) for a neutral one."""
+    i = NATURES.index(nature) if nature in NATURES else 0
+    up, down = NATURE_STATS[i // 5], NATURE_STATS[i % 5]
+    return (None, None) if up == down else (up, down)
+
+
+def nature_of(obj):
+    """This animal's own nature, chosen once and kept on it (like its IVs)."""
+    if obj is None:
+        return random.choice(NATURES)
+    n = getattr(obj, "nature", None)
+    if n is None:
+        n = random.choice(NATURES)
+        try:
+            obj.nature = n
+        except AttributeError:
+            pass
+    return n
+
+
 # --- the creatures you have caught -------------------------------------------------------------
 # Organised like the PC boxes in Pokémon Emerald: a party of six, and boxes of thirty you can
 # move them in and out of (storage.py is the screen for it).
@@ -53,16 +83,19 @@ BOXES, PER_BOX = 8, 30
 class Kept:
     """One caught creature."""
 
-    def __init__(self, species, ivs, moves):
+    def __init__(self, species, ivs, moves, nature=None, evs=None):
         self.species, self.ivs, self.moves = species, tuple(ivs), list(moves)
+        self.nature = nature or random.choice(NATURES)
+        self.evs = tuple(evs or EVS)
 
     def as_dict(self):
-        return dict(species=self.species, ivs=list(self.ivs), moves=self.moves)
+        return dict(species=self.species, ivs=list(self.ivs), moves=self.moves, nature=self.nature,
+                    evs=list(self.evs))
 
 
 def _kept(d):
     try:
-        return Kept(d["species"], d["ivs"], d["moves"]) if d else None
+        return Kept(d["species"], d["ivs"], d["moves"], d.get("nature"), d.get("evs")) if d else None
     except (KeyError, TypeError):
         return None
 
@@ -82,6 +115,8 @@ class Collection:
             self.boxes.append(row + [None] * (PER_BOX - len(row)))
         self.names = (data.get("box_names") or [f"Box {i + 1}" for i in range(BOXES)])[:BOXES]
         self.best = data.get("tower_best", 0)
+        if data and any(k and not (d or {}).get("nature") for k, d in zip(self.party, data.get("party", []))):
+            self.save()  # creatures caught before natures existed: theirs is chosen now, for good
         self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
 
     def members(self):

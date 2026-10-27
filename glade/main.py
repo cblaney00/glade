@@ -22,7 +22,7 @@ from dex import Dex
 from starter import StarterBoard
 from storage import Storage
 import storm
-from team import Collection, ivs_of
+from team import Collection, ivs_of, nature_of
 from tower import Run, TowerBoard
 from evolve import EVOLVES, Evolution
 from art import H, W, mix
@@ -817,6 +817,8 @@ class Glade:
     def show_card(self, view, m, species, t, animal=None):
         evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
         ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
+        if animal is not None:
+            animal.nature = nature_of(animal.obj)  # its own nature, shown on the card
         at, body = m, None
         if animal is not None:  # the card goes beside the animal itself, clear of all of it
             ax, ay = animal.pos()

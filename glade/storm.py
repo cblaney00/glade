@@ -141,6 +141,7 @@ def fresh(o):
     """It comes out as an entirely new animal: new IVs (rolled when asked, team.ivs_of), and
     if the body was one you caught, that one is in your boxes and this is someone else."""
     o.ivs = None
+    o.nature = None
     o.caught = False
     o.leave_at = None
 

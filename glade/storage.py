@@ -11,9 +11,9 @@ as it is put down (team.Collection).
 import pygame
 
 from apex import ease
-from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, iv_web, mix
+from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, calc_stats, cloth, iv_web, mix
 from dex import MINT, WHITE, picture
-from team import BOXES, PER_BOX, TEAM, Collection
+from team import BOXES, PER_BOX, TEAM, Collection, nature_effect
 
 COLS = 6
 
@@ -163,23 +163,67 @@ class Storage:
             self.text(s, "stats card, then throw a glow jar.", r.centerx, r.y + 54, DIM, center=True)
             return
         sp = SPECIES[kept.species]
-        pic = pygame.transform.scale(picture(kept.species), (216, 156))
-        s.blit(pic, (r.centerx - 108, r.y + 8))
-        y = r.y + 170
-        self.text(s, f"#{sp['num']:03d} {kept.species}", r.x + 10, y, WHITE)
-        x = r.x + 10
-        y += 16
+        pic = pygame.transform.scale(picture(kept.species), (144, 104))
+        s.blit(pic, (r.x + 6, r.y + 6))
+        # beside the picture: who it is
+        x0, y = r.x + 156, r.y + 10
+        self.text(s, f"#{sp['num']:03d}", x0, y, DIM)
+        self.text(s, fit(self.font, kept.species, r.right - 8 - x0), x0, y + 13, WHITE)
+        x = x0
         for kind in sp["types"]:
             img = self.font.render(kind.upper(), False, EDGE)
-            pygame.draw.rect(s, TYPE_COLOR.get(kind, (200, 200, 200)), (x, y, img.get_width() + 6, img.get_height() + 1),
+            pygame.draw.rect(s, TYPE_COLOR.get(kind, (200, 200, 200)), (x, y + 30, img.get_width() + 6, img.get_height() + 1),
                              border_radius=3)
-            s.blit(img, (x + 3, y))
+            s.blit(img, (x + 3, y + 30))
             x += img.get_width() + 9
-        self.text(s, sp["ability"], r.right - 10, y, DIM, right=True)
-        y += 18
+        self.text(s, "Lv100", x0, y + 48, TEXT)
+        self.text(s, fit(self.font, f"Nature: {kept.nature}", r.right - 8 - x0), x0, y + 62, TEXT)
+        up, down = nature_effect(kept.nature)
+        what = f"+{SHORT[up]} -{SHORT[down]}" if up else "no effect"
+        self.text(s, what, x0, y + 75, DIM)
+        self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 89, DIM)
+        # the stats table: base, IV, EV and the stat itself (raised: mint, lowered: pink)
+        maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature)
+        values = [maxhp] + [stats[k] for k in ("atk", "def", "spa", "spd", "spe")]
+        keys = [None, "atk", "def", "spa", "spd", "spe"]
+        y = r.y + 118
+        cols = (r.x + 10, r.x + 92, r.x + 136, r.x + 180, r.right - 10)
+        for c, h in zip(cols, ("", "Base", "IV", "EV", "Stat")):
+            self.text(s, h, c, y, DIM, right=c != cols[0])
+        for i, (label, base, iv, ev, v, k) in enumerate(zip(LONG, sp["base"], kept.ivs, kept.evs, values, keys)):
+            yy = y + 14 + i * 14
+            tint = MINT if k and k == up else (255, 150, 200) if k and k == down else TEXT
+            self.text(s, label + (" +" if k and k == up else " -" if k and k == down else ""), cols[0], yy, tint)
+            self.text(s, str(base), cols[1], yy, TEXT, right=True)
+            self.text(s, str(iv), cols[2], yy, WHITE if iv == 31 else TEXT, right=True)
+            self.text(s, str(ev), cols[3], yy, TEXT, right=True)
+            self.text(s, str(v), cols[4], yy, tint if k else WHITE, right=True)
+        yy = y + 14 + 6 * 14
+        self.text(s, "Total", cols[0], yy, DIM)
+        self.text(s, str(sum(sp["base"])), cols[1], yy, DIM, right=True)
+        self.text(s, str(sum(kept.ivs)), cols[2], yy, DIM, right=True)
+        self.text(s, str(sum(kept.evs)), cols[3], yy, DIM, right=True)
+        self.text(s, str(sum(values)), cols[4], yy, DIM, right=True)
+        # its moves, with type, power, accuracy and PP
+        y = yy + 20
         for i, name in enumerate(kept.moves[:4]):
             mv = MOVES.get(name)
-            c = TYPE_COLOR.get(mv["t"], TEXT) if mv else TEXT
-            self.text(s, name, r.x + 10 + (i % 2) * 134, y + (i // 2) * 14, c)
-        y += 34
-        iv_web(s, self.font, kept.ivs, (r.centerx, y + 76), 54, t)
+            if not mv:
+                continue
+            c = TYPE_COLOR.get(mv["t"], TEXT)
+            self.text(s, name, r.x + 10, y + i * 14, c)
+            acc = f"{mv['a']}%" if mv['a'] else '-'
+            info = f"{mv['p'] or '-'}  {acc}  {mv['pp']}pp"
+            self.text(s, info, r.right - 10, y + i * 14, DIM, right=True)
+        # and the IV web
+        iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 50), 40, t)
+
+
+SHORT = dict(atk="Atk", spa="SpA", spd="SpD", spe="Spe", **{"def": "Def"})
+LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
+
+
+def fit(font, line, w):
+    while font.size(line)[0] > w and len(line) > 4:
+        line = line[:-2] + "…"
+    return line

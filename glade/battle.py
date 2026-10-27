@@ -311,6 +311,20 @@ LEVEL = 100
 STARTER_ABILITY = {"Overgrow": "Grass", "Blaze": "Fire", "Torrent": "Water"}
 
 
+def calc_stats(species, ivs, evs, nature):
+    """Gen 3 stats at level 100: HP = (2*Base + IV + EV/4) * L/100 + L + 10; the others
+    (2*Base + IV + EV/4) * L/100 + 5, then x1.1 or x0.9 for the nature. Returns (hp, {stat: v})."""
+    from team import nature_effect
+    hp, *rest = SPECIES[species]["base"]
+    up, down = nature_effect(nature)
+    maxhp = (2 * hp + ivs[0] + evs[0] // 4) * LEVEL // 100 + LEVEL + 10
+    stats = {}
+    for k, b, iv, ev in zip(STATS, rest, ivs[1:], evs[1:]):
+        v = (2 * b + iv + ev // 4) * LEVEL // 100 + 5
+        stats[k] = v * 11 // 10 if k == up else v * 9 // 10 if k == down else v
+    return maxhp, stats
+
+
 def staged(value, n):
     return value * (2 + n) // 2 if n >= 0 else value * 2 // (2 - n)
 
@@ -336,16 +350,17 @@ def moveset(species, rng):
 
 
 class Mon:
-    def __init__(self, species, rng, foe=False, ivs=None, moves=None, label=None):
-        """`ivs`: its own IVs (team.py), all 31 if not given; `moves`: its four, or random ones."""
+    def __init__(self, species, rng, foe=False, ivs=None, moves=None, label=None, nature=None, evs=None):
+        """`ivs`: its own IVs (team.py), all 31 if not given; `moves`: its four, or random ones;
+        `nature`: its nature (neutral if not given); `evs`: its effort values (84 each)."""
+        from team import EVS
         sp = SPECIES[species]
         self.species, self.types, self.ability = species, sp["types"], sp["ability"]
         self.name = label or (("Foe " if foe else "") + species)
         self.ivs = tuple(ivs) if ivs else (31,) * 6
-        hp, *rest = sp["base"]
-        # Gen 3: ((2*Base + IV + EV/4) * Level / 100) + 5, HP + Level + 10; EV 84
-        self.maxhp = (2 * hp + self.ivs[0] + 21) * LEVEL // 100 + LEVEL + 10
-        self.stats = {k: (2 * b + iv + 21) * LEVEL // 100 + 5 for k, b, iv in zip(STATS, rest, self.ivs[1:])}
+        self.nature = nature or "Hardy"
+        self.evs = tuple(evs or EVS)
+        self.maxhp, self.stats = calc_stats(species, self.ivs, self.evs, self.nature)
         self.hp = self.maxhp
         picked = [m for m in (moves or []) if m in MOVES] or moveset(species, rng)
         self.moves = [[m, MOVES[m]["pp"]] for m in picked]
@@ -370,9 +385,14 @@ def as_mon(x, rng, foe):
     if isinstance(x, str):
         return Mon(x, rng, foe)
     if isinstance(x, tuple):
-        species, ivs, moves = (list(x) + [None, None])[:3]
-        return Mon(species, rng, foe, ivs, moves)
-    return Mon(x.species, rng, foe, x.ivs, x.moves)
+        species, ivs, moves, nature = (list(x) + [None, None, None])[:4]
+        return Mon(species, rng, foe, ivs, moves, nature=nature or rng.choice(NATURE_LIST()))
+    return Mon(x.species, rng, foe, x.ivs, x.moves, nature=x.nature, evs=x.evs)
+
+
+def NATURE_LIST():
+    from team import NATURES
+    return NATURES
 
 
 class Battle:
@@ -1044,10 +1064,29 @@ class Fighter:
             return 255
         return round(255 * max(0.0, 1 - (t - self.fainted) / 0.9))
 
+    def face(self):
+        """Turn to face the other side: yours (on the left) looks right, its foe looks left,
+        and neither wanders off while it does."""
+        o, f = self.a.obj, (1 if self.side == 0 else -1)
+        if hasattr(o, "dir") and hasattr(o, "track"):  # a slug or millipede: the way it glides
+            o.dir = f
+            o.wait = max(getattr(o, "wait", 0.0), 0.5)
+        if hasattr(o, "facing"):
+            o.facing = f
+            if hasattr(o, "wait"):
+                o.wait = max(o.wait, 0.5)
+                if isinstance(getattr(o, "target", None), (int, float)) and hasattr(o, "x"):
+                    o.target = o.x
+            if hasattr(o, "vx"):  # a flier: hovering
+                o.vx, o.vy = 0.0, 0.0
+                o.target = (o.x, o.y)
+
     def draw(self, s, ox, oy, t, scratch, here):
         al = self.alpha(t)
         if al <= 0:
             return
+        if self.going_home is None and self.fainted is None:
+            self.face()
         x, y = self.where(t, here)
         x, y = x - ox, y - oy
         if self.fainted is not None:
@@ -1100,7 +1139,8 @@ class Arena:
     It goes with him from place to place (`scene`/`lower`, kept up to date by the glade): the
     field and fighters are in whichever place he is looking at."""
 
-    W, H = 380, 206
+    W, H = 380, 138
+    PANEL_W = 262  # each side's name-and-health panel: yours on the left of the screen, its foe's on the right
 
     def __init__(self, scene, lower, font, t, mode="pick", foe=None, mine=None, foes=None, intro=None, after=None):
         """`foe`: (animal, species, its place) for a wild battle; `mine`: your team (team.Kept
@@ -1137,7 +1177,7 @@ class Arena:
     def fighters(self):
         return list(self.out.values()) + self.leavers
 
-    SPOTS = ((290, 26), (10, 26), (570, 26), (290, 120))  # where the board may sit, best first (clear of the top bar)
+    SPOTS = ((290, 26), (290, 96))  # where the board may sit, between the two panels, below the top bar
 
     def place(self, content):
         """Put the board where it covers none of this place's signs or icons (the first
@@ -1199,8 +1239,8 @@ class Arena:
 
     # --- the battle ---
     def start(self, t):
-        from team import ivs_of
-        own = lambda a, sp: (sp, ivs_of(a.obj), None)  # noqa: E731  an animal of the glade, with its own IVs
+        from team import ivs_of, nature_of
+        own = lambda a, sp: (sp, ivs_of(a.obj), None, nature_of(a.obj))  # noqa: E731  an animal of the glade, its own self
         if self.mode == "pick":
             (a, sa, _), (b, sb, _) = self.picked
             self.battle = Battle([own(a, sa)], [own(b, sb)])
@@ -1298,7 +1338,7 @@ class Arena:
         if b.caught is not None and self.caught is None and self.foe:
             from team import Collection, Kept
             box = Collection()
-            where = box.add(Kept(b.caught.species, b.caught.ivs, [m for m, _ in b.caught.moves]))
+            where = box.add(Kept(b.caught.species, b.caught.ivs, [m for m, _ in b.caught.moves], b.caught.nature))
             if where is not None:
                 box.save()
                 self.caught = self.foe[0].obj
@@ -1406,19 +1446,19 @@ class Arena:
 
     def panel(self, s, side, x, y, w, tint):
         mon = self.battle.teams[side][self.shown[side]]
-        self.cloth(s, pygame.Rect(x, y, w, 30), tint, alpha=170)
-        nx = x + 6 + self.text(s, mon.name, x + 6, y + 3, (255, 255, 255))
-        nx += 6 + self.text(s, "Lv100", nx + 6, y + 3, DIM)
-        for k in mon.types:
-            nx += self.badge(s, k, nx + 6, y + 3)
-        st = self.status[side]
-        if st:
-            nx += self.badge(s, STATUS_TAG[st], nx + 6, y + 3)
-        self.bar(s, x + 6, y + 20, w - 12, self.hp[side], mon.maxhp)
+        self.cloth(s, pygame.Rect(x, y, w, 40), tint, alpha=170)
         hp = max(0, round(self.hp[side]))
         label = f"{hp}/{mon.maxhp}" if side == 0 else f"{math.ceil(100 * hp / mon.maxhp)}%"
         lw = self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
-        self.orbs(s, side, x + w - 14 - lw, y + 9)
+        self.text(s, self.fit(f"{mon.name}  Lv100", w - 24 - lw), x + 6, y + 3, (255, 255, 255))
+        self.bar(s, x + 6, y + 17, w - 12, self.hp[side], mon.maxhp)
+        nx = x
+        for k in mon.types:  # line two: its types and any status, and the team's orbs
+            nx += self.badge(s, k, nx + 6, y + 25)
+        st = self.status[side]
+        if st:
+            nx += self.badge(s, STATUS_TAG[st], nx + 6, y + 25)
+        self.orbs(s, side, x + w - 10, y + 31)
 
     def draw(self, s, low, t):
         """`low`: drawing the lower screen (only animals on their way go there)."""
@@ -1452,15 +1492,18 @@ class Arena:
             self.button(s, pygame.Rect(box.right - 66, box.y + 8, 58, 18), "Cancel", self.run, t)
             return
         b = self.battle
+        # the two sides' panels on opposite sides of the screen, each above its own fighter
+        self.cloth(s, pygame.Rect(10 - 4, 26, self.PANEL_W + 8, 48), MINE, alpha=200)
+        self.panel(s, 0, 10, 30, self.PANEL_W, MINE)
+        self.cloth(s, pygame.Rect(960 - 10 - self.PANEL_W - 4, 26, self.PANEL_W + 8, 48), THEIRS, alpha=200)
+        self.panel(s, 1, 960 - 10 - self.PANEL_W, 30, self.PANEL_W, THEIRS)
         self.cloth(s, r, CLOTH, alpha=245)
-        self.panel(s, 1, r.x + 6, r.y + 6, r.w - 12, THEIRS)
-        self.panel(s, 0, r.x + 6, r.y + 40, r.w - 12, MINE)
         # the log: newest line brightest
         for i, line in enumerate(self.log):
             c = mix(DIM, TEXT, (i + 1) / len(self.log))
-            self.text(s, self.fit(line, r.w - 20), r.x + 10, r.y + 76 + i * 13, c)
+            self.text(s, self.fit(line, r.w - 20), r.x + 10, r.y + 6 + i * 13, c)
         busy = bool(self.queue)
-        y0 = r.y + 118
+        y0 = r.y + 48
         if b.winner is None:
             forced = b.need == 0
             if (self.menu == "switch" or forced) and not busy:
@@ -1666,7 +1709,8 @@ class Card:
         drawn as a six-sided web; `fight`: whether it has a "Battle it!" button."""
         self.font, self.view, self.species, self.t = font, view, species, t
         self.animal, self.evolves, self.ivs = animal, evolves, ivs
-        web = self.WEB if ivs else 0
+        self.nature = getattr(animal, "nature", None)
+        web = self.WEB + 14 if ivs else 0
         h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + web + 24 + (22 if evolves else 0) + (22 if fight else 0)
         # beside the animal, never over it (`avoid`: where it is): right, left, above or below,
         # whichever fits on the screen without covering it
@@ -1730,8 +1774,15 @@ class Card:
         self.text(surf, "Total", 8, y, DIM)
         self.text(surf, str(sum(sp["base"])), 92, y, (255, 255, 255), right=True)
         if self.ivs:
-            self.text(surf, self.fit("IVs (this one's own)", self.W - 16), 8, y + 16, DIM)
-            iv_web(surf, self.font, self.ivs, (self.W // 2, y + 80), 36, t)
+            if self.nature:
+                from team import nature_effect
+                up, down = nature_effect(self.nature)
+                short = dict(atk="Atk", spa="SpA", spd="SpD", spe="Spe", **{"def": "Def"})
+                self.text(surf, "Nature", 8, y + 16, DIM)
+                self.text(surf, self.fit(self.nature + (f" (+{short[up]} -{short[down]})" if up else ""), self.W - 70),
+                          self.W - 8, y + 16, TEXT, right=True)
+            self.text(surf, self.fit("IVs (this one's own)", self.W - 16), 8, y + 30, DIM)
+            iv_web(surf, self.font, self.ivs, (self.W // 2, y + 94), 36, t)
         surf.set_alpha(round(255 * k))
         s.blit(surf, self.rect)
         mouse = getattr(self.view, "mouse", None)
