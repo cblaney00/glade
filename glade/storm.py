@@ -49,6 +49,15 @@ def roster(content, everyone=False):
     return out
 
 
+def crowd(content, rng, factor=2):
+    """Bring out more of a place's animals at the start: `factor` times as many as were out."""
+    animals = roster(content)
+    out = [o for o in animals if not getattr(o, "gone", False)]
+    waiting = [o for o in animals if getattr(o, "gone", False)]
+    for o in rng.sample(waiting, min(len(waiting), len(out) * (factor - 1))):
+        o.gone = False
+
+
 def choose(animals, rng, n=None, before=None):
     """Who comes out after a storm: `n` of them (as many as were out before), a random mix
     of everyone who lives there, old and new alike."""

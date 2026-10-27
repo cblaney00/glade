@@ -102,6 +102,8 @@ class Scene(art.Lighting):
         return thing
 
     def done(self):
+        from storm import crowd
+        crowd(self, random.Random(sum(map(ord, self.key))))  # twice as many out as there used to be
         roam = getattr(self, "roam", None) or [MEADOW]
         for o in self.lives:  # slugs on the ground wander all over it (not the ones up a tree)
             if type(o).__name__ == "Slug" and o.track.up is None:
@@ -159,6 +161,14 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=()):
         w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam))
         if kind not in out:
             newcomer(w)
+    # a second of each, waiting to come out (his ask: twice as many animals about). Their own
+    # dice, so the rest of the place is painted just as before.
+    more = random.Random(sum(map(ord, sc.key)) + 1)
+    for kind in fliers:
+        sc.live(newcomer(Flier(more, sky, kind, 1.1)))
+    for i, kind in enumerate(walkers):
+        ground, x_range = grounds[(i + 1) % len(grounds)]
+        sc.live(newcomer(Walker(more, ground, x_range, kind, 1.1, roam=roam)))
 
 
 # --- shared palette pieces ------------------------------------------------------------

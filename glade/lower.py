@@ -228,6 +228,16 @@ class Lower(art.Lighting):
         for kind in spec.get("fliers", FLY):
             fl = Flier(rng, (60, 20, w - 120, h // 2), kind, 2.0)
             crawlers.append(fl if kind in out else newcomer(fl))
+        import random
+        more = random.Random(sum(map(ord, scene.key)) + 9)  # a second of each, waiting to come out
+        for kind in spec.get("walkers", WALK):
+            for _ in range(80):
+                x0, y0 = more.randint(60, w - 280), more.randint(90, h - 40)
+                if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)):
+                    line = (lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200))
+                    crawlers.append(newcomer(Walker(more, line[0], line[1], kind, 2.0, roam=roam, avoid=wet)))
+                    break
+        crawlers += [newcomer(Flier(more, (60, 20, w - 120, h // 2), kind, 2.0)) for kind in spec.get("fliers", FLY)]
         sky = Squid(rng, (60, 20, w - 120, h // 2), rng.choice([GLOW["cyan"], GLOW["pink"], GLOW["violet"]]), size=2.0)
         self.parts = [far, ferns] + crawlers + [near, bugs, sky, Motes(rng, (0, 0, w, h), 26, GLOW["cyan"])]
         if glows:
@@ -238,6 +248,8 @@ class Lower(art.Lighting):
         if "pines" in spec.get("props", []):
             from life import Snow
             self.parts.append(Snow(rng, (0, 0, w, h), 140))
+        from storm import crowd
+        crowd(self, more)  # twice as many out as there used to be
         self.creatures = [c for c in self.parts if hasattr(c, "poke")]
         if self.pond:
             self.creatures.append(self.pond)
