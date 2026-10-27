@@ -425,15 +425,23 @@ class Walker(Clock):
     hops, a mole that never strays far from its hole, a waddling mushroom, a newt with a
     long wriggling tail, a beetle on six busy legs. Click it and it reacts."""
 
-    def __init__(self, rng, ground, x_range, kind, size=1.0, roam=None, avoid=None):
+    # Its drawn size is its own size times how near it is (his ask, 2026-10-27: further back is
+    # smaller). `persp(y)` gives that for where it stands; evolving sets the own size.
+    size = property(lambda self: self._size * self.depth, lambda self, v: setattr(self, "_size", v))
+
+    def __init__(self, rng, ground, x_range, kind, size=1.0, roam=None, avoid=None, persp=None):
         """`roam`: every stretch of ground in its place, [(ground, x_range)], for it to wander
-        between; `avoid(x, y)`: somewhere it must not cross (a pond)."""
+        between; `avoid(x, y)`: somewhere it must not cross (a pond); `persp(y)`: how big it
+        looks standing at y (1 at the front)."""
+        self.depth, self.persp = 1.0, persp
         self.roam, self.avoid, self.blend = roam, avoid, None
         spec = WALKERS[kind]
         self.rng, self.ground, self.xr, self.kind, self.size = rng, ground, x_range, kind, size
         self.species, self.body, self.color, self.speed = spec["species"], spec["body"], spec["color"], spec["speed"]
         self.x = rng.uniform(*x_range)
         self.y = ground(self.x)
+        if persp:
+            self.depth = persp(self.y)
         self.home = self.x  # the mole's hole
         if kind == "mole":
             self.xr = (self.home - 10 * size, self.home + 10 * size)  # never far from its hole
@@ -510,6 +518,8 @@ class Walker(Clock):
             if self.hop >= 1:
                 self.hop, self.lift = 0.0, 0.0
         self.y = self.ground(self.x) - self.lift
+        if self.persp:
+            self.depth = self.persp(self.ground(self.x))
         # the newt's tail follows its body
         self.tail[0] = (self.x, self.y)
         seg = 3 * self.size

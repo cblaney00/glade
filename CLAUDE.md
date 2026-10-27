@@ -172,7 +172,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (`{"what": "Making new creatures", "done": N, "total": M, "names": [...]}`) as each one is
   finished. The lower screen's top-right shows a mint board with a progress bar (under the
   Thunderstorm button when that shows); at `done == total` it becomes a "M new creatures are
-  ready!" notice for 9 s. **Always use it when making creatures for him.**
+  ready!" notice for 15 s. **Always use it when making creatures for him, and update it after EVERY
+  creature** (`python glade/making.py start N FIRST`, then `step DONE NEXT` each time): he once saw it sit
+  at 8/22 while 14 were made, and read that as frozen. Don't restart the glade between steps if avoidable.
 - **Naming rule (his, 2026-10-27):** a creature's name is one word with no real animal's name in
   it, even attached (only an attached "fly" is fine, e.g. Glimmerfly). Every older name was
   renamed to fit; `team.RENAMED` maps old saves' names to the new ones.
@@ -191,3 +193,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (Luminthread/Glowcoil: `set_stage` adds segments; the Dex coils them), Fish (Lilyveil/Lotuscrest),
   TreeSquid (Boughgrip/Canopolis: the Dex/battle tuple is `("perch", kind, stage)`; tree squids
   holding icons never evolve), Flier bat/moth/drake/wisp, Walker toad (`draw_toad3`) and mole.
+- **Depth and more room** (2026-10-27, his ask): walkers' drawn size is their own size times
+  `depth`, from `persp(y)` (`scenes.persp` upper screen: 1 at the meadow front, down to 0.42 far
+  back; `lower.py` `near`: smaller further up the lower screen), updated as they walk, so they
+  also move slower far away. `Walker.size` is a property over `_size` (what `set_stage` sets).
+  Every place has `far=` stretches in its `second_wave` call (paths, the far river bank, the
+  snowfield behind the lake, …): two walkers each that wander only there, plus a small far flier.

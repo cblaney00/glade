@@ -67,7 +67,7 @@ SPARK = (200, 230, 255)
 def set_stage(obj, stage):
     """Make an animal stage 1, 2 or 3 of its line. Reversible: the first-stage values are
     kept the first time."""
-    first = obj.__dict__.setdefault("_first", dict(size=getattr(obj, "size", None), species=getattr(obj, "species", None),
+    first = obj.__dict__.setdefault("_first", dict(size=obj.__dict__.get("_size", getattr(obj, "size", None)), species=getattr(obj, "species", None),
                                                    name=species_of(obj)))
     obj.stage = stage
     if first["size"] is not None:

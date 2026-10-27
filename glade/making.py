@@ -2,10 +2,17 @@
 screen's top-right corner, and a little notice when they are all done.
 
 Whoever is making them (a Claude session) writes ~/.local/state/glade/making.json:
-    {"what": "Making new creatures", "done": 2, "total": 6, "names": ["Bramblit", "Sparkfly"]}
-`done` counts up as each one is finished; `names` are the finished ones. When `done` reaches
-`total`, the board turns into the notice for a few seconds, then goes. Deleting the file
-takes the board away. The glade looks at the file about once a second.
+    {"what": "Making new creatures", "done": 2, "total": 6, "names": ["Bramblit", "Sparkfly"],
+     "now": "Runelet"}
+`done` counts up as each one is finished; `names` are the finished ones; `now` is the one being
+worked on, shown under the bar so it never looks stuck. When `done` reaches `total`, the board
+turns into the notice, then goes. Deleting the file takes the board away. The glade looks at
+the file about once a second.
+
+The easy way to write it (his rule, 2026-10-27: update it after EVERY creature, not in jumps):
+    python glade/making.py start 22 Cometail     # 22 to make, starting on Cometail
+    python glade/making.py step Cometail Skyveil  # Cometail done, now on Skyveil
+    python glade/making.py step Mossquake         # the last one: the notice goes up
 """
 
 import json
@@ -20,7 +27,7 @@ from battle import TEXT, cloth
 
 PATH = os.path.expanduser("~/.local/state/glade/making.json")
 MINT = (130, 255, 190)
-NOTICE = 9.0     # seconds the "done" notice stays
+NOTICE = 15.0    # seconds the "done" notice stays
 STALE = 120.0    # a finished file older than this (e.g. after a restart) is not shown again
 
 
@@ -47,7 +54,7 @@ class Making:
             total = max(1, int(d.get("total", 1)))
             self.state = dict(what=str(d.get("what", "Making new creatures")), total=total,
                               done=max(0, min(total, int(d.get("done", 0)))),
-                              names=[str(n) for n in d.get("names", [])])
+                              names=[str(n) for n in d.get("names", [])], now=str(d.get("now") or ""))
         except (OSError, ValueError, TypeError):
             return
         if self.state["done"] >= self.state["total"]:
@@ -67,7 +74,7 @@ class Making:
         if self.finished_at is not None:
             self.notice(s, view, font, t - self.finished_at, y)
             return
-        r = pygame.Rect(view.w - 172, y, 164, 36)
+        r = pygame.Rect(view.w - 172, y, 164, 50 if st["now"] else 36)
         cloth(s, r, MINT, alpha=230)
         img = font.render(st["what"], False, TEXT)
         s.blit(img, (r.x + 8, r.y + 3))
@@ -83,6 +90,10 @@ class Making:
             glow(s, fill.right, fill.centery, 9, MINT, 60 + round(30 * math.sin(t * 3)) // 10 * 10)
         n = font.render(f"{st['done']}/{st['total']}", False, TEXT)
         s.blit(n, (r.right - 8 - n.get_width(), bar.centery - n.get_height() // 2))
+        if st["now"]:  # what is being made right now, with dots that keep moving
+            dots = "." * (1 + int(t * 2) % 3)
+            img = font.render(f"Now: {st['now']}{dots}", False, mix(TEXT, MINT, 0.4))
+            s.blit(img, (r.x + 8, r.y + 33))
 
     def notice(self, s, view, font, a, y):
         if a > NOTICE:
@@ -107,3 +118,27 @@ class Making:
             surf.blit(img, (r.x + 10, r.y + 5 + 14 * i))
         surf.set_alpha(round(255 * k))
         s.blit(surf, (0, 0))
+
+
+def _write(d):
+    os.makedirs(os.path.dirname(PATH), exist_ok=True)
+    tmp = PATH + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(d, f)
+    os.replace(tmp, PATH)
+
+
+if __name__ == "__main__":  # python making.py start TOTAL [NOW] | step DONE_NAME [NOW] | stop
+    import sys
+    cmd, args = sys.argv[1], sys.argv[2:]
+    if cmd == "start":
+        _write(dict(what="Making new creatures", done=0, total=int(args[0]), names=[], now=args[1] if len(args) > 1 else ""))
+    elif cmd == "step":
+        with open(PATH) as f:
+            d = json.load(f)
+        d["names"] = d.get("names", []) + [args[0]]
+        d["done"] = min(d["total"], d.get("done", 0) + 1)
+        d["now"] = args[1] if len(args) > 1 and d["done"] < d["total"] else ""
+        _write(d)
+    elif cmd == "stop":
+        os.remove(PATH)

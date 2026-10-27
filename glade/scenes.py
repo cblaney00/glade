@@ -145,13 +145,22 @@ MEADOW = (lambda x: 512 + 3 * math.sin(x / 45), (60, 900))  # the near grass, in
 WALK = ("toad", "mole", "sporeling", "newt", "beetle")
 
 
-def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=()):
+def persp(y):
+    """How big something standing at y looks on the upper screen: 1 at the front of the
+    meadow (y 512), smaller further back toward the hills."""
+    return max(0.42, min(1.05, (y - 200) / 312))
+
+
+def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(), far=()):
     """One of every animal of the second wave (beasts.py) lives in every place: the fliers
     in its sky, the walkers on its stretches of ground. They start out sheltering, and a
     thunderstorm (storm.py) brings out a random mix of everyone who lives here. The far
     places have their own animals instead, and the kinds in `out` start out in sight.
     `new`: the place's own kinds from the third wave (2026-10-27), on their own dice so the
-    rest of the place is painted just as before; one of each starts out in sight."""
+    rest of the place is painted just as before; one of each starts out in sight.
+    `far`: stretches of ground further back (2026-10-27, his ask: more room for animals),
+    each with two walkers of their own that wander only there, drawn smaller (`persp`), and a
+    flier or two in the distance above them."""
     for kind in fliers:
         f = sc.live(Flier(rng, sky, kind, 1.1))
         if kind not in out:
@@ -160,7 +169,7 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=())
     sc.roam = roam
     for i, kind in enumerate(walkers):
         ground, x_range = grounds[i % len(grounds)]
-        w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam))
+        w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam, persp=persp))
         if kind not in out:
             newcomer(w)
     own = random.Random(sum(map(ord, sc.key)) + 2)
@@ -170,9 +179,22 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=())
             sc.live(newcomer(Flier(own, sky, kind, 1.1)))
         else:
             ground, x_range = grounds[i % len(grounds)]
-            sc.live(Walker(own, ground, x_range, kind, 1.1, roam=roam))
+            sc.live(Walker(own, ground, x_range, kind, 1.1, roam=roam, persp=persp))
             ground, x_range = grounds[(i + 1) % len(grounds)]
-            sc.live(newcomer(Walker(own, ground, x_range, kind, 1.1, roam=roam)))
+            sc.live(newcomer(Walker(own, ground, x_range, kind, 1.1, roam=roam, persp=persp)))
+    if far:
+        back = random.Random(sum(map(ord, sc.key)) + 3)
+        kinds = list(walkers) + [k for k in new if k not in FLIERS]
+        flying = list(fliers) + [k for k in new if k in FLIERS]
+        far = list(far)
+        for i, (ground, x_range) in enumerate(far):
+            for j in range(2):
+                w = Walker(back, ground, x_range, kinds[(i * 2 + j) % len(kinds)], 1.1, roam=far, persp=persp)
+                sc.live(w if j == 0 else newcomer(w))
+            mid = (x_range[0] + x_range[1]) / 2
+            gy = ground(mid)
+            f = Flier(back, (x_range[0], gy - 70, x_range[1] - x_range[0], 40), flying[i % len(flying)], 1.1 * persp(gy))
+            sc.live(f if i == 0 else newcomer(f))
     # a second of each, waiting to come out (his ask: twice as many animals about). Their own
     # dice, so the rest of the place is painted just as before.
     more = random.Random(sum(map(ord, sc.key)) + 1)
@@ -180,7 +202,7 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=())
         sc.live(newcomer(Flier(more, sky, kind, 1.1)))
     for i, kind in enumerate(walkers):
         ground, x_range = grounds[(i + 1) % len(grounds)]
-        sc.live(newcomer(Walker(more, ground, x_range, kind, 1.1, roam=roam)))
+        sc.live(newcomer(Walker(more, ground, x_range, kind, 1.1, roam=roam, persp=persp)))
 
 
 # --- shared palette pieces ------------------------------------------------------------
@@ -455,7 +477,8 @@ def build_glade():
     # four trees of four: his sixteen; the seed sign under them grows more (squids.GROW_AT)
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
-    second_wave(sc, rng, (80, 60, 760, 170), [(lambda x: 500 + 4 * math.sin(x / 50), (420, 600)), (lambda x: 488 + 3 * math.sin(x / 40), (250, 300))])
+    second_wave(sc, rng, (80, 60, 760, 170), [(lambda x: 500 + 4 * math.sin(x / 50), (420, 600)), (lambda x: 488 + 3 * math.sin(x / 40), (250, 300))],
+                far=[(lambda x: 402 + 2 * math.sin(x / 40), (540, 690)), (lambda x: 446 + 2 * math.sin(x / 50), (600, 820))])
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 440), 40, GLOW["cyan"]))
@@ -600,7 +623,8 @@ def build_waterfall():
     sc.live(Slug(rng, Track([(40, 512), (120, 506), (200, 514), (300, 510)]), (150, 120, 210), size=1.5,
                  spots=GLOW["violet"]))
     second_wave(sc, rng, (120, 140, 720, 160), [(lambda x: 500 + 3 * math.sin(x / 45), (200, 360)), (lambda x: 505 + 3 * math.sin(x / 50), (620, 780))],
-                new=("spark", "rune"))
+                new=("spark", "rune"),
+                far=[(lambda x: 434 + 2 * math.sin(x / 40), (30, 200)), (lambda x: 434 + 2 * math.sin(x / 45), (770, 930))])
     bugs = sc.live(Fireflies(rng, (0, 260, W, 220), 16, color=GLOW["cyan"], reach=26))
     sc.bugs.append(bugs)
     squids(sc, rng, (80, 120, 800, 220), [GLOW["violet"], GLOW["cyan"]])
@@ -719,7 +743,8 @@ def build_river():
     sc.live(Slug(rng, Track([(320, 506), (420, 512), (520, 508), (640, 514), (760, 506)]), (230, 200, 120), size=1.6,
                  speed=4))
     second_wave(sc, rng, (100, 60, 760, 220), [(lambda x: 505 + 4 * math.sin(x / 55), (420, 600)), (lambda x: 510 + 3 * math.sin(x / 50), (120, 300))],
-                new=("murk", "glint"))
+                new=("murk", "glint"),
+                far=[(lambda x: 312 + 2 * math.sin(x / 50), (60, 520)), (lambda x: 432 + 2 * math.sin(x / 40), (200, 600))])
     bugs = sc.live(Fireflies(rng, (0, 220, W, 220), 30))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 400), 30, GLOW["cyan"]))
@@ -803,7 +828,8 @@ def build_forest():
     sc.live(Slug(rng, Track([(66, 500), (64, 440), (62, 380)], up=(1, 0)), (140, 120, 220), size=1.3, speed=2,
                  spots=GLOW["pink"]))
     second_wave(sc, rng, (100, 120, 700, 200), [(lambda x: 478 + 3 * math.sin(x / 40), (140, 280)), (lambda x: 512 + 3 * math.sin(x / 50), (420, 600))],
-                new=("thistle", "bramble"))
+                new=("thistle", "bramble"),
+                far=[(lambda x: 436 + 3 * math.sin(x / 60), (150, 760)), (lambda x: 394 + 2 * math.sin(x / 40), (220, 680))])
     bugs = sc.live(Fireflies(rng, (0, 140, W, 360), 56, color=GLOW["lime"]))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 460), 70, GLOW["moss"]))
@@ -923,7 +949,8 @@ def build_rocks():
             sc.live(Slug(rng, Track([(x, y - 1) for x, y in pts]), body, size=sz, speed=2.5, spots=spots, shell=shell))
     sc.live(Slug(rng, Track([(600, 524), (700, 520), (800, 528), (900, 522)]), (200, 120, 200), size=1.6, speed=4,
                  spots=GLOW["violet"]))
-    second_wave(sc, rng, (100, 40, 760, 160), [(lambda x: 506 + 3 * math.sin(x / 50), (300, 520)), (lambda x: 505 + 2 * math.sin(x / 40), (40, 110))])
+    second_wave(sc, rng, (100, 40, 760, 160), [(lambda x: 506 + 3 * math.sin(x / 50), (300, 520)), (lambda x: 505 + 2 * math.sin(x / 40), (40, 110))],
+                far=[(lambda x: 424 + 2 * math.sin(x / 40), (20, 200)), (lambda x: 434 + 2 * math.sin(x / 45), (700, 930))])
     bugs = sc.live(Fireflies(rng, (0, 180, W, 300), 26, color=GLOW["pink"]))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 460), 50, GLOW["moss"]))
@@ -1049,7 +1076,8 @@ def build_ridge():
     grounds = [(lambda x: 470 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 506 + 3 * math.sin(x / 40), (400, 620)),
                (lambda x: 490 + 2 * math.sin(x / 60), (640, 820))]
     second_wave(sc, rng, (120, 80, 700, 200), grounds, fliers=("finch", "wisp"), walkers=("fox", "goat", "newt"),
-                out=("fox", "goat", "finch"))
+                out=("fox", "goat", "finch"),
+                far=[(lambda x: 372 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 378 + 3 * math.sin(x / 45), (660, 860)), (lambda x: 440 + 2 * math.sin(x / 40), (300, 640))])
     sc.live(Slug(rng, Track([(420, 524), (520, 528), (620, 524)]), (200, 210, 250), size=1.4, speed=3,
                  spots=GLOW["cyan"]))
     bugs = sc.live(Fireflies(rng, (0, 200, W, 260), 14, color=GLOW["cyan"], reach=22))
@@ -1173,7 +1201,8 @@ def build_springs():
     pool = (lambda x: 418 + 0 * x, (500, 620))  # the big lower pool: the steambara bathes in it
     grounds = [pool, (lambda x: 500 + 3 * math.sin(x / 40), (480, 700)), (lambda x: 512 + 2 * math.sin(x / 50), (160, 340))]
     second_wave(sc, rng, (120, 80, 700, 180), grounds, fliers=("jelly", "moth"), walkers=("capy", "gecko", "beetle"),
-                out=("capy", "gecko", "jelly"))
+                out=("capy", "gecko", "jelly"),
+                far=[(lambda x: 404 + 2 * math.sin(x / 40), (20, 140)), (lambda x: 452 + 2 * math.sin(x / 50), (300, 700))])
     sc.live(Slug(rng, Track([(200, 520), (300, 526), (420, 522)]), (255, 190, 170), size=1.4, speed=3, spots=EMBER))
     bugs = sc.live(Fireflies(rng, (0, 220, W, 260), 16, color=GLOW["amber"], reach=24))
     sc.bugs.append(bugs)
@@ -1282,7 +1311,8 @@ def build_tower():
     glowmoss(sc, art.plane(), 100, 500, 60, 14)
 
     second_wave(sc, rng, (100, 80, 760, 180), [(lambda x: 500 + 3 * math.sin(x / 50), (300, 640)),
-                                              (lambda x: 516 + 2 * math.sin(x / 40), (700, 900))])
+                                              (lambda x: 516 + 2 * math.sin(x / 40), (700, 900))],
+                far=[(lambda x: 412 + 2 * math.sin(x / 40), (40, 360)), (lambda x: 414 + 2 * math.sin(x / 45), (820, 940))])
     sc.live(Slug(rng, Track([(580, 520), (680, 524), (800, 520)]), (220, 190, 240), size=1.5, speed=3, spots=GLOW["pink"]))
     bugs = sc.live(Fireflies(rng, (0, 200, W, 280), 24, color=GLOW["pink"]))
     sc.bugs.append(bugs)

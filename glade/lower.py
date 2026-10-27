@@ -206,6 +206,7 @@ class Lower(art.Lighting):
         from storm import newcomer
         from scenes import FLY, WALK
         out = spec.get("out", ())
+        near = lambda y, h=h: (1.2 + y / h) / 2.0  # noqa: E731 (his ask: further up this screen is further away, so smaller)
         roam = []  # every walker's stretch of ground: they all wander between them
         if pond:
             cx, cy, rx, ry = pond
@@ -218,7 +219,7 @@ class Lower(art.Lighting):
                 if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)):
                     line = (lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200))
                     roam.append(line)
-                    wk = Walker(rng, line[0], line[1], kind, 2.0, roam=roam, avoid=wet)
+                    wk = Walker(rng, line[0], line[1], kind, 2.0, roam=roam, avoid=wet, persp=near)
                     crawlers.append(wk if kind in out else newcomer(wk))
                     break
         if roam and not pond:  # the slugs wander between the same stretches (not where there is a pond)
@@ -235,7 +236,7 @@ class Lower(art.Lighting):
                 x0, y0 = more.randint(60, w - 280), more.randint(90, h - 40)
                 if all(clear(x, y0, 14) for x in range(x0, x0 + 220, 20)):
                     line = (lambda x, y0=y0: y0 + 5 * math.sin(x / 60), (x0 + 20, x0 + 200))
-                    crawlers.append(newcomer(Walker(more, line[0], line[1], kind, 2.0, roam=roam, avoid=wet)))
+                    crawlers.append(newcomer(Walker(more, line[0], line[1], kind, 2.0, roam=roam, avoid=wet, persp=near)))
                     break
         crawlers += [newcomer(Flier(more, (60, 20, w - 120, h // 2), kind, 2.0)) for kind in spec.get("fliers", FLY)]
         sky = Squid(rng, (60, 20, w - 120, h // 2), rng.choice([GLOW["cyan"], GLOW["pink"], GLOW["violet"]]), size=2.0)
