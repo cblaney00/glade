@@ -229,9 +229,8 @@ class Panel:
             if kind == "title":
                 working = st.get("working")
                 c = MINT if working else mix(MINT, (255, 255, 255), 0.5)
-                b = 0.5 + 0.5 * math.sin(t * 4) if working else 1.0
-                pygame.draw.circle(s, mix((40, 60, 70), c, b), (x + 3, y + 6), 3)
-                state = "working" + "." * (1 + int(t * 2) % 3) if working else "waiting for you"
+                pygame.draw.circle(s, c, (x + 3, y + 6), 3)  # still: his ask, no working animation
+                state = "working" if working else "waiting for you"
                 tag = font.render(state, False, DIM)
                 title = v
                 while title and font.size(title)[0] > inner - 14 - tag.get_width() - 8:
