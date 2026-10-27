@@ -167,7 +167,7 @@ class Storage:
         s.blit(pic, (r.x + 6, r.y + 6))
         # beside the picture: who it is
         x0, y = r.x + 156, r.y + 10
-        self.text(s, f"#{sp['num']:03d}", x0, y, DIM)
+        self.text(s, f"#{sp['num']:03d}  Lv100", x0, y, DIM)
         self.text(s, fit(self.font, kept.species, r.right - 8 - x0), x0, y + 13, WHITE)
         x = x0
         for kind in sp["types"]:
@@ -176,13 +176,12 @@ class Storage:
                              border_radius=3)
             s.blit(img, (x + 3, y + 30))
             x += img.get_width() + 9
-        self.text(s, "Lv100", x0, y + 48, TEXT)
-        self.text(s, fit(self.font, f"Nature: {kept.nature}", r.right - 8 - x0), x0, y + 62, TEXT)
+        self.text(s, fit(self.font, f"Nature: {kept.nature}", r.right - 8 - x0), x0, y + 48, TEXT)
         up, down = nature_effect(kept.nature)
         what = f"+{SHORT[up]} -{SHORT[down]}" if up else "no effect"
-        self.text(s, what, x0, y + 75, DIM)
-        self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 89, DIM)
-        self.text(s, f"Tower wins: {kept.wins}", x0, y + 102, DIM)
+        self.text(s, what, x0, y + 61, DIM)
+        self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 74, DIM)
+        self.text(s, f"Tower wins: {kept.wins}", x0, y + 87, DIM)
         # the stats table: base, IV, EV and the stat itself (raised: mint, lowered: pink)
         maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature)
         values = [maxhp] + [stats[k] for k in ("atk", "def", "spa", "spd", "spe")]
@@ -217,7 +216,7 @@ class Storage:
             info = f"{mv['p'] or '-'}  {acc}  {mv['pp']}pp"
             self.text(s, info, r.right - 10, y + i * 14, DIM, right=True)
         # and the IV web
-        iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 50), 40, t)
+        iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 60), 38, t)
 
 
 SHORT = dict(atk="Atk", spa="SpA", spd="SpD", spe="Spe", **{"def": "Def"})

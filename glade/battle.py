@@ -1715,7 +1715,33 @@ def iv_web(s, font, ivs, centre, r, t=0.0):
         c = (255, 255, 255) if v == 31 else mix(stat_color(v * 4), TEXT, 0.3)
         img = font.render(f"{label} {v}", False, c)
         s.blit(img, img.get_rect(center=(round(lx), round(ly))))
+    total = sum(ivs)
+    for i, (line, c) in enumerate(((f"IVs {total} / {MAX_IVS} max", TEXT),
+                                   (f"stronger than {iv_percentile(total)}%", DIM))):
+        img = font.render(line, False, c)
+        s.blit(img, img.get_rect(center=(round(cx), round(cy + r + 22 + i * 13))))
 
+
+MAX_IVS = 31 * 6
+_IV_TABLE = []
+
+
+def iv_percentile(total):
+    """How many creatures in a hundred have a lower IV total than this (every IV is a random
+    0-31, so the totals cluster round 93)."""
+    if not _IV_TABLE:
+        dist = [1]
+        for _ in range(6):  # the exact spread of the sum of six dice of 0-31
+            new = [0] * (len(dist) + 31)
+            for a, c in enumerate(dist):
+                for b in range(32):
+                    new[a + b] += c
+            dist = new
+        whole, below = sum(dist), 0
+        for c in dist:
+            _IV_TABLE.append(below / whole)
+            below += c
+    return min(99, int(_IV_TABLE[max(0, min(MAX_IVS, total))] * 100))
 
 class Card:
     """A small board next to an animal with what it would be in a battle: its kind, types,
@@ -1734,7 +1760,7 @@ class Card:
         self.font, self.view, self.species, self.t = font, view, species, t
         self.animal, self.evolves, self.ivs = animal, evolves, ivs
         self.nature = getattr(animal, "nature", None)
-        web = self.WEB + 14 if ivs else 0
+        web = self.WEB + 40 if ivs else 0
         h = 8 + 16 + 16 + 14 + len(self.ROWS) * 13 + 18 + web + 24 + (22 if evolves else 0) + (22 if fight else 0)
         # beside the animal, never over it (`avoid`: where it is): right, left, above or below,
         # whichever fits on the screen without covering it
