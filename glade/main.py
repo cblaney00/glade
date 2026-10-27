@@ -26,6 +26,7 @@ import storm
 from team import Collection, ivs_of, nature_of
 from tower import Run, TowerBoard
 import vision
+import resume
 from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
@@ -595,6 +596,8 @@ class Glade:
         self.vision = None  # Predator vision (vision.py), for a few seconds after its button
         self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
+        self.updater = resume.Updater()  # after a rebuild: switch to the new glade when nothing is going on
+        resume.restore(self)  # ... and open where the old one was
 
     def now(self):
         """The glade's own clock: seconds since it started."""
@@ -958,6 +961,7 @@ class Glade:
     def render(self, dt):
         """Advance everything by dt and paint each view's canvas (without showing it)."""
         t = time.monotonic() - self.t0
+        self.updater.tick(self, t)
         # a quick fade, so clicking through the places never feels slow
         if self.fade_to:
             self.fade += dt / 0.15

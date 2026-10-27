@@ -169,14 +169,16 @@ class Surface:
         return True
 
 
-class CardFront:
-    """The stats card, in front of everything (his ask, 2026-10-27): the glade lives on the
+class Front:
+    """A panel in front of everything (his ask, 2026-10-27: the stats card, then the Forest Dex,
+    the boxes and the Tower's boards too): the glade lives on the
     compositor's bottom layer, under the windows, the bar and the notifications, so while a card
     is open its patch of the picture is shown again in a small window on the overlay layer, right
     where it is. Clicks and pointing there are handed to the glade as if they were on the glade."""
 
-    def __init__(self, glade, surfaces):
-        self.glade, self.surfaces = glade, surfaces
+    def __init__(self, glade, surfaces, panel):
+        """`panel(glade)`: (the view it is on, its rect on the canvas), or None when it is closed."""
+        self.glade, self.surfaces, self.panel = glade, surfaces, panel
         self.win, self.surface, self.box = None, None, None
 
     def make(self, surface):
@@ -200,9 +202,9 @@ class CardFront:
         self.win, self.area, self.surface = win, area, surface
 
     def update(self):
-        card = self.glade.card
-        surface = next((s for s in self.surfaces if card is not None and s.view is card.view), None)
-        rect = getattr(card, "rect", None) if card is not None else None
+        found = self.panel(self.glade)
+        view, rect = found if found else (None, None)
+        surface = next((s for s in self.surfaces if view is not None and s.view is view), None)
         if surface is None or rect is None:
             if self.win is not None and self.win.get_visible():
                 self.win.hide()
@@ -407,7 +409,9 @@ def run():
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
 
-    front = CardFront(glade, surfaces)  # the stats card, shown in front of everything
+    fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None),
+              Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
+              Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
     last = [time.monotonic()]
 
     def tick():
@@ -416,7 +420,8 @@ def run():
         glade.render(dt)
         for s in surfaces:
             s.area.queue_draw()
-        front.update()
+        for front in fronts:
+            front.update()
         return True
 
     GLib.timeout_add(1000 // FPS, tick)

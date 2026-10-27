@@ -254,3 +254,11 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (`storm.FEWER`); scenes a little brighter (`art.LIFT`, `art.THIN`); the floating lantern strings
   are gone; the open stats card is shown again in an overlay-layer window (`wayland.CardFront`) so it
   sits in front of windows, the bar and notifications.
+- **Panels in front** (`wayland.Front`): the stats card, the Forest Dex, and the boards (boxes, Tower,
+  starter) are each re-shown in an overlay-layer window while open, so windows, the bar and
+  notifications never cover them.
+- **Updates keep your place** (`glade/resume.py`, his ask): every 5 s the glade compares its own store
+  path with the installed `glade`; when newer and not `busy` (no battle, Tower run or evolution) it
+  saves place/history/Dex page+pick+tab/boxes to `~/.local/state/glade/resume.json` and exits; the
+  config's glade-desktop loop starts the installed glade, which restores it. **So after a rebuild,
+  don't kill the glade by hand any more** — it switches over by itself within seconds.
