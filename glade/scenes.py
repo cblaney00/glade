@@ -329,6 +329,11 @@ def build_glade():
     more = random.Random(117)
     art.trunk(art.plane(), more, 306, 70, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
     leans[676] = art.trunk(lay, more, 676, 110, 392, 14, sc.col("wood", 0.5), branches=1, pal=p)
+    # its crown (he noticed it had none): leafy masses up top, most of it behind the blossom tree
+    crown = random.Random(118)
+    top = 676 + (392 - 110) * leans[676]
+    for dx, dy, rx, ry in ((0, 96, 34, 26), (-22, 116, 24, 18), (20, 112, 26, 18), (2, 74, 22, 18)):
+        art.foliage(lay, crown, top + dx, dy, rx, ry, sc.col("leaf3", 0.5), p)
     pygame.draw.rect(lay, sc.col("leaf3", 0.5), (808, 0, 160, 60))
     leaf_row(lay, rng, 808, 980, 72, 40, 32, sc.col("leaf3", 0.5), p, jitter=16)
     art.canopy(lay, rng, -20, 300, 388, sc.col("leaf", 0.5), r=(12, 24))
