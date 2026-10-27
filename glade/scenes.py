@@ -14,7 +14,7 @@ import pygame
 
 import art
 from art import GLOW, H, W, at_depth, mix
-from beasts import Flier, Walker
+from beasts import FLIERS, Flier, Walker
 from orchard import Nibbler, Orchard
 from storm import newcomer
 from squids import Colony
@@ -145,11 +145,13 @@ MEADOW = (lambda x: 512 + 3 * math.sin(x / 45), (60, 900))  # the near grass, in
 WALK = ("toad", "mole", "sporeling", "newt", "beetle")
 
 
-def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=()):
+def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=()):
     """One of every animal of the second wave (beasts.py) lives in every place: the fliers
     in its sky, the walkers on its stretches of ground. They start out sheltering, and a
     thunderstorm (storm.py) brings out a random mix of everyone who lives here. The far
-    places have their own animals instead, and the kinds in `out` start out in sight."""
+    places have their own animals instead, and the kinds in `out` start out in sight.
+    `new`: the place's own kinds from the third wave (2026-10-27), on their own dice so the
+    rest of the place is painted just as before; one of each starts out in sight."""
     for kind in fliers:
         f = sc.live(Flier(rng, sky, kind, 1.1))
         if kind not in out:
@@ -161,6 +163,16 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=()):
         w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam))
         if kind not in out:
             newcomer(w)
+    own = random.Random(sum(map(ord, sc.key)) + 2)
+    for i, kind in enumerate(new):
+        if kind in FLIERS:
+            sc.live(Flier(own, sky, kind, 1.1))
+            sc.live(newcomer(Flier(own, sky, kind, 1.1)))
+        else:
+            ground, x_range = grounds[i % len(grounds)]
+            sc.live(Walker(own, ground, x_range, kind, 1.1, roam=roam))
+            ground, x_range = grounds[(i + 1) % len(grounds)]
+            sc.live(newcomer(Walker(own, ground, x_range, kind, 1.1, roam=roam)))
     # a second of each, waiting to come out (his ask: twice as many animals about). Their own
     # dice, so the rest of the place is painted just as before.
     more = random.Random(sum(map(ord, sc.key)) + 1)
@@ -587,7 +599,8 @@ def build_waterfall():
                      shell=(196, 160, 236)))
     sc.live(Slug(rng, Track([(40, 512), (120, 506), (200, 514), (300, 510)]), (150, 120, 210), size=1.5,
                  spots=GLOW["violet"]))
-    second_wave(sc, rng, (120, 140, 720, 160), [(lambda x: 500 + 3 * math.sin(x / 45), (200, 360)), (lambda x: 505 + 3 * math.sin(x / 50), (620, 780))])
+    second_wave(sc, rng, (120, 140, 720, 160), [(lambda x: 500 + 3 * math.sin(x / 45), (200, 360)), (lambda x: 505 + 3 * math.sin(x / 50), (620, 780))],
+                new=("spark", "rune"))
     bugs = sc.live(Fireflies(rng, (0, 260, W, 220), 16, color=GLOW["cyan"], reach=26))
     sc.bugs.append(bugs)
     squids(sc, rng, (80, 120, 800, 220), [GLOW["violet"], GLOW["cyan"]])
@@ -596,7 +609,8 @@ def build_waterfall():
     sc.spots = [
         Spot("go", (392, 480, 168, 60), "Back to the Glade", "glade", (468, 516), sign=(470, 506)),
     ]
-    sc.lower = dict(ground=0.2, props=["rocks"], fly=GLOW["cyan"], paths=[dict(
+    sc.lower = dict(ground=0.2, props=["rocks"], fly=GLOW["cyan"], walkers=WALK + ("rune",), fliers=FLY + ("spark",),
+                    out=("rune", "spark"), paths=[dict(
         pts=[(386, -4), (382, 60), (374, 160), (364, 280), (354, 460)], widths=[110, 118, 128, 140, 156],
         sign=(480, 344), spot=((260, 220, 240, 230), "Back to the Glade", "glade", (360, 408)))])
     return sc.done()
@@ -704,7 +718,8 @@ def build_river():
                        16, 40, stiff=1.3))
     sc.live(Slug(rng, Track([(320, 506), (420, 512), (520, 508), (640, 514), (760, 506)]), (230, 200, 120), size=1.6,
                  speed=4))
-    second_wave(sc, rng, (100, 60, 760, 220), [(lambda x: 505 + 4 * math.sin(x / 55), (420, 600)), (lambda x: 510 + 3 * math.sin(x / 50), (120, 300))])
+    second_wave(sc, rng, (100, 60, 760, 220), [(lambda x: 505 + 4 * math.sin(x / 55), (420, 600)), (lambda x: 510 + 3 * math.sin(x / 50), (120, 300))],
+                new=("murk", "glint"))
     bugs = sc.live(Fireflies(rng, (0, 220, W, 220), 30))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 400), 30, GLOW["cyan"]))
@@ -715,7 +730,8 @@ def build_river():
         Spot("go", (0, 428, 88, 92), "Back to the Glade", "glade", (28, 476), sign=(104, 444)),
         Spot("go", (872, 396, 88, 76), "The Hot Springs", "springs", (930, 434), sign=(852, 392)),
     ]
-    sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"])
+    sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"], walkers=WALK + ("murk", "glint"),
+                    out=("murk", "glint"))
     return sc.done()
 
 
@@ -786,7 +802,8 @@ def build_forest():
     sc.live(Slug(rng, Track([(140, 512), (240, 518), (360, 512), (480, 520)]), (250, 220, 130), size=1.6, speed=4))
     sc.live(Slug(rng, Track([(66, 500), (64, 440), (62, 380)], up=(1, 0)), (140, 120, 220), size=1.3, speed=2,
                  spots=GLOW["pink"]))
-    second_wave(sc, rng, (100, 120, 700, 200), [(lambda x: 478 + 3 * math.sin(x / 40), (140, 280)), (lambda x: 512 + 3 * math.sin(x / 50), (420, 600))])
+    second_wave(sc, rng, (100, 120, 700, 200), [(lambda x: 478 + 3 * math.sin(x / 40), (140, 280)), (lambda x: 512 + 3 * math.sin(x / 50), (420, 600))],
+                new=("thistle", "bramble"))
     bugs = sc.live(Fireflies(rng, (0, 140, W, 360), 56, color=GLOW["lime"]))
     sc.bugs.append(bugs)
     sc.live(Motes(rng, (0, 0, W, 460), 70, GLOW["moss"]))
@@ -797,7 +814,8 @@ def build_forest():
         Spot("go", (872, 428, 88, 92), "Back to the Glade", "glade", (932, 480), sign=(864, 424)),
         Spot("go", (0, 400, 96, 76), "The Snowy Ridge", "ridge", (30, 442), sign=(112, 396)),
     ]
-    sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"])
+    sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"], walkers=WALK + ("bramble",),
+                    fliers=FLY + ("thistle",), out=("bramble", "thistle"))
     return sc.done()
 
 

@@ -265,6 +265,26 @@ SPECIES = {
     "Vaporwobble": dict(num=76, types=("Water", "Electric"), base=(50, 30, 40, 70, 65, 55), ability="Static",
                         pool=["Water Pulse", "Bubble Beam", "Spark", "Shock Wave", "Thunderbolt", "Thunder Wave",
                               "Confuse Ray", "Haze", "Recover"]),
+    # the third wave (2026-10-27, his ask: 6 more, two each in the Forest, the Waterfall and
+    # the River; one-word names with no real animal in them)
+    "Bramblit": dict(num=79, types=("Grass", "Dark"), base=(50, 62, 55, 40, 45, 58), ability="Poison Point",
+                     pool=["Absorb", "Mega Drain", "Leech Seed", "Bite", "Faint Attack", "Crunch", "Pin Missile",
+                           "Swords Dance", "Fury Swipes"]),
+    "Thistlume": dict(num=82, types=("Psychic", "Flying"), base=(45, 35, 40, 72, 63, 60), ability="Keen Eye",
+                      pool=["Gust", "Confusion", "Psybeam", "Psychic", "Hypnosis", "Calm Mind", "Air Cutter",
+                            "Magical Leaf", "Aerial Ace"]),
+    "Runelet": dict(num=85, types=("Rock", "Ghost"), base=(50, 55, 72, 50, 55, 28), ability="Sturdy",
+                    pool=["Rock Tomb", "Rock Slide", "Ancient Power", "Astonish", "Night Shade", "Shadow Ball",
+                          "Curse", "Harden", "Confuse Ray"]),
+    "Sparkfly": dict(num=88, types=("Electric", "Bug"), base=(40, 45, 38, 68, 45, 79), ability="Static",
+                     pool=["Spark", "Shock Wave", "Thunderbolt", "Thunder Wave", "Signal Beam", "Silver Wind",
+                           "Leech Life", "Tail Glow", "Double Team"]),
+    "Murkling": dict(num=91, types=("Water", "Poison"), base=(65, 55, 50, 55, 58, 27), ability="Liquid Ooze",
+                     pool=["Water Gun", "Water Pulse", "Sludge", "Sludge Bomb", "Acid Armor", "Toxic", "Haze",
+                           "Octazooka", "Pain Split"]),
+    "Glintshell": dict(num=94, types=("Steel",), base=(52, 66, 80, 30, 50, 35), ability="Shell Armor",
+                       pool=["Metal Claw", "Iron Defense", "Iron Tail", "Withdraw", "Harden", "Rock Tomb", "Protect",
+                             "Slash", "Mud Shot"]),
     # the three starters (2026-10-27): you choose one before your first battle (starter.py).
     # Each line's final form is designed already, so its theme leads somewhere: Mossprance ->
     # Lichenmane -> Eldermane (Grass/Ghost, an ancient spirit stag, antlers a moss-hung tree of

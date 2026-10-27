@@ -176,3 +176,11 @@ started at login under Hyprland. Changing the installed copy is a config change 
 - **Naming rule (his, 2026-10-27):** a creature's name is one word with no real animal's name in
   it, even attached (only an attached "fly" is fine, e.g. Glimmerfly). Every older name was
   renamed to fit; `team.RENAMED` maps old saves' names to the new ones.
+- **Third wave** (2026-10-27, his ask: 6 first-stage creatures in existing places, Dex #079-#094;
+  next new one #097): the Forest's **Bramblit** (Grass/Dark, a thorny bramble ball with berry
+  eyes) and **Thistlume** (Psychic/Flying, a thistledown puff with one dreamy eye); the
+  Waterfall's **Runelet** (Rock/Ghost, a walking standing stone with a glowing rune and a
+  ghost-light) and **Sparkfly** (Electric/Bug); the River's **Murkling** (Water/Poison, a gliding
+  ink blob with stalk eyes) and **Glintshell** (Steel, shy, under a silver dome). Kinds `bramble`,
+  `thistle`, `rune`, `spark`, `murk`, `glint` in `beasts.py`; placed by `second_wave(..., new=...)`
+  (own dice, so the rest of each place paints as before) and each place's `sc.lower` walkers/fliers.

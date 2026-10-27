@@ -37,6 +37,9 @@ FLIERS = dict(
     # the far places (2026-10-27): the Snowy Ridge and the Hot Springs
     finch=dict(species="Shimmerchirp", body=(236, 240, 255), color=(150, 255, 210), speed=70, turn=1.0),
     jelly=dict(species="Vaporwobble", body=(196, 228, 255), color=(255, 236, 120), speed=12, turn=3.5),
+    # the third wave (2026-10-27): the Forest and the Waterfall
+    thistle=dict(species="Thistlume", body=(236, 228, 255), color=(200, 150, 255), speed=14, turn=4.5),
+    spark=dict(species="Sparkfly", body=(84, 100, 190), color=(255, 246, 130), speed=95, turn=0.7),
 )
 AURORA = [(140, 255, 200), (120, 220, 255), (190, 150, 255), (255, 150, 220)]
 
@@ -196,8 +199,44 @@ class Flier(Clock):
     def draw_jelly(self, s, t):
         pass  # it is made of light (below)
 
+    # the third wave (2026-10-27): the Forest's thistlume and the Waterfall's sparkfly
+
+    # the thistlume: a puff of thistledown drifting on the night air, one big dreamy eye in it
+    def draw_thistle(self, s, t):
+        z, x, y = self.size, self.x, self.y
+        sway = math.sin(t * 1.3 + self.phase)
+        down = mix(self.body, (120, 110, 190), 0.45)
+        pygame.draw.line(s, (150, 120, 170), (x, y + 3 * z), (x + sway * z, y + 9 * z))  # its seed, hanging below
+        pygame.draw.ellipse(s, (150, 110, 150), (x + sway * z - z, y + 8 * z, 2 * z, 3 * z))
+        for i in range(14):  # the fine hairs of the down, gently waving
+            a = i / 14 * math.tau + sway * 0.25 + math.sin(t * 2 + i) * 0.06
+            ln = (7 + i % 3) * z
+            ex, ey = x + math.cos(a) * ln, y + math.sin(a) * ln * 0.9
+            pygame.draw.line(s, down, (round(x), round(y)), (round(ex), round(ey)))
+            s.set_at((round(ex), round(ey)), self.body)
+        pygame.draw.circle(s, self.body, (round(x), round(y)), max(2, round(4 * z)))
+
+    # the sparkfly: a little night-blue bug on buzzing wings; its tail flashes like lightning
+    def draw_spark(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        dark = mix(self.body, INK, 0.3)
+        buzz = (t * 40) % 2 < 1
+        wing = mix(self.body, (220, 230, 255), 0.6)
+        for up in (0, 1):  # two pairs of wings, a buzzing blur
+            wx = x - f * up * 2 * z
+            r = (wx - 2.5 * z, y - (8 if buzz else 6.5) * z - up * z, 5 * z, 6.5 * z)
+            pygame.draw.ellipse(s, mix(wing, INK, 0.45), r)
+            pygame.draw.ellipse(s, wing, r, 1)
+        for i in range(3):  # its tail: three segments, the last one the lamp
+            pygame.draw.circle(s, dark, (round(x - f * (2 + i * 2) * z), round(y + i * 0.6 * z)), max(1, round((2.6 - i * 0.3) * z)))
+        pygame.draw.circle(s, self.body, (round(x + f * 1.5 * z), round(y - 0.5 * z)), max(2, round(2.8 * z)))
+        for side in (-1, 1):  # antennae, bent like lightning
+            pygame.draw.lines(s, dark, False, [(x + f * 3 * z, y - 2 * z), (x + f * 4 * z, y - 4 * z + side * z * 0.5),
+                                               (x + f * 5 * z, y - 4 * z), (x + f * 6 * z, y - 6 * z + side * z)])
+        s.set_at((round(x + f * 2.5 * z), round(y - z)), (255, 255, 255))
+
     def light(self, lm, t):
-        if self.kind in ("moth", "wisp", "drake", "jelly", "finch"):
+        if self.kind in ("moth", "wisp", "drake", "jelly", "finch", "thistle", "spark"):
             glow(lm, self.x, self.y, int(30 * self.size), self.color, q(60 + 20 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
@@ -258,6 +297,29 @@ class Flier(Clock):
             pygame.draw.line(s, (255, 255, 255), (x - bw * 0.6, y - bh * 0.1), (x - bw * 0.4, y - bh * 0.4))
             for ex in (-2, 2):
                 s.set_at((round(x + ex * z), round(y - z)), INK)
+        elif self.kind == "thistle":
+            glow(s, x, y, int(14 * z), self.color, q(50 + 70 * k))
+            if (t * 0.7 + self.phase) % 6 < 0.25:  # a slow blink
+                pygame.draw.line(s, INK, (x - 2 * z, y), (x + 2 * z, y))
+            else:
+                pygame.draw.circle(s, (255, 255, 255), (round(x), round(y)), max(2, round(2.6 * z)))
+                ix = round(x + self.facing * 0.6 * z)
+                pygame.draw.circle(s, self.color, (ix, round(y)), max(1, round(1.6 * z)))
+                s.set_at((ix, round(y)), INK)
+            if k > 0:  # poked: a ripple of thought spreads out
+                pygame.draw.circle(s, mix(self.color, (255, 255, 255), 0.4), (round(x), round(y)), round((6 + 14 * (1 - k)) * z), 1)
+        elif self.kind == "spark":
+            f = self.facing
+            tx, ty = x - f * 6 * z, y + 1.2 * z
+            flash = math.sin(t * 6 + self.phase) * math.sin(t * 2.3) > 0.4 or k > 0.2
+            glow(s, tx, ty, int((10 if flash else 6) * z), self.color, q((140 if flash else 50) + 60 * k))
+            pygame.draw.circle(s, mix(self.color, (255, 255, 255), 0.5 if flash else 0), (round(tx), round(ty)), max(1, round(1.8 * z)))
+            if flash:  # a crackle jumps off its tail
+                px, py = tx, ty
+                for j in range(3):
+                    nx, ny = px - f * 2 * z, py + (1 if (j + int(t * 13)) % 2 else -1) * 2 * z
+                    pygame.draw.line(s, self.color, (px, py), (nx, ny))
+                    px, py = nx, ny
         else:  # the wisp
             flick = 0.75 + 0.25 * math.sin(t * 11 + self.phase) * math.sin(t * 7.3)
             for i, (px, py) in enumerate(self.trail[::-1]):
@@ -284,6 +346,11 @@ WALKERS = dict(
     goat=dict(species="Fluffhorn", body=(246, 240, 232), color=(170, 220, 255), speed=8),
     capy=dict(species="Steambara", body=(176, 124, 112), color=(255, 186, 90), speed=5),
     gecko=dict(species="Embercling", body=(118, 88, 112), color=(255, 140, 70), speed=30),
+    # the third wave (2026-10-27): the Forest, the Waterfall and the River
+    bramble=dict(species="Bramblit", body=(78, 96, 92), color=(255, 90, 130), speed=14),
+    rune=dict(species="Runelet", body=(132, 128, 170), color=(140, 255, 240), speed=5),
+    murk=dict(species="Murkling", body=(70, 58, 110), color=(170, 255, 110), speed=7),
+    glint=dict(species="Glintshell", body=(186, 196, 222), color=(130, 200, 255), speed=8),
     # the three starters (starter.py): not found in the wild, only chosen
     fawn=dict(species="Mossprance", body=(222, 190, 160), color=(150, 255, 190), speed=16),
     pangolin=dict(species="Kindlet", body=(156, 104, 120), color=(255, 150, 80), speed=10),
@@ -750,12 +817,113 @@ class Walker(Clock):
         for e in (-1.5, 1.8):
             pygame.draw.circle(s, INK, (round(hx + e * z + f * 0.5 * z), round(hy - 1.5 * z)), max(1, round(0.8 * z)))
 
+    # --- the third wave (2026-10-27): the Forest's bramblit, the Waterfall's runelet, the
+    # River's murkling and glintshell ---------------------------------------------------------
+
+    # the bramblit: a ball of tangled bramble on twig legs, two berry-red eyes glinting from inside
+    def draw_bramble(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.45)
+        for k in (0, math.pi):  # twiggy legs
+            lift = max(0.0, math.sin(self.step + k)) * 1.5 * z if moving else 0
+            lx = x + (-2 if k else 2) * z
+            pygame.draw.line(s, dark, (lx, y - 3 * z), (lx + f * z, y - lift), max(1, round(z)))
+        cx, cy, r = x, y - 7 * z, 5.5 * z
+        pygame.draw.circle(s, dark, (round(cx), round(cy + 1)), round(r))
+        pygame.draw.circle(s, mix(self.body, INK, 0.2), (round(cx), round(cy)), round(r))
+        spin = -f * self.x / r * 0.5  # it turns over as it goes
+        for i in range(7):  # the stems, looping round and round
+            a = spin + i * 0.9
+            p = [(cx + math.cos(a + j * 0.7) * r * (0.35 + 0.25 * ((i + j) % 3)),
+                  cy + math.sin(a + j * 0.7) * r * (0.35 + 0.25 * ((i + j) % 3))) for j in range(4)]
+            pygame.draw.lines(s, self.body if i % 2 else mix(self.body, (150, 210, 160), 0.3), False, p)
+        for i in range(8):  # thorns
+            a = spin + i * math.tau / 8
+            bx, by = cx + math.cos(a) * r, cy + math.sin(a) * r
+            pygame.draw.line(s, (220, 200, 210), (bx, by), (bx + math.cos(a + 0.4) * 2 * z, by + math.sin(a + 0.4) * 2 * z))
+        pygame.draw.ellipse(s, (110, 200, 140), (cx - f * z - 1.5 * z, cy - r - 2 * z, 3 * z, 2 * z))  # one leaf on top
+
+    # the runelet: a little standing stone on stubby feet, mossy on top, a rune carved in its
+    # face that glows, and a ghost-light flickering over its head
+    def draw_rune(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        rock, dark = self.body, mix(self.body, INK, 0.4)
+        for k in (0, math.pi):
+            lift = max(0.0, math.sin(self.step * 0.8 + k)) * 1.2 * z if moving else 0
+            pygame.draw.rect(s, dark, (x + (-3 if k else 1) * z, y - 2 * z - lift, 2.5 * z, 2 * z))
+        lean = math.sin(self.step * 0.8) * 0.8 * z if moving else 0
+        pts = [(x - 5 * z, y - 2 * z), (x - 5.5 * z + lean, y - 11 * z), (x - 2 * z + lean, y - 15 * z),
+               (x + 3 * z + lean, y - 14 * z), (x + 5 * z + lean, y - 10 * z), (x + 5 * z, y - 2 * z)]
+        pygame.draw.polygon(s, dark, [(px, py + 1) for px, py in pts])
+        pygame.draw.polygon(s, rock, pts)
+        pygame.draw.line(s, mix(rock, (255, 255, 255), 0.3), pts[1], pts[2])  # a moonlit edge
+        pygame.draw.polygon(s, (90, 190, 140), [(x - 4 * z + lean, y - 12.5 * z), (x - 2 * z + lean, y - 14.8 * z),
+                                                (x + 3 * z + lean, y - 13.8 * z), (x + 4 * z + lean, y - 11.5 * z),
+                                                (x + lean, y - 12 * z)])  # its cap of moss
+        self.eyes(s, x + f * z - 1.5 * z + lean, y - 10 * z, 3 * z)
+
+    # the murkling: a blob of night-dark ink that glides along, rippling; two stalk eyes with
+    # glowing green tips, and bubbles of something unwholesome rising off it
+    def draw_murk(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        dark = mix(self.body, INK, 0.4)
+        w = 8 * z + (math.sin(self.step * 1.2) * 1.2 * z if moving else math.sin(t * 1.5 + self.phase) * 0.6 * z)
+        h = 7 * z - (w - 8 * z) * 0.6
+        pygame.draw.ellipse(s, dark, (x - w, y - h + 1, 2 * w, h))
+        pygame.draw.ellipse(s, self.body, (x - w, y - h, 2 * w, h))
+        for i in range(-3, 4):  # a rippling skirt where it meets the ground
+            pygame.draw.circle(s, self.body, (round(x + i * w / 3.6), round(y - z)),
+                               max(1, round((1.2 + 0.5 * math.sin(t * 4 + i + self.step)) * z)))
+        pygame.draw.ellipse(s, mix(self.body, (160, 230, 220), 0.35), (x - w * 0.6, y - h * 0.9, w * 0.7, h * 0.3))  # a wet sheen
+        sway = math.sin(t * 2.2 + self.phase) * z
+        self._tips = []
+        for side in (0, 1):
+            bx, by = x + f * (2 + side * 2.5) * z, y - h + 1.5 * z
+            tip = (bx + f * z + sway * (1 if side else -0.6), by - (5 + side) * z)
+            pygame.draw.line(s, dark, (bx, by), tip, max(1, round(z)))
+            self._tips.append(tip)
+
+    # the glintshell: a shy little thing under a dome of hammered silver, rivets round its rim
+    # and a gleam of moonlight sliding over it; poke it and it pulls in underneath
+    def draw_glint(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        shy = swell(t - self.poked, 0.1, 2.0)
+        dark = mix(self.body, INK, 0.5)
+        skin = (120, 96, 150)
+        if shy < 0.9:
+            for i in range(4):
+                lx = x + (i - 1.5) * 3 * z
+                kick = math.sin(self.step * 1.3 + i * 1.6) * 1.2 * z if moving else 0
+                pygame.draw.line(s, skin, (lx, y - 3 * z), (lx + kick, y), max(1, round(z)))
+            hx, hy = x + f * (9.5 - 6 * shy) * z, y - 3.5 * z
+            pygame.draw.ellipse(s, skin, (hx - 2.5 * z, hy - 2.5 * z, 5 * z, 4 * z))
+            self.eyes(s, hx - z + f * 0.5 * z, hy - 1.2 * z, 2 * z)
+        dome = pygame.Rect(round(x - 8 * z), round(y - 12 * z), round(16 * z), round(18 * z))
+        was = s.get_clip()  # only its top: a dome
+        s.set_clip(pygame.Rect(dome.x - 1, dome.y - 1, dome.w + 2, round(10 * z) + 2).clip(was))
+        pygame.draw.ellipse(s, dark, dome.move(0, 1))
+        pygame.draw.ellipse(s, self.body, dome)
+        for dx, dy in ((-3, -8), (2, -9), (-1, -5), (4, -6)):  # hammered dimples
+            s.set_at((round(x + dx * z), round(y + dy * z)), mix(self.body, INK, 0.25))
+        g = (t * 0.25 + self.phase) % 1.6 - 0.3  # now and then a gleam slides across
+        if 0 <= g <= 1:
+            gx = dome.x + g * dome.w
+            pygame.draw.line(s, (255, 255, 255), (gx, dome.y + 2 * z), (gx - 2 * z, dome.y + 8 * z))
+        s.set_clip(was)
+        pygame.draw.line(s, dark, (x - 8 * z, y - 2 * z), (x + 8 * z, y - 2 * z), max(1, round(z)))
+        for i in range(-3, 4, 2):  # rivets round the rim
+            s.set_at((round(x + i * 2 * z), round(y - 3 * z)), (240, 244, 255))
+
     def light(self, lm, t):
         if self.kind in ("fawn", "pangolin", "axolotl"):
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 12 * math.sin(t * 2 + self.phase)))
         if self.kind in ("fox", "gecko", "capy"):
             glow(lm, self.x, self.y - 6 * self.size, int(20 * self.size), self.color, q(36 + 12 * math.sin(t * 2 + self.phase)))
-        if self.kind in ("sporeling", "beetle", "mole"):
+        if self.kind in ("sporeling", "beetle", "mole", "bramble", "rune", "murk", "glint"):
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 15 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
@@ -855,6 +1023,41 @@ class Walker(Clock):
                     gx, gy = hx - f * 2 * z + math.cos(a) * ln, hy - 1 * z + math.sin(a) * ln * (1 if side < 0 else -0.6) + sway * 0.4
                     s.set_at((round(gx), round(gy)), (255, 200, 236))
             glow(s, hx - f * 2 * z, hy - 4 * z, int(8 * z), self.color, q(50 + 70 * k))
+        elif self.kind == "bramble":  # its berry eyes, glinting from inside the tangle
+            cx, cy = x + f * 1.5 * z, y - 7 * z
+            if (t * 0.5 + self.phase) % 4 > 0.15:
+                for ex in (-1.6, 1.6):
+                    pygame.draw.circle(s, self.color, (round(cx + ex * z), round(cy)), max(1, round(z)))
+                    s.set_at((round(cx + ex * z), round(cy - z * 0.5)), (255, 220, 230))
+            glow(s, cx, cy, int(7 * z), self.color, q(40 + 80 * k))
+        elif self.kind == "rune":  # the rune on its face, and the ghost-light over its head
+            b = 0.6 + 0.4 * math.sin(t * 1.7 + self.phase)
+            c = mix(self.color, (255, 255, 255), 0.3 * b)
+            rx, ry = x + f * 0.5 * z, y - 6 * z
+            for (ax, ay), (bx, by) in (((0, -2.5), (0, 2.5)), ((0, -1), (1.5, -2.5)), ((0, 0.5), (-1.5, -1))):
+                pygame.draw.line(s, c, (rx + ax * z, ry + ay * z), (rx + bx * z, ry + by * z))
+            glow(s, rx, ry, int(8 * z), self.color, q(50 * b + 70 * k))
+            fx, fy = x + math.sin(t * 2 + self.phase) * z, y - 18 * z - abs(math.sin(t * 3)) * z
+            flick = 0.7 + 0.3 * math.sin(t * 9 + self.phase)
+            glow(s, fx, fy, int(7 * z), self.color, q(70 * flick + 60 * k))
+            pygame.draw.circle(s, mix(self.color, (255, 255, 255), 0.5), (round(fx), round(fy)), max(1, round(1.4 * z)))
+            s.set_at((round(fx), round(fy - 2 * z)), self.color)
+        elif self.kind == "murk":  # glowing eye-tips, and bubbles rising off it
+            for tx, ty in getattr(self, "_tips", ()):
+                glow(s, tx, ty, int(5 * z), self.color, q(90 + 60 * k))
+                pygame.draw.circle(s, self.color, (round(tx), round(ty)), max(1, round(1.2 * z)))
+                s.set_at((round(tx + f * 0.5 * z), round(ty)), INK)
+            for i in range(3):
+                kk = (t * 0.5 + i / 3 + self.phase) % 1.0
+                bx = x - f * 2 * z + math.sin(t * 1.7 + i * 2) * 3 * z
+                pygame.draw.circle(s, mix(self.color, (40, 30, 70), kk), (round(bx), round(y - 6 * z - kk * 12 * z)),
+                                   max(1, round((1.4 - kk * 0.6) * z)), 1)
+        elif self.kind == "glint":  # a blue seam of light glows round its rim
+            b = 0.5 + 0.5 * math.sin(t * 1.4 + self.phase)
+            for i in range(-6, 7):
+                if (i + int(t * 4)) % 4 == 0 or k > 0:
+                    s.set_at((round(x + i * z), round(y - 2 * z)), mix(self.color, (255, 255, 255), 0.4))
+            glow(s, x, y - 3 * z, int(9 * z), self.color, q(30 + 30 * b + 80 * k))
         elif self.kind == "toad" and k > 0:
             glow(s, x, y - 6 * z, int(12 * z), self.color, q(80 * k))
 
