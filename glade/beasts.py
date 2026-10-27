@@ -957,83 +957,169 @@ class Walker(Clock):
             my = y - 1 * z - kk * 3 * z
             glow(s, mx, my, int(3 * z), (190, 230, 220), q(60 * (1 - kk)))
 
-    # Smoldershell: the pangolin grown heavy, a crest plate on its brow, its scales seamed with fire
-    def draw_pangolin2(self, s, t):
-        self.draw_pangolin(s, t)
+    # Smoldershell and Pyreclad (his pick, 2026-10-27: "volcanic armadillo knight", on 2 or 4
+    # legs like Swampert or Typhlosion): obsidian scales cracked with glowing lava. It walks on
+    # all fours and rises onto its hind legs whenever it stops (and in a battle, it stands tall).
+    # Pyreclad is the grown knight: a crown of scale spikes, a cape of plates down its back, and
+    # long bone-white claws like blades.
+
+    def knight(self, t):
+        """Where its body is: (hip, chest, head, back normal, torso dir, how upright 0..1)."""
         z, x, y, f = self.size, self.x, self.y, self.facing
-        hx, hy = x + f * 7 * z, y - 5 * z
-        plate = mix(self.body, (230, 200, 190), 0.25)
-        pygame.draw.polygon(s, plate, [(hx - f * 3 * z, hy - 3 * z), (hx + f * 1 * z, hy - 3.5 * z), (hx - f * 1 * z, hy - 6 * z)])
-        pygame.draw.line(s, mix(self.body, INK, 0.4), (x - 6 * z, y - 2 * z), (x + 6 * z, y - 2 * z))  # a heavier belly line
+        now = t
+        dt = max(0.0, min(0.1, now - getattr(self, "_rt", now)))
+        self._rt = now
+        want = 1.0 if self.wait > 0 else 0.0
+        self.rear = getattr(self, "rear", want)
+        self.rear += (want - self.rear) * min(1.0, dt * 2.5)
+        r = self.rear * self.rear * (3 - 2 * self.rear)
+        big = getattr(self, "stage", 1) >= 3
+        L = (10 if big else 8.5) * z
+        a = r * 1.2
+        hip = (x - f * 3 * z, y - 6 * z - r * 1.5 * z)
+        d = (f * math.cos(a), -math.sin(a))
+        chest = (hip[0] + d[0] * L, hip[1] + d[1] * L)
+        n = (-f * math.sin(a), -math.cos(a))
+        ha = a * 0.15  # the head looks ahead, whichever way it stands
+        head = (chest[0] + f * math.cos(ha) * 4 * z + n[0] * 1.5 * z, chest[1] - math.sin(ha) * 4 * z + n[1] * 1.5 * z)
+        return hip, chest, head, n, d, r
+
+    def draw_pangolin2(self, s, t):
+        self.draw_knight(s, t)
+
+    def draw_pangolin3(self, s, t):
+        self.draw_knight(s, t)
+
+    def draw_knight(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        big = getattr(self, "stage", 1) >= 3
+        hip, chest, head, n, d, r = self.knight(t)
+        moving = self.wait <= 0
+        rock, rock_l, rock_d = ((92, 84, 116), (150, 140, 176), (46, 40, 62)) if big else ((112, 88, 106), (166, 138, 154), (58, 42, 58))
+        bone = (236, 226, 214)
+        w = max(1, round((2.2 if big else 1.8) * z))
+        # the tail: thick at the hip, resting on the ground behind, an ember at its tip
+        tail = []
+        for i in range(6):
+            k = i / 5
+            tail.append((hip[0] - f * (1.5 + i * (2.2 if big else 1.8)) * z, hip[1] + (y - 1.5 * z - hip[1]) * k ** 0.8))
+        self.tail_tip = tail[-1]
+        for i, (px, py) in enumerate(tail):
+            pygame.draw.circle(s, rock_d, (round(px), round(py) + 1), max(1, round((3.4 - i * 0.5) * z * (1.15 if big else 1))))
+            pygame.draw.circle(s, rock, (round(px), round(py)), max(1, round((3.2 - i * 0.5) * z * (1.15 if big else 1))))
+        # hind legs: thigh, knee, a broad foot, always on the ground
+        for k, side in ((0.0, 1), (math.pi, -1)):
+            step = math.sin(self.step * 1.3 + k) * 1.5 * z if moving else 0
+            knee = (hip[0] + f * 2 * z, hip[1] + 3 * z)
+            foot = (hip[0] + f * 0.5 * z + step, y)
+            c = rock_d if side < 0 else rock
+            pygame.draw.line(s, c, hip, knee, w + 1)
+            pygame.draw.line(s, c, knee, foot, w)
+            pygame.draw.line(s, c, (foot[0] - f * z, y), (foot[0] + f * 2 * z, y), w)
+        # the torso: a chain of discs from hip to chest, scaled on its back
+        R0, R1 = (5.4 if big else 4.4) * z, (5.0 if big else 4.0) * z
+        steps = 7
+        for i in range(steps + 1):
+            k = i / steps
+            px, py = hip[0] + (chest[0] - hip[0]) * k, hip[1] + (chest[1] - hip[1]) * k
+            pygame.draw.circle(s, rock_d, (round(px), round(py) + 1), round(R0 + (R1 - R0) * k))
+        for i in range(steps + 1):
+            k = i / steps
+            px, py = hip[0] + (chest[0] - hip[0]) * k, hip[1] + (chest[1] - hip[1]) * k
+            pygame.draw.circle(s, rock, (round(px), round(py)), round(R0 + (R1 - R0) * k))
+        # its pale, plated underside
+        for i in range(1, steps):
+            k = i / steps
+            px, py = hip[0] + (chest[0] - hip[0]) * k, hip[1] + (chest[1] - hip[1]) * k
+            rr = R0 + (R1 - R0) * k
+            bx, by = px - n[0] * rr * 0.65, py - n[1] * rr * 0.65
+            pygame.draw.line(s, rock_l, (bx - d[0] * z, by - d[1] * z), (bx + d[0] * z, by + d[1] * z), max(1, round(z)))
+        # scales: rows of overlapping arcs down the back
+        for i in range(steps):
+            k = (i + 0.5) / steps
+            px, py = hip[0] + (chest[0] - hip[0]) * k, hip[1] + (chest[1] - hip[1]) * k
+            rr = R0 + (R1 - R0) * k
+            for row in (0.45, 0.85):  # each scale: a lit upper edge with a dark seam under it
+                sx, sy = px + n[0] * rr * row, py + n[1] * rr * row
+                a0 = (sx - d[0] * 1.3 * z, sy - d[1] * 1.3 * z)
+                a1 = (sx + d[0] * 1.3 * z + n[0] * 0.8 * z, sy + d[1] * 1.3 * z + n[1] * 0.8 * z)
+                pygame.draw.line(s, rock_l, a0, a1)
+                pygame.draw.line(s, rock_d, (a0[0] - n[0], a0[1] - n[1]), (a1[0] - n[0], a1[1] - n[1]))
+        if big:  # the cape: a fall of plates from the shoulders down its back
+            cape = [(chest[0] + n[0] * R1, chest[1] + n[1] * R1),
+                    (hip[0] + n[0] * (R0 + 2.5 * z) - d[0] * 2 * z, hip[1] + n[1] * (R0 + 2.5 * z) - d[1] * 2 * z),
+                    (hip[0] - d[0] * 5 * z, hip[1] + 4 * z), (hip[0] + n[0] * R0 * 0.3, hip[1] + n[1] * R0 * 0.3)]
+            pygame.draw.polygon(s, mix(rock, rock_d, 0.5), cape)
+            pygame.draw.lines(s, rock_l, False, cape[:2])
+            for k in range(1, 4):  # its plate lines
+                a0 = cape[0][0] + (cape[1][0] - cape[0][0]) * k / 4, cape[0][1] + (cape[1][1] - cape[0][1]) * k / 4
+                pygame.draw.line(s, rock_l, a0, (a0[0] - d[0] * 3 * z + n[0] * z, a0[1] - d[1] * 3 * z + n[1] * z))
+        # front limbs: legs to the ground on all fours, clawed arms when it stands
+        for side in (1, -1):
+            sh = (chest[0] - n[0] * 1.5 * z + side * 0.6 * z, chest[1] - n[1] * 1.5 * z)
+            ground = (chest[0] + f * (1 + (math.sin(self.step * 1.3 + side) * 1.5 if moving else 0)) * z, y)
+            arm = (sh[0] + f * 3.5 * z, sh[1] + 3 * z)
+            hand = (ground[0] + (arm[0] - ground[0]) * r, ground[1] + (arm[1] - ground[1]) * r)
+            elbow = ((sh[0] + hand[0]) / 2 - f * r * 1.2 * z, (sh[1] + hand[1]) / 2 + r * 0.8 * z)
+            c = rock_d if side < 0 else rock
+            pygame.draw.line(s, c, sh, elbow, w)
+            pygame.draw.line(s, c, elbow, hand, w)
+            ln = (4.5 if big else 2.2) * z  # claws: blades on the knight
+            for cl in (-1, 0, 1):
+                tip = (hand[0] + f * ln, hand[1] + cl * 0.9 * z + (0.8 * z if r < 0.5 else 0))
+                pygame.draw.line(s, bone, hand, tip, max(1, round(0.6 * z)))
+        # the head: a long armoured snout, pointed forward
+        hx, hy = head
+        hr = (3.2 if big else 2.8) * z
+        pygame.draw.circle(s, rock_d, (round(hx), round(hy) + 1), round(hr))
+        pygame.draw.circle(s, rock, (round(hx), round(hy)), round(hr))
+        snout = [(hx + f * hr * 0.6, hy - hr * 0.6), (hx + f * (hr + 3.6 * z), hy + 0.6 * z), (hx + f * hr * 0.6, hy + hr * 0.7)]
+        pygame.draw.polygon(s, rock, snout)
+        pygame.draw.line(s, rock_l, snout[0], snout[1])
+        s.set_at((round(snout[1][0]), round(snout[1][1])), (20, 12, 20))
+        if big:  # a crown of scale spikes sweeping back
+            for i, (ln, up) in enumerate(((5, 0.9), (6.5, 0.5), (5, 0.15))):
+                base = (hx - f * 0.5 * z, hy - hr * 0.7)
+                tip = (base[0] - f * ln * z * math.cos(up), base[1] - ln * z * math.sin(up) - 1.5 * z)
+                pygame.draw.polygon(s, rock_l if i == 1 else rock, [(base[0] - f * z, base[1] + z), (base[0] + f * z, base[1]), tip])
+        else:  # a brow plate
+            pygame.draw.polygon(s, rock_l, [(hx - f * 2 * z, hy - hr * 0.8), (hx + f * 1.5 * z, hy - hr), (hx - f * 0.5 * z, hy - hr - 2 * z)])
+        self.knight_head = (hx, hy, hr)
 
     def shine_pangolin2(self, s, t, k):
-        self.shine_base(s, t, k)
-        z, x, y, f = self.size, self.x, self.y, self.facing
-        tx = x - f * 8 * z
-        for i in range(3):  # its tail tip is a little flame now
-            fl = math.sin(t * 9 + i * 2 + self.phase) * 0.8 * z
-            pygame.draw.line(s, mix((255, 200, 90), (255, 90, 50), i / 3), (tx + fl, y - 8 * z - i * 1.5 * z), (tx, y - 6 * z), 1)
-        glow(s, tx, y - 9 * z, int(8 * z), self.color, q(90 + 50 * k))
-
-    # Pyreclad: a knight of a pangolin in steel plate, molten fire showing in every seam, a visored
-    # helm, and a tail that ends in a blazing armoured mace
-    def draw_pangolin3(self, s, t):
-        z, x, y, f = self.size, self.x, self.y, self.facing
-        moving = self.wait <= 0
-        steel, steel_d, steel_l = (150, 156, 186), (86, 88, 120), (210, 214, 236)
-        for i in range(2):
-            lx = x + (i * 2 - 1) * 4.5 * z
-            lift = max(0.0, math.sin(self.step * 1.2 + i * math.pi)) * z if moving else 0
-            pygame.draw.rect(s, steel_d, (lx - 1.4 * z, y - 4 * z - lift, 2.8 * z, 4 * z))
-            pygame.draw.line(s, steel_l, (lx - 1.4 * z, y - lift - 0.5), (lx + 1.4 * z + f * z, y - lift - 0.5))
-        tx = x - f * 11 * z  # the tail: armoured segments to a spiked mace
-        for i in range(3):
-            pygame.draw.circle(s, steel_d, (round(x - f * (7 + i * 1.6) * z), round(y - (6 + i * 0.6) * z)), max(2, round((2.6 - i * 0.4) * z)))
-        pygame.draw.circle(s, steel_d, (round(tx), round(y - 8 * z)), max(2, round(3.2 * z)))
-        pygame.draw.circle(s, steel, (round(tx), round(y - 8.4 * z)), max(2, round(2.6 * z)))
-        for a in range(6):
-            ang = a / 6 * math.tau
-            pygame.draw.line(s, steel_l, (tx + math.cos(ang) * 2.4 * z, y - 8 * z + math.sin(ang) * 2.4 * z),
-                             (tx + math.cos(ang) * 4 * z, y - 8 * z + math.sin(ang) * 4 * z))
-        body = pygame.Rect(0, 0, round(18 * z), round(12 * z))
-        body.midbottom = (round(x), round(y - 2 * z))
-        pygame.draw.ellipse(s, steel_d, body.move(0, 1))
-        pygame.draw.ellipse(s, steel, body)
-        for row in range(3):  # plate on plate
-            ry = body.y + (2 + row * 3.2) * z
-            n = 3 + row
-            for kk in range(n):
-                cx = body.x + (kk + 0.5) * body.w / n
-                pygame.draw.arc(s, steel_l, (cx - 2.4 * z, ry - z, 4.8 * z, 3.4 * z), 0.2, 2.9, 1)
-        pygame.draw.line(s, steel_l, (body.x + 3 * z, body.y + z), (body.right - 4 * z, body.y + z))
-        hx, hy = x + f * 9 * z, y - 7 * z  # the helm
-        helm = [(hx - f * 3 * z, hy - 4 * z), (hx + f * 3.5 * z, hy - 1 * z), (hx + f * 4.5 * z, hy + 1.5 * z),
-                (hx - f * 3 * z, hy + 3 * z)]
-        pygame.draw.polygon(s, steel_d, [(px, py + 1) for px, py in helm])
-        pygame.draw.polygon(s, steel, helm)
-        pygame.draw.polygon(s, (226, 96, 70), [(hx - f * 2 * z, hy - 4 * z), (hx - f * 6 * z, hy - 8 * z), (hx - f * 4 * z, hy - 3.5 * z)])  # a crest plume
+        self.shine_knight(s, t, k)
 
     def shine_pangolin3(self, s, t, k):
-        z, x, y, f = self.size, self.x, self.y, self.facing
-        hx, hy = x + f * 9 * z, y - 7 * z
-        b = 0.7 + 0.3 * math.sin(t * 3 + self.phase)
-        pygame.draw.line(s, (255, 200, 110), (hx - f * 0.5 * z, hy), (hx + f * 3 * z, hy + 0.6 * z), max(1, round(z * 0.8)))  # the visor slit
-        glow(s, hx + f * z, hy, int(5 * z), self.color, q(80 * b))
-        body_y = y - 8 * z
-        for row in range(3):  # molten seams between the plates
-            ry = y - 12 * z + (2 + row * 3.2) * z + 1.5 * z
-            n = 3 + row
-            for kk in range(n - 1):
-                cx = x - 9 * z + (kk + 1) * 18 * z / n
-                bb = 0.5 + 0.5 * math.sin(t * 2.4 + row + kk * 1.4 + self.phase)
-                s.set_at((round(cx), round(ry)), mix(self.color, (255, 236, 160), bb * 0.6))
-        tx = x - f * 11 * z  # the mace burns
-        for i in range(5):
-            a = t * 6 + i * 1.3 + self.phase
-            fl = (math.sin(a) * 1.5 * z, -abs(math.cos(a * 0.7)) * 4 * z - 3 * z)
-            pygame.draw.line(s, mix((255, 210, 100), (255, 80, 40), i / 5), (tx, y - 9 * z), (tx + fl[0], y - 9 * z + fl[1]), 1)
-        glow(s, tx, y - 11 * z, int(11 * z), self.color, q(110 + 60 * k))
-        glow(s, x, body_y, int(14 * z), self.color, q(30 + 30 * k))
+        self.shine_knight(s, t, k)
+
+    def shine_knight(self, s, t, k):
+        if not hasattr(self, "knight_head"):
+            return
+        z, f = self.size, self.facing
+        big = getattr(self, "stage", 1) >= 3
+        hip, chest, head, n, d, r = self.knight(t)
+        lava, hot = self.color, (255, 232, 150)
+        # lava glowing through the cracks between its scales
+        for i in range(9):
+            kk = (i + 0.5) / 9
+            px, py = hip[0] + (chest[0] - hip[0]) * kk, hip[1] + (chest[1] - hip[1]) * kk
+            off = (0.3 + 0.35 * ((i * 7) % 3) / 2) * (5 if big else 4) * z
+            cx, cy = px + n[0] * off, py + n[1] * off
+            b = 0.5 + 0.5 * math.sin(t * 2.2 + i * 1.3 + self.phase)
+            c = mix(lava, hot, b * 0.6)
+            s.set_at((round(cx), round(cy)), c)
+            s.set_at((round(cx + d[0] * z), round(cy + d[1] * z + (1 if i % 2 else -1))), mix(c, (60, 20, 20), 0.3))
+        hx, hy, hr = self.knight_head
+        ex, ey = round(hx + f * hr * 0.3), round(hy - hr * 0.25)
+        pygame.draw.rect(s, (255, 200, 90), (ex - 1, ey, 2 if not big else 3, 1))  # a burning eye
+        glow(s, ex, ey, int(4 * z), lava, q(70 + 40 * k))
+        tx, ty = getattr(self, "tail_tip", (hip[0], hip[1]))
+        for i in range(4 if big else 3):  # the tail tip smoulders
+            a = t * 7 + i * 1.7 + self.phase
+            pygame.draw.line(s, mix(hot, (255, 90, 40), i / 4), (tx, ty), (tx + math.sin(a) * z, ty - (2.5 + abs(math.cos(a)) * 2) * z), 1)
+        glow(s, tx, ty - 2 * z, int((8 if big else 6) * z), lava, q(90 + 50 * k))
+        if big:  # a molten heart in its chest
+            glow(s, chest[0] - n[0] * 2 * z, chest[1] - n[1] * 2 * z, int(9 * z), lava, q(60 + 30 * math.sin(t * 2) + 50 * k))
 
     # Frillotl: the axolotl grown longer, a second, bigger ruff of gills and a fin down its back
     def draw_axolotl2(self, s, t):
