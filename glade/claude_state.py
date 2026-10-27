@@ -160,8 +160,8 @@ def hook(event):
     if name == "UserPromptSubmit":
         d["working"], d["attention"] = True, None
     elif name == "PreToolUse" and tool in ASK_TOOLS:
-        d["attention"] = "Claude has options for you to pick in the terminal" if tool == "AskUserQuestion" \
-            else "Claude has a plan for you to look at in the terminal"
+        d["attention"] = "Claude has options for you to pick" if tool == "AskUserQuestion" \
+            else "Claude has a plan for you to look at"
     elif name == "PostToolUse":
         d["working"] = True
         if tool in ASK_TOOLS:
@@ -169,7 +169,7 @@ def hook(event):
     elif name == "Notification":
         msg = event.get("message", "")
         if "permission" in msg.lower() or "approve" in msg.lower():
-            d["attention"] = "Claude needs your OK in the terminal"
+            d["attention"] = "Claude needs your OK"
     elif name == "Stop":
         d["working"] = False
     if event.get("transcript_path"):

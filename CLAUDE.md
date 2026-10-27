@@ -174,8 +174,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   step: he once saw a bar sit at 8/22 and read it as frozen), and Claude's latest message. Pointing
   at it opens it out: the whole message and a reply box that grows as he types; Enter sends the
   reply into Claude's kitty window by kitty remote control (`find_window`: the window whose
-  processes include the `claude` pid). Glows gold when Claude needs him at the terminal
-  (AskUserQuestion/ExitPlanMode/permissions via hooks, or `glade-status attention WHY`). State:
+  processes include the `claude` pid). Says "Open terminal" in orange (a calm orange rim, no glow) when Claude needs him at the
+  terminal; clicking the panel anywhere but the reply box always brings up Claude's kitty window
+  (`focus_terminal`, hyprctl focuswindow pid:<kitty>). Triggered by (AskUserQuestion/ExitPlanMode/permissions via hooks, or `glade-status attention WHY`). State:
   `~/.local/state/glade/claude.json`, written by Claude Code hooks (`glade-status hook`; the
   config passes `share/glade/claude-hooks.json` with `--settings` from ccn, vibe, blaney-todo). Under
   Wayland the lower surface takes the keyboard (ON_DEMAND) only while the panel is pointed at or

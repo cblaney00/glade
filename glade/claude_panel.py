@@ -3,10 +3,12 @@ he has open, in the lower screen's top-right corner.
 
 It shows what claude_state.py records: the task's title, whether Claude is working or waiting,
 a progress bar with what is being worked on now (when the task has steps), and Claude's
-latest message. Point at it and it opens out: the whole message, and a box to reply in that
+latest message. Clicking it (anywhere but the reply box) brings up the terminal that chat is
+running in. Point at it and it opens out: the whole message, and a box to reply in that
 grows as he types. Enter sends the reply into the terminal Claude is running in (kitty's
 remote control, see send()), just as if he had typed it there. When Claude needs him at the
-terminal (options to pick, a plan, a permission), the panel glows gold and says so.
+terminal (options to pick, a plan, a permission), it says "Open terminal" in orange (his
+wording, 2026-10-27), with the reason underneath while it is pointed at.
 """
 
 import glob
@@ -26,6 +28,7 @@ from battle import TEXT, cloth
 
 MINT = (130, 255, 190)
 GOLD = (255, 206, 90)
+ORANGE = (255, 156, 70)   # "Open terminal": Claude wants him there
 DIM = (170, 160, 200)
 W = 270          # its width, in canvas pixels
 LINE = 13
@@ -111,6 +114,9 @@ class Panel:
             return False
         if self.box and self.box.collidepoint(m):
             self.start_typing()
+        else:  # anywhere else on it: go to Claude's terminal
+            self.stop_typing()
+            threading.Thread(target=focus_terminal, args=(self.state.get("pid"),), daemon=True).start()
         return True
 
     def start_typing(self):
@@ -186,7 +192,9 @@ class Panel:
         rows = []  # (kind, payload)
         rows.append(("title", st.get("title") or "Claude"))
         if st.get("attention"):
-            rows += [("attention", line) for line in wrap(font, "! " + st["attention"], inner)]
+            rows.append(("open", None))
+            if is_open:
+                rows += [("attention", line) for line in wrap(font, st["attention"], inner)]
         p = st.get("progress")
         if p and not (p.get("finished") and time.time() - p["finished"] > DONE_FOR):
             rows.append(("bar", p))
@@ -215,13 +223,10 @@ class Panel:
         h += 4
         r = self.rect = pygame.Rect(x0, y0, W, h)
         attention = bool(st.get("attention"))
-        tint = GOLD if attention else MINT
-        if attention:  # it glows, gently pulsing, so he knows to look at the terminal
-            k = 0.5 + 0.5 * math.sin(t * 3)
-            glow(s, r.centerx, r.centery, W // 2 + 20, GOLD, 30 + round(40 * k) // 10 * 10)
-        cloth(s, r, tint, hot=attention or is_open, alpha=235)
-        if attention:
-            pygame.draw.rect(s, mix(GOLD, (255, 255, 255), 0.3 + 0.3 * math.sin(t * 3)), r.inflate(2, 2), 1, border_radius=5)
+        tint = MINT
+        cloth(s, r, tint, hot=is_open, alpha=235)
+        if attention:  # a calm orange rim: come to the terminal
+            pygame.draw.rect(s, ORANGE, r.inflate(2, 2), 1, border_radius=5)
         y = r.y + 5
         self.box = None
         for kind, v in rows:
@@ -238,8 +243,11 @@ class Panel:
                 s.blit(font.render(title, False, (255, 255, 255)), (x + 10, y))
                 s.blit(tag, (r.right - 10 - tag.get_width(), y))
                 y += LINE
+            elif kind == "open":
+                s.blit(font.render("Open terminal", False, ORANGE), (x, y))
+                y += LINE
             elif kind == "attention":
-                s.blit(font.render(v, False, GOLD), (x, y))
+                s.blit(font.render(v, False, DIM), (x, y))
                 y += LINE
             elif kind == "bar":
                 bar = pygame.Rect(x, y + 3, inner - 44, 8)
@@ -312,6 +320,22 @@ def _ancestors(pid):
         except (OSError, ValueError, IndexError):
             break
     return chain
+
+
+def focus_terminal(pid):
+    """Bring up the window of the terminal Claude (process `pid`) runs in."""
+    for p in _ancestors(pid):
+        try:
+            with open(f"/proc/{p}/comm") as f:
+                if "kitty" not in f.read():
+                    continue
+        except OSError:
+            continue
+        try:
+            subprocess.run(["hyprctl", "dispatch", "focuswindow", f"pid:{p}"], capture_output=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            pass
+        return
 
 
 def find_window(pid):
