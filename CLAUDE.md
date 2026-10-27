@@ -120,6 +120,7 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   - Generic names were renamed (his ask): Critter→Duskit, Squid→Driftquid, Slug→Gloamslug,
     Snail→Cairnsnail, Millipede→Luminpede, Koi→Lilyfin, Tree Squid→Canopod (species names only;
     the Python classes keep their old names).
+- **Every 5 minutes the animals change** (2026-10-27, his ask: a small window to catch a strong one): `storm.Turnover` — the ones out slip away (as in a storm, no rain) and a new set comes out with fresh IVs; caught ones are replaced. `storm.EVERY`.
 - **Roaming** (2026-10-27): walkers wander between every stretch of ground in their place
   (`Walker.roam`, `scenes.MEADOW` + each place's grounds; a mole digs a new hole where it stops),
   ground slugs glide on to new spots (`Slug.wander`); climbers, fliers and fish keep to their

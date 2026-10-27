@@ -128,6 +128,103 @@ class Shelter:
             pygame.draw.ellipse(s, mix(RAIN, (255, 255, 255), 0.3), (x - 8 - k * 10, y - 3 - k * 3, 16 + k * 20, 6 + k * 6), 1)
 
 
+EVERY = 300.0  # seconds a set of animals is out before a new one takes its place
+
+
+def renew(content):
+    """New animals, not the same ones back: every one in this place gets fresh IVs, and the
+    ones you caught are replaced by wild ones again. Returns how many were caught."""
+    n = 0
+    for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
+        if type(o).__name__ in ROTATE:
+            if getattr(o, "caught", False):
+                o.caught, o.gone = False, True
+                n += 1
+            o.ivs = None  # rolled again when anything asks (team.ivs_of)
+    return n
+
+
+class Turnover:
+    """Every five minutes the animals change: the ones out quietly slip away (dig in, fly
+    off, dive) and a new set comes out — new individuals with new IVs, so a strong one is
+    only around for a while. No rain: it simply happens. Elsewhere it happens at once."""
+
+    def __init__(self, glade, t):
+        self.t0 = self.now = t
+        self.rng = random.Random()
+        self.scene = glade.here
+        self.low = glade.lower() if glade.bottom else None
+        arena = glade.arena
+        self.keep = [f.a.obj for f in arena.fighters] + [p[0].obj for p in arena.picked] if arena else []
+        if arena is not None and arena.foe:
+            self.keep.append(arena.foe[0].obj)
+        if glade.evolution is not None:
+            self.keep.append(glade.evolution.obj)
+        self.moves = []
+        self.chosen = False
+        self.colony = None
+        self.before = {}
+        n = 0
+        for content, low in ((self.scene, False), (self.low, True)):
+            out = [o for o in roster(content) if not getattr(o, "gone", False) and not self.kept(o)]
+            self.before[id(content)] = len(out) + sum(1 for o in getattr(content, "lives", []) + list(getattr(content, "parts", []))
+                                                      if getattr(o, "caught", False))
+            for o in out:
+                self.moves.append(Shelter(o, low, True, t + n * 0.35 + self.rng.uniform(0, 0.4), self.rng))
+                n += 1
+        self.out_at = t + n * 0.35 + Shelter.DUR + 1.0
+        for sc in glade.scenes.values():  # elsewhere: at once
+            if sc is not self.scene:
+                self.elsewhere(sc)
+        for lw in glade.lowers.values():
+            if lw is not self.low:
+                self.elsewhere(lw)
+
+    def elsewhere(self, content):
+        n = renew(content)
+        animals = [o for o in roster(content) if not self.kept(o)]
+        count = sum(1 for o in animals if not getattr(o, "gone", False)) + n
+        pick = choose(animals, self.rng, count)
+        for o in animals:
+            o.gone = not any(o is p for p in pick)
+
+    def kept(self, o):
+        return any(o is k for k in self.keep)
+
+    def update(self, t):
+        if not self.chosen and t >= self.out_at:
+            self.chosen = True
+            self.come_out(t)
+        for m in self.moves:
+            m.update(t)
+
+    def come_out(self, t):
+        n = 0
+        for content, low in ((self.scene, False), (self.low, True)):
+            renew(content)
+            animals = [o for o in roster(content) if not self.kept(o)]
+            for o in choose(animals, self.rng, self.before.get(id(content), 0)):
+                self.moves.append(Shelter(o, low, False, t + n * 0.4 + self.rng.uniform(0, 0.4), self.rng))
+                n += 1
+
+    @property
+    def done(self):
+        return self.chosen and all(m.done for m in self.moves)
+
+    def finish(self, t=None):
+        if not self.chosen:
+            self.chosen = True
+            self.come_out(self.t0)
+        for m in self.moves:
+            m.begun, m.done = True, True
+            m.obj.gone = m.out
+
+    def draw(self, s, low, t, scratch):
+        self.now = t
+        for m in self.moves:
+            m.draw(s, low, t, scratch)
+
+
 class Storm:
     def __init__(self, glade, t):
         self.t0 = self.now = t
