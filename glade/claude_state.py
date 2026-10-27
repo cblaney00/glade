@@ -66,7 +66,7 @@ def claude_pid():
     for _ in range(8):
         try:
             with open(f"/proc/{pid}/comm") as f:
-                if f.read().strip() == "claude":
+                if f.read().strip() in ("claude", ".claude-wrapped"):  # (Nix wraps it)
                     return pid
             with open(f"/proc/{pid}/stat") as f:
                 pid = int(f.read().rsplit(")", 1)[1].split()[1])
