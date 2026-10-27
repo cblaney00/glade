@@ -117,6 +117,8 @@ class Surface:
         mode = GtkLayerShell.KeyboardMode.ON_DEMAND if wanted else GtkLayerShell.KeyboardMode.NONE
         GtkLayerShell.set_keyboard_mode(self.win, mode)
         if wanted and self.glade.panel.typing:
+            KEYBOARD.off()  # the glade's steering keys (WASD, Enter, Esc) would swallow the typing
+        if wanted and self.glade.panel.typing:
             self.win.present()
 
     def motion(self, area, event):
@@ -130,7 +132,8 @@ class Surface:
     def press(self, area, event):
         if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
             self.view.pointer = (event.x, event.y)
-            KEYBOARD.clicked()
+            if not self.glade.panel.hovered(self.view.mouse()):  # (the Claude panel wants plain typing)
+                KEYBOARD.clicked()
             self.glade.click(time.monotonic() - self.glade.t0)
         elif event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS:
             self.view.pointer = (event.x, event.y)
