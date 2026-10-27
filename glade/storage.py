@@ -59,7 +59,8 @@ class Storage:
                 self.put(where, i, None)
             return
         if where == "party" and there is None:
-            i = sum(1 for k in self.box.party if k)  # the party has no gaps: it goes on the end
+            # the party has no gaps: it goes in the first empty place (never on top of someone)
+            i = self.box.party.index(None)
         self.put(where, i, self.held)
         self.held, self.came_from = there, ((where, i) if there is not None else None)
         if self.held is None:

@@ -10,13 +10,15 @@ further you get (better IVs); a loss ends the run. Your best streak is kept.
 """
 
 import random
+import subprocess
+import threading
 
 import pygame
 
 from apex import ease
 from battle import LEGENDARY, CLOTH, DIM, EDGE, SPECIES, TEXT, Arena, cloth, mix
 from dex import MINT, WHITE, picture
-from team import TEAM, Collection
+from team import TEAM, Collection, reset
 
 TRAINERS = ["Moss Warden Ivy", "Lantern Keeper Bram", "Tidepool Nell", "Starwatcher Orrin", "Frost Herder Kip",
             "Ember Sage Ottilie", "Mushroom Scout Pell", "Owl Whisperer Wren", "Cave Dweller Moro", "Petal Dancer Suki",
@@ -144,6 +146,7 @@ class TowerBoard:
         self.closed = False
         self.begin = False
         self.boxes = False
+        self.asking = None      # resetting: None, "sure" (the are-you-sure note), "password" or "wrong"
 
     def click(self, m):
         for r, action in self.buttons:
@@ -160,6 +163,29 @@ class TowerBoard:
 
     def open_boxes(self):
         self.boxes, self.closed = True, True
+
+    def ask_reset(self):
+        self.asking = "sure"
+
+    def keep(self):
+        self.asking = None
+
+    def do_reset(self):
+        """Only after his computer password (the usual password window, from polkit)."""
+        self.asking = "password"
+
+        def check():
+            try:
+                ok = subprocess.run(["/run/wrappers/bin/pkexec", "/run/current-system/sw/bin/true"],
+                                    capture_output=True, timeout=300).returncode == 0
+            except (OSError, subprocess.TimeoutExpired):
+                ok = False
+            if ok:
+                reset()
+                self.party, self.best, self.asking = [], 0, "done"
+            else:
+                self.asking = "wrong"
+        threading.Thread(target=check, daemon=True).start()
 
     def close(self):
         self.closed = True
@@ -203,3 +229,33 @@ class TowerBoard:
         self.button(s, pygame.Rect(r.right - 330, r.bottom - 38, 120, 24), "Your boxes", self.open_boxes, m)
         self.button(s, pygame.Rect(r.right - 200, r.bottom - 38, 180, 24), "Begin the challenge!", self.go, m,
                     enabled=bool(self.party))
+        self.button(s, pygame.Rect(r.x + 150, r.bottom - 38, 100, 24), "Reset all", self.ask_reset, m,
+                    enabled=bool(self.party) or self.best > 0)
+        if self.asking:
+            self.note(s, m)
+
+    NOTES = {
+        "sure": ("Are you sure?", "Every creature you have caught is let go, and your best streak",
+                 "goes back to 0. Then you choose a new starter."),
+        "password": ("Type your computer password", "in the window that has opened, to reset everything.", ""),
+        "wrong": ("Not reset", "The password wasn't given, so everything is just as it was.", ""),
+        "done": ("All reset!", "Click the tower door again to choose a new starter.", ""),
+    }
+
+    def note(self, s, m):
+        """The are-you-sure note over the board: only its own buttons can be clicked."""
+        self.buttons = []
+        r = self.rect
+        n = pygame.Rect(r.centerx - 230, r.centery - 70, 460, 140)
+        cloth(s, n, mix(CLOTH, EDGE, 0.15), alpha=250)
+        title, line1, line2 = self.NOTES[self.asking]
+        self.text(s, title, n.centerx, n.y + 14, WHITE, center=True)
+        self.text(s, line1, n.centerx, n.y + 40, TEXT, center=True)
+        self.text(s, line2, n.centerx, n.y + 54, TEXT, center=True)
+        if self.asking == "sure":
+            self.button(s, pygame.Rect(n.centerx - 190, n.bottom - 38, 180, 24), "No, keep them", self.keep, m)
+            self.button(s, pygame.Rect(n.centerx + 10, n.bottom - 38, 180, 24), "Yes, reset everything",
+                        self.do_reset, m)
+        elif self.asking in ("wrong", "done"):
+            self.button(s, pygame.Rect(n.centerx - 60, n.bottom - 38, 120, 24), "OK",
+                        self.close if self.asking == "done" else self.keep, m)

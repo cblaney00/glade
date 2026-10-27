@@ -305,3 +305,11 @@ def shift(o, dx, dy):
     if water is not None and hasattr(water, "cx"):
         water.cx += dx
         water.cy += dy
+
+
+def reset():
+    """Start the Battle Tower over: every creature let go, the best streak back to 0, and a new
+    starter to choose. The old save is kept beside it (creatures.before-reset-<time>.json)."""
+    import time
+    if os.path.exists(STATE):
+        os.replace(STATE, STATE.removesuffix(".json") + time.strftime(".before-reset-%Y%m%d-%H%M%S.json"))
