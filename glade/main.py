@@ -880,8 +880,7 @@ class Glade:
         waiting it is always there, battle or not: it is the only way to load it."""
         if self.updater.waiting:
             return self.bottom or self.top
-        if self.storm is not None or self.evolution is not None or \
-                (self.card is None and self.dex is None and not self.updater.waiting):
+        if self.storm is not None or self.evolution is not None:  # (shown the rest of the time, his ask)
             return None
         return self.bottom or self.top
 

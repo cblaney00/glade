@@ -142,7 +142,7 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   ground slugs glide on to new spots (`Slug.wander`); climbers, fliers and fish keep to their
   own element. On the lower screen they never cross the pond.
 - `glade/storm.py` — **animals take turns**. Not all are out at once: newcomers start
-  `gone` (`storm.newcomer`). While a stats card or the Forest Dex is open, a **Thunderstorm**
+  `gone` (`storm.newcomer`). A **Thunderstorm**
   button shows in the lower screen's top-right corner. It brings rain and lightning, everyone
   in sight shelters (diggers sink into a hole, fliers fly off, koi dive), and the same number
   come back out, a random mix of everyone who lives there (every place has one of each of the
