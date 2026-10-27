@@ -122,6 +122,13 @@ class Surface:
             KEYBOARD.off()  # the glade's steering keys (WASD, Enter, Esc) would swallow the typing
         if wanted and self.glade.panel.typing:
             self.win.present()
+            self.took_keys = True
+        elif not wanted and getattr(self, "took_keys", False):
+            # Handing the keyboard back doesn't give it to any window by itself: his terminal sat
+            # there not taking keys until he clicked away and back. So focus the window he was in.
+            self.took_keys = False
+            if KEYBOARD.window is None and KEYBOARD.last_window:
+                KEYBOARD.dispatch("focuswindow", "address:0x" + KEYBOARD.last_window.removeprefix("0x"))
 
     def motion(self, area, event):
         self.view.pointer = (event.x, event.y)
@@ -299,6 +306,7 @@ class Keyboard:
     def __init__(self):
         self.glade = None
         self.window = None  # the focused window's address, if any
+        self.last_window = None  # the last window that had it (the panel gives the keys back to it)
         self.used = time.monotonic()
         self.sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
         self.surfaces = []  # set by run(): the glade's surfaces, to know which a game covers
@@ -318,7 +326,7 @@ class Keyboard:
         self.off()  # in case a previous glade left it on
         try:
             out = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True, timeout=3).stdout
-            self.window = re.search(r'"address": "(0x[0-9a-f]+)"', out).group(1)
+            self.window = self.last_window = re.search(r'"address": "(0x[0-9a-f]+)"', out).group(1)
         except (OSError, subprocess.SubprocessError, AttributeError):
             self.window = None
         try:
@@ -406,6 +414,7 @@ class Keyboard:
                 self.glade.picked = None
         elif name == "activewindowv2":
             self.window = data if re.fullmatch(r"(0x)?[0-9a-f]+", data) else None
+            self.last_window = self.window or self.last_window
             if self.window and self.submap in ("glade", "glademoon"):
                 self.off()  # a window has the focus: the keys are its again
             if self.window:  # (and the Claude panel stops typing; what he typed stays in the box)
