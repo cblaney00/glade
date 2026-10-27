@@ -14,7 +14,7 @@ import random
 import pygame
 
 from apex import ease
-from battle import CLOTH, DIM, EDGE, SPECIES, TEXT, Arena, cloth, mix
+from battle import LEGENDARY, CLOTH, DIM, EDGE, SPECIES, TEXT, Arena, cloth, mix
 from dex import MINT, WHITE, picture
 from team import TEAM, Collection
 
@@ -37,9 +37,10 @@ def trainer(streak, rng, mine=TEAM):
     taken = {k.species for k in mine if k}
     team = []
     for k, total in zip(mine[:TEAM], totals):
-        near = [sp for sp, d in SPECIES.items() if abs(sum(d["base"]) - total) <= 20 and sp not in taken]
+        near = [sp for sp, d in SPECIES.items() if abs(sum(d["base"]) - total) <= 20 and sp not in taken
+                and sp not in LEGENDARY]  # trainers never have a legendary
         if not near:
-            near = sorted((sp for sp in SPECIES if sp not in taken), key=lambda sp: abs(sum(SPECIES[sp]["base"]) - total))[:3]
+            near = sorted((sp for sp in SPECIES if sp not in taken and sp not in LEGENDARY), key=lambda sp: abs(sum(SPECIES[sp]["base"]) - total))[:3]
         species = rng.choice(sorted(near))
         taken.add(species)
         if k is None:

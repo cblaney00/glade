@@ -227,3 +227,13 @@ started at login under Hyprland. Changing the installed copy is a config change 
   lanterns, fairy rings, rune cairns, hollow logs, glowing lotuses; skipped where they'd sit on a path.
 - Claude panel: it takes the keyboard only while the pointer is on the reply box or he is typing, and
   stops typing as soon as a window is focused, so clicking his terminal always gets the keys back.
+- **Forest Dex complete: pages four to six** (2026-10-27, his ask; he liked the designs, placement
+  and legendaries were his pick of Claude's recommendation). 38 new three-stage lines (`battle._PAGE4`,
+  #145-#258) in `glade/wave5.py`: each kind is a body plan (quad, biped, blob, serpent; bird, bug,
+  float) dressed in features that appear from a given stage (`KINDS`), so new lines are cheap to add.
+  `wave5.HOMES` puts 3-4 in each of the ten places (scenes.second_wave and lower.py read it).
+  **Legendaries** #259 Elderglow (Glade) and #260 Moonward (Starfall Meadow), `battle.LEGENDARY`:
+  never Tower trainers, out only rarely (`storm.RARE`, never at the start), "Legendary" in the Dex.
+- **Stat spread** (his ask: too many finals at exactly 530): `battle._retotal` sets every final
+  stage's total from 465 to 580 (by name, deterministic; Prismwyrm and Shardsovereign 600) and middles
+  380-440, keeping each line's shape. Starters stay 530, legendaries 600/620. Keep new species varied too.

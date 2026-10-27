@@ -81,6 +81,25 @@ HEIGHT = {
 }
 
 
+# pages four to six (2026-10-27): (first, middle, final) heights in feet, and the two legendaries
+_H4 = {
+    "Petalpip": (0.8, 2.0, 3.6), "Lullabud": (1.0, 2.6, 4.4), "Gleamwick": (0.7, 1.8, 3.9), "Hushling": (1.0, 2.5, 4.6),
+    "Splashkin": (1.4, 3.0, 5.2), "Mistmote": (0.6, 1.9, 3.8), "Slatelet": (1.1, 2.6, 4.9), "Foamlet": (0.9, 2.2, 4.0),
+    "Reedlet": (1.3, 3.1, 5.0), "Ripplet": (0.8, 2.2, 4.8), "Bubblo": (0.6, 1.6, 3.4), "Siltpaw": (1.2, 2.8, 4.7),
+    "Barkling": (1.5, 3.3, 5.8), "Fernflit": (0.7, 2.0, 3.9), "Hollowink": (1.1, 2.7, 5.1), "Sapsip": (0.5, 1.7, 3.5),
+    "Rubblet": (1.0, 2.6, 4.5), "Quillnip": (0.9, 2.1, 4.2), "Echolet": (0.7, 2.0, 4.1), "Sigilet": (1.6, 3.4, 5.9),
+    "Snowpuff": (1.0, 2.5, 4.6), "Shiverling": (1.2, 3.0, 5.4), "Glacelet": (0.7, 2.1, 4.3), "Conelet": (0.8, 2.0, 3.7),
+    "Ashpaw": (1.1, 2.7, 4.9), "Sulfling": (1.0, 2.3, 4.2), "Lavalet": (0.8, 2.2, 4.4), "Obsidling": (1.3, 3.2, 5.6),
+    "Gongling": (1.3, 3.1, 5.5), "Spirelet": (0.9, 2.4, 4.6), "Dueljab": (1.4, 3.3, 5.3), "Mycelet": (0.9, 2.4, 4.4),
+    "Deepling": (1.0, 2.9, 5.7), "Quartzlet": (1.0, 2.5, 4.8), "Gemmet": (0.6, 1.8, 3.6), "Starbud": (0.9, 2.3, 4.1),
+    "Breezlet": (0.6, 1.9, 4.0), "Dewlet": (0.7, 1.9, 3.8),
+}
+from battle import _PAGE4 as _P4  # noqa: E402
+for _a, _b, _c, *_ in _P4:
+    HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = _H4[_a]
+HEIGHT.update(Elderglow=5.8, Moonward=6.3)
+
+
 def feet(species):
     """Its height the Pokédex way, e.g. 3'07"."""
     h = HEIGHT.get(species)
@@ -127,8 +146,8 @@ EVOLVES.update({
     "Runelet": "Runestand", "Runestand": "Runewarden", "Sparkfly": "Arcfly", "Arcfly": "Thunderfly",
     "Murkling": "Murkgloop", "Murkgloop": "Murkdredge", "Glintshell": "Glintdome", "Glintdome": "Glintcitadel",
 })
-from battle import _PAGE3  # noqa: E402
-for _a, _b, _c, *_ in _PAGE3:
+from battle import _PAGE3, _PAGE4  # noqa: E402
+for _a, _b, _c, *_ in _PAGE3 + _PAGE4:
     EVOLVES[_a], EVOLVES[_b] = _b, _c
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself

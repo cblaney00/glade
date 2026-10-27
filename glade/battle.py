@@ -498,6 +498,140 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
 
 
+# Forest Dex pages four to six (2026-10-27, his ask): 38 new three-stage lines (#145-#258), living
+# in the ten places he already has, and two legendaries at #259-#260 that come out only rarely.
+# (first, middle, final, types, final types, shape, ability, nine moves); drawn in wave5.py.
+_PAGE4 = [
+    # the Glade
+    ("Petalpip", "Petalprim", "Petalregal", ("Grass",), ("Grass", "Normal"), (80, 75, 85, 90, 95, 75), "Effect Spore",
+     ["Absorb", "Magical Leaf", "Sleep Powder", "Quick Attack", "Mega Drain", "Leech Seed", "Giga Drain", "Synthesis", "Body Slam"]),
+    ("Lullabud", "Lullabloom", "Lullagrove", ("Grass", "Psychic"), None, (85, 55, 80, 110, 100, 70), "Keen Eye",
+     ["Confusion", "Absorb", "Hypnosis", "Magical Leaf", "Psybeam", "Sleep Powder", "Psychic", "Calm Mind", "Giga Drain"]),
+    ("Gleamwick", "Gleamtorch", "Gleambeacon", ("Fire",), ("Fire", "Ghost"), (65, 50, 70, 115, 90, 90), "Flash Fire",
+     ["Ember", "Astonish", "Will-O-Wisp", "Confuse Ray", "Flamethrower", "Night Shade", "Shadow Ball", "Heat Wave", "Calm Mind"]),
+    ("Hushling", "Hushveil", "Hushwarden", ("Ghost",), ("Ghost", "Normal"), (90, 60, 85, 90, 105, 50), "Levitate",
+     ["Astonish", "Lick", "Night Shade", "Confuse Ray", "Hypnosis", "Shadow Ball", "Pain Split", "Rest", "Curse"]),
+    # the Waterfall
+    ("Splashkin", "Splashtide", "Cascadon", ("Water",), ("Water", "Fighting"), (90, 105, 80, 70, 75, 90), "Swift Swim",
+     ["Water Gun", "Quick Attack", "Bubble Beam", "Mach Punch", "Water Pulse", "Brick Break", "Waterfall", "Bulk Up", "Cross Chop"]),
+    ("Mistmote", "Mistplume", "Mistcrest", ("Water", "Flying"), None, (75, 70, 70, 95, 85, 110), "Keen Eye",
+     ["Water Gun", "Gust", "Peck", "Wing Attack", "Bubble Beam", "Air Cutter", "Surf", "Aerial Ace", "Agility"]),
+    ("Slatelet", "Slatebound", "Slatecliff", ("Rock", "Water"), None, (90, 100, 130, 60, 80, 35), "Sturdy",
+     ["Rock Tomb", "Water Gun", "Harden", "Withdraw", "Rock Slide", "Bubble Beam", "Waterfall", "Iron Defense", "Earthquake"]),
+    ("Foamlet", "Foamcurl", "Foamcrest", ("Water", "Psychic"), None, (95, 50, 75, 100, 105, 65), "Water Absorb",
+     ["Water Gun", "Confusion", "Bubble Beam", "Amnesia", "Psybeam", "Water Pulse", "Psychic", "Recover", "Surf"]),
+    # the River
+    ("Reedlet", "Reedrunner", "Reedmarsh", ("Grass", "Water"), None, (75, 95, 75, 80, 75, 110), "Swift Swim",
+     ["Absorb", "Water Gun", "Quick Attack", "Magical Leaf", "Water Pulse", "Leech Seed", "Giga Drain", "Surf", "Agility"]),
+    ("Ripplet", "Rippleback", "Ripplelord", ("Water", "Ground"), None, (110, 85, 115, 70, 85, 30), "Shell Armor",
+     ["Water Gun", "Mud-Slap", "Withdraw", "Mud Shot", "Water Pulse", "Rest", "Earthquake", "Surf", "Amnesia"]),
+    ("Bubblo", "Bubblosh", "Bubblorb", ("Water", "Electric"), None, (80, 45, 70, 110, 90, 100), "Static",
+     ["Bubble Beam", "Spark", "Water Gun", "Thunder Wave", "Shock Wave", "Water Pulse", "Thunderbolt", "Surf", "Recover"]),
+    ("Siltpaw", "Siltstride", "Siltgrand", ("Ground", "Water"), None, (100, 110, 95, 55, 70, 75), "Water Absorb",
+     ["Mud-Slap", "Water Gun", "Bite", "Mud Shot", "Take Down", "Waterfall", "Earthquake", "Crunch", "Body Slam"]),
+    # the Forest
+    ("Barkling", "Barkbrute", "Barkmonarch", ("Grass", "Fighting"), None, (100, 120, 105, 50, 75, 55), "Guts",
+     ["Karate Chop", "Absorb", "Harden", "Mach Punch", "Magical Leaf", "Brick Break", "Bulk Up", "Giga Drain", "Cross Chop"]),
+    ("Fernflit", "Fernglide", "Fernsong", ("Grass", "Flying"), None, (70, 75, 65, 90, 80, 120), "Keen Eye",
+     ["Peck", "Absorb", "Gust", "Magical Leaf", "Wing Attack", "Air Cutter", "Giga Drain", "Aerial Ace", "Synthesis"]),
+    ("Hollowink", "Hollowmask", "Hollowking", ("Ghost", "Grass"), None, (80, 100, 85, 95, 85, 75), "Levitate",
+     ["Astonish", "Absorb", "Night Shade", "Leech Seed", "Faint Attack", "Shadow Ball", "Giga Drain", "Curse", "Confuse Ray"]),
+    ("Sapsip", "Sapsurge", "Sapsentinel", ("Bug", "Grass"), None, (75, 80, 95, 85, 95, 70), "Shield Dust",
+     ["Leech Life", "Absorb", "Harden", "Silver Wind", "Mega Drain", "Signal Beam", "Giga Drain", "Synthesis", "Iron Defense"]),
+    # the Mossy Rocks
+    ("Rubblet", "Rubbleback", "Rubblequake", ("Rock", "Ground"), None, (95, 115, 120, 45, 70, 55), "Rock Head",
+     ["Rock Tomb", "Mud-Slap", "Harden", "Headbutt", "Rock Slide", "Mud Shot", "Earthquake", "Double-Edge", "Iron Defense"]),
+    ("Quillnip", "Quillback", "Quillfortress", ("Rock", "Poison"), None, (80, 95, 115, 70, 80, 60), "Poison Point",
+     ["Poison Tail", "Rock Tomb", "Harden", "Pin Missile", "Sludge", "Rock Slide", "Sludge Bomb", "Toxic", "Iron Defense"]),
+    ("Echolet", "Echowing", "Echodome", ("Normal", "Flying"), ("Normal", "Psychic"), (85, 60, 75, 100, 90, 100), "Inner Focus",
+     ["Supersonic", "Gust", "Quick Attack", "Confusion", "Wing Attack", "Psybeam", "Psychic", "Aerial Ace", "Hypnosis"]),
+    ("Sigilet", "Sigilward", "Sigilcolossus", ("Rock", "Psychic"), None, (90, 75, 110, 105, 105, 35), "Sturdy",
+     ["Confusion", "Rock Tomb", "Harden", "Psybeam", "Ancient Power", "Rock Slide", "Psychic", "Calm Mind", "Iron Defense"]),
+    # the Snowy Ridge
+    ("Snowpuff", "Snowcloak", "Snowmonarch", ("Ice",), ("Ice", "Normal"), (115, 80, 95, 75, 90, 45), "Thick Fat",
+     ["Powder Snow", "Headbutt", "Rest", "Icy Wind", "Body Slam", "Amnesia", "Ice Beam", "Double-Edge", "Curse"]),
+    ("Shiverling", "Shivershard", "Shiverspire", ("Ice", "Steel"), None, (70, 110, 105, 70, 70, 75), "Sturdy",
+     ["Powder Snow", "Metal Claw", "Harden", "Icy Wind", "Iron Tail", "Slash", "Ice Beam", "Meteor Mash", "Swords Dance"]),
+    ("Glacelet", "Glaceglide", "Glacewing", ("Ice", "Flying"), None, (70, 85, 70, 85, 75, 115), "Keen Eye",
+     ["Powder Snow", "Peck", "Gust", "Icy Wind", "Wing Attack", "Aurora Beam", "Ice Beam", "Aerial Ace", "Agility"]),
+    ("Conelet", "Conecrest", "Conelord", ("Grass", "Ice"), None, (95, 100, 100, 70, 85, 50), "Shell Armor",
+     ["Absorb", "Powder Snow", "Harden", "Magical Leaf", "Icy Wind", "Leech Seed", "Giga Drain", "Ice Beam", "Iron Defense"]),
+    # the Hot Springs
+    ("Ashpaw", "Ashstride", "Ashcolossus", ("Fire",), ("Fire", "Normal"), (85, 110, 80, 80, 70, 95), "Flash Fire",
+     ["Ember", "Quick Attack", "Bite", "Fire Punch", "Take Down", "Flamethrower", "Crunch", "Heat Wave", "Double-Edge"]),
+    ("Sulfling", "Sulfspout", "Sulfgeyser", ("Poison", "Fire"), None, (100, 60, 85, 100, 95, 50), "Liquid Ooze",
+     ["Sludge", "Ember", "Acid Armor", "Toxic", "Flamethrower", "Haze", "Sludge Bomb", "Heat Wave", "Recover"]),
+    ("Lavalet", "Lavaglide", "Lavacrest", ("Fire", "Flying"), None, (75, 80, 70, 100, 80, 115), "Flash Fire",
+     ["Ember", "Gust", "Peck", "Wing Attack", "Flamethrower", "Air Cutter", "Heat Wave", "Aerial Ace", "Morning Sun"]),
+    ("Obsidling", "Obsidblade", "Obsidclaw", ("Dark", "Fire"), None, (75, 120, 90, 80, 70, 90), "Inner Focus",
+     ["Bite", "Ember", "Faint Attack", "Slash", "Fire Punch", "Crunch", "Blaze Kick", "Swords Dance", "Flamethrower"]),
+    # the Battle Tower
+    ("Gongling", "Gongstrike", "Gongmaster", ("Steel", "Fighting"), None, (90, 115, 110, 60, 80, 70), "Inner Focus",
+     ["Metal Claw", "Karate Chop", "Harden", "Brick Break", "Iron Tail", "Bulk Up", "Meteor Mash", "Cross Chop", "Iron Defense"]),
+    ("Spirelet", "Spireguard", "Spirehalo", ("Steel", "Psychic"), None, (80, 60, 100, 105, 110, 55), "Levitate",
+     ["Confusion", "Metal Claw", "Iron Defense", "Psybeam", "Flash", "Calm Mind", "Psychic", "Meteor Mash", "Recover"]),
+    ("Dueljab", "Dueledge", "Duelheart", ("Fighting",), ("Fighting", "Dark"), (80, 120, 80, 60, 75, 105), "Guts",
+     ["Karate Chop", "Quick Attack", "Mach Punch", "Faint Attack", "Brick Break", "Slash", "Cross Chop", "Crunch", "Swords Dance"]),
+    # the Crystal Caverns
+    ("Mycelet", "Mycespire", "Mycethrone", ("Grass", "Dark"), None, (95, 85, 90, 95, 95, 40), "Effect Spore",
+     ["Absorb", "Faint Attack", "Spore", "Stun Spore", "Mega Drain", "Bite", "Giga Drain", "Crunch", "Synthesis"]),
+    ("Deepling", "Deepglow", "Deepmaw", ("Water", "Dark"), None, (90, 115, 80, 75, 70, 90), "Swift Swim",
+     ["Water Gun", "Bite", "Flash", "Faint Attack", "Waterfall", "Crunch", "Hydro Pump", "Dragon Dance", "Surf"]),
+    ("Quartzlet", "Quartzback", "Quartzcolossus", ("Rock", "Steel"), None, (85, 105, 140, 50, 85, 35), "Sturdy",
+     ["Rock Tomb", "Metal Claw", "Harden", "Iron Defense", "Rock Slide", "Iron Tail", "Meteor Mash", "Earthquake", "Rest"]),
+    ("Gemmet", "Gemwing", "Gemflare", ("Bug", "Rock"), None, (70, 80, 80, 90, 75, 110), "Shield Dust",
+     ["Leech Life", "Rock Tomb", "Silver Wind", "Signal Beam", "Ancient Power", "Agility", "Rock Slide", "Tail Glow", "Double Team"]),
+    # the Starfall Meadow
+    ("Starbud", "Starbloom", "Starblossom", ("Grass", "Psychic"), None, (80, 60, 80, 110, 105, 85), "Effect Spore",
+     ["Absorb", "Confusion", "Sleep Powder", "Magical Leaf", "Psybeam", "Morning Sun", "Psychic", "Giga Drain", "Calm Mind"]),
+    ("Breezlet", "Breezeplume", "Breezemonarch", ("Normal", "Flying"), None, (85, 90, 75, 75, 75, 120), "Keen Eye",
+     ["Gust", "Quick Attack", "Peck", "Wing Attack", "Air Cutter", "Agility", "Aerial Ace", "Double-Edge", "Twister"]),
+    ("Dewlet", "Dewglimmer", "Dewcascade", ("Water", "Grass"), None, (90, 55, 80, 105, 105, 75), "Water Absorb",
+     ["Water Gun", "Absorb", "Bubble Beam", "Mega Drain", "Water Pulse", "Leech Seed", "Giga Drain", "Surf", "Recover"]),
+]
+LEGENDARY = {
+    "Elderglow": dict(num=259, types=("Grass", "Psychic"), base=(100, 90, 100, 110, 110, 90), ability="Levitate",
+                      pool=["Giga Drain", "Psychic", "Calm Mind", "Synthesis", "Leech Seed", "Ancient Power",
+                            "Magical Leaf", "Recover", "Shadow Ball", "Sleep Powder"]),
+    "Moonward": dict(num=260, types=("Psychic", "Dragon"), base=(95, 100, 90, 125, 110, 100), ability="Levitate",
+                     pool=["Dragon Claw", "Psychic", "Dragon Dance", "Calm Mind", "Ice Beam", "Twister",
+                           "Shadow Ball", "Recover", "Thunderbolt", "Aerial Ace"]),
+}
+for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE4):
+    _num = 145 + _i * 3
+    _first = list(_shape)
+    _first[1 if _shape[1] >= _shape[3] else 3] += 8
+    SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_num * 7) % 21), ability=_ability, pool=_pool[:6])
+    SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
+    SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
+SPECIES.update(LEGENDARY)
+
+
+def _retotal():
+    """His ask (2026-10-27): a wider spread of base stat totals. Pokémon's own finals run from the
+    470s to 600 (Beautifly 395, Dragonite 600); so do these now, each keeping the shape of its
+    stats. Middle stages spread 380-440. The starters stay at 530 (Pokémon keeps its starters
+    level); the two dragons that are nearly Dragonite's height are this Dex's pseudo-legendaries
+    at 600; the legendaries are 600-620 on their own."""
+    import zlib
+    for name, d in SPECIES.items():
+        num = d["num"]
+        if num <= 9 or name in LEGENDARY:
+            continue
+        stage = (num - 1) % 3 + 1
+        roll = zlib.crc32(name.encode()) % 1000 / 1000
+        if stage == 3:
+            total = 600 if name in ("Prismwyrm", "Shardsovereign") else round(465 + roll * 115)
+        elif stage == 2:
+            total = round(380 + roll * 60)
+        else:
+            continue
+        d["base"] = _spread(d["base"], total)
+
+
+_retotal()
+
+
 
 STATS = ("atk", "def", "spa", "spd", "spe")
 STAT_NAME = {"atk": "Attack", "def": "Defense", "spa": "Sp. Atk", "spd": "Sp. Def", "spe": "Speed",

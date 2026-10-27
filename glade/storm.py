@@ -56,7 +56,7 @@ def crowd(content, rng, factor=2):
     for o in animals:  # each one in the wild might be an evolved one (15%, or 1% a final stage)
         wild_stage(o, rng)
     out = [o for o in animals if not getattr(o, "gone", False)]
-    waiting = [o for o in animals if getattr(o, "gone", False)]
+    waiting = [o for o in animals if getattr(o, "gone", False) and not getattr(o, "legendary", False)]
     for o in rng.sample(waiting, min(len(waiting), len(out) * (factor - 1))):
         o.gone = False
 
@@ -66,6 +66,7 @@ def choose(animals, rng, n=None, before=None):
     of everyone who lives there, old and new alike."""
     if n is None:
         n = sum(1 for o in animals if not getattr(o, "gone", False))
+    animals = [o for o in animals if not getattr(o, "legendary", False) or rng.random() < RARE]
     return rng.sample(animals, min(n, len(animals)))
 
 
@@ -146,6 +147,7 @@ class Shelter:
             pygame.draw.ellipse(s, mix(RAIN, (255, 255, 255), 0.3), (x - 8 - k * 10, y - 3 - k * 3, 16 + k * 20, 6 + k * 6), 1)
 
 
+RARE = 0.08  # a legendary that would come out does only this often (it is one of ~30 that could)
 LIFE = 300.0  # the longest any one animal stays out before it goes away for good
 
 
@@ -221,7 +223,11 @@ class Lifespans:
         body included: it will be someone new)."""
         waiting = [o for o in roster(content, everyone=True) if getattr(o, "gone", False) and o is not leaving
                    and not kept(o) and not any(m.obj is o for m in self.moves)]
-        return self.rng.choice(waiting) if waiting else None
+        pick = self.rng.choice(waiting) if waiting else None
+        if pick is not None and getattr(pick, "legendary", False) and self.rng.random() > RARE:
+            common = [o for o in waiting if not getattr(o, "legendary", False)]
+            pick = self.rng.choice(common) if common else None
+        return pick
 
     def swap(self, content, o, low, t, kept):
         o.leave_at = None

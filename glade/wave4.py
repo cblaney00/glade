@@ -592,3 +592,5 @@ for _kind in CAVE_WALK + MEADOW_WALK:
 for _kind in CAVE_FLY + MEADOW_FLY:
     setattr(Flier, "draw_" + _kind, globals()["draw_" + _kind])
     setattr(Flier, "glow_" + _kind, globals()["glow_" + _kind])
+
+import wave5  # noqa: E402,F401  (pages four to six)

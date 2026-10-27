@@ -175,7 +175,15 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
         w = sc.live(Walker(rng, ground, x_range, kind, 1.1, roam=roam, persp=persp))
         if kind not in out:
             newcomer(w)
+    from wave5 import HOMES, LEGENDS
+    new = tuple(new) + HOMES.get(sc.key, ())  # pages four to six of the Forest Dex (wave5.py)
     own = random.Random(sum(map(ord, sc.key)) + 2)
+    legend = LEGENDS.get(sc.key)
+    if legend:  # a legendary lives here, out only rarely (storm.py), and big
+        o = (Flier(own, sky, legend, 2.6) if legend in FLIERS else
+             Walker(own, grounds[0][0], grounds[0][1], legend, 2.6, roam=list(grounds) + [MEADOW], persp=persp))
+        o.legendary = True
+        sc.live(newcomer(o))
     for i, kind in enumerate(new):
         if kind in FLIERS:
             sc.live(Flier(own, sky, kind, 1.1))

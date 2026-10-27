@@ -22,6 +22,8 @@ from life import Critter, Millipede, Slug, Squid, Track
 from pond import KOI, Fish, Water
 
 TOTAL = 260
+LEGEND_FROM = 259
+LEGENDS_ = ("Elderglow", "Moonward")  # the last two numbers: the legendaries
 PER_PAGE = 48          # 8 x 6 slots
 STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
@@ -82,10 +84,10 @@ def specimen(species):
         return ("perch", "owlet" if species == "Moonhoot" else "squid")
     for kind, spec in FLIERS.items():
         if spec["species"] == species:
-            return Flier(rng, (cx, cy - 14, 0, 0), kind, 1.4)
+            return Flier(rng, (cx + (18 if species in LEGENDS_ else 0), cy - 18, 0, 0), kind, 0.8 if species in LEGENDS_ else 1.4)
     for kind, spec in WALKERS.items():
         if spec["species"] == species:
-            return Walker(rng, lambda x: cy + 6, (cx, cx), kind, 1.4)
+            return Walker(rng, lambda x: cy + 6, (cx, cx), kind, 1.3 if species in LEGENDS_ else 1.4)
     return None
 
 
@@ -316,6 +318,7 @@ class Dex:
         name = self.known.get(self.pick)
         line_start = (self.pick - 1) // 3 * 3 + 1
         stage = self.pick - line_start + 1
+        legend = self.pick >= LEGEND_FROM  # #259 and #260 are legendaries, not a line
         self.text(s, f"#{self.pick:03}", x, y, DIM)
         self.text(s, name or "???", x + 44, y, WHITE)
         y += 20
@@ -323,7 +326,9 @@ class Dex:
             self.text(s, "?", area.centerx, area.centery - 30, DIM, center=True)
             self.text(s, "Not discovered yet.", area.centerx, area.centery, DIM, center=True)
             base = self.known.get(line_start)
-            if base and stage > 1:
+            if legend:
+                self.text(s, "A legendary creature, seldom seen.", area.centerx, area.centery + 16, DIM, center=True)
+            elif base and stage > 1:
                 self.text(s, f"Stage {stage} of the {base} line.", area.centerx, area.centery + 16, DIM,
                           center=True)
             return
@@ -331,7 +336,7 @@ class Dex:
         bx = x
         for kind in sp["types"]:
             bx += self.badge(s, kind, bx, y)
-        self.text(s, f"Stage {stage} of 3", area.right - 12, y, DIM, right=True)
+        self.text(s, "Legendary" if legend else f"Stage {stage} of 3", area.right - 12, y, (255, 214, 120) if legend else DIM, right=True)
         y += 20
         if self.live is None or self.live[0] != name:
             self.live = (name, specimen(name), art.solid((PW, PH)))
@@ -370,5 +375,5 @@ class Dex:
             self.text(s, mv, cx + 8, cy, TEXT)
         y += half * 15 + 10
         nxt = self.known.get(self.pick + 1)
-        if stage < 3:
+        if stage < 3 and not legend:
             self.text(s, f"Evolves into: #{self.pick + 1:03} {nxt or '?'}", x, y, DIM)
