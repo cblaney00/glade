@@ -36,13 +36,14 @@ def newcomer(thing):
     return thing
 
 
-def roster(content):
-    """Every animal of a place (or of the ground below it) that takes turns being out."""
+def roster(content, everyone=False):
+    """Every animal of a place (or of the ground below it) that takes turns being out
+    (`everyone`: the bodies of ones you caught too)."""
     if content is None:
         return []
     out, seen = [], set()
     for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
-        if id(o) not in seen and type(o).__name__ in ROTATE and not getattr(o, "caught", False):  # caught: in your boxes
+        if id(o) not in seen and type(o).__name__ in ROTATE and (everyone or not getattr(o, "caught", False)):
             seen.add(id(o))
             out.append(o)
     return out
@@ -72,7 +73,10 @@ def reshuffle(content, rng, keep):
     animals = [o for o in roster(content) if not any(o is k for k in keep)]
     pick = choose(animals, rng)
     for o in animals:
-        o.gone = not any(o is p for p in pick)
+        out = any(o is p for p in pick)
+        if out and getattr(o, "gone", False):
+            fresh(o)  # whoever comes out is a new animal
+        o.gone = not out
     colony = getattr(content, "colony", None)
     if colony is not None:
         dwellers(colony, rng)
@@ -98,6 +102,8 @@ class Shelter:
         if self.begun and not self.done and t >= self.start + self.DUR:
             self.done = True
             self.obj.gone = self.out
+            if self.out:
+                self.obj.leave_at = None
 
     def draw(self, s, low, t, scratch):
         if not self.begun or self.done or low != self.low:
@@ -128,99 +134,97 @@ class Shelter:
             pygame.draw.ellipse(s, mix(RAIN, (255, 255, 255), 0.3), (x - 8 - k * 10, y - 3 - k * 3, 16 + k * 20, 6 + k * 6), 1)
 
 
-EVERY = 300.0  # seconds a set of animals is out before a new one takes its place
+LIFE = 300.0  # the longest any one animal stays out before it goes away for good
 
 
-def renew(content):
-    """New animals, not the same ones back: every one in this place gets fresh IVs, and the
-    ones you caught are replaced by wild ones again. Returns how many were caught."""
-    n = 0
-    for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
-        if type(o).__name__ in ROTATE:
-            if getattr(o, "caught", False):
-                o.caught, o.gone = False, True
-                n += 1
-            o.ivs = None  # rolled again when anything asks (team.ivs_of)
-    return n
+def fresh(o):
+    """It comes out as an entirely new animal: new IVs (rolled when asked, team.ivs_of), and
+    if the body was one you caught, that one is in your boxes and this is someone else."""
+    o.ivs = None
+    o.caught = False
+    o.leave_at = None
 
 
-class Turnover:
-    """Every five minutes the animals change: the ones out quietly slip away (dig in, fly
-    off, dive) and a new set comes out — new individuals with new IVs, so a strong one is
-    only around for a while. No rain: it simply happens. Elsewhere it happens at once."""
+class Lifespans:
+    """Like wild Pokémon: every animal out in the glade has its own time, up to five minutes;
+    when its time is up it slips away (digs in, flies off) and is gone for good, and a new
+    animal emerges somewhere in that place to take its spot. Quietly, one at a time. Places
+    not on screen change at once. Animals in a battle, evolving, or with their card open
+    stay put. The trees' dwellers and the koi are not part of it."""
 
-    def __init__(self, glade, t):
-        self.t0 = self.now = t
+    def __init__(self):
         self.rng = random.Random()
-        self.scene = glade.here
-        self.low = glade.lower() if glade.bottom else None
-        arena = glade.arena
-        self.keep = [f.a.obj for f in arena.fighters] + [p[0].obj for p in arena.picked] if arena else []
-        if arena is not None and arena.foe:
-            self.keep.append(arena.foe[0].obj)
-        if glade.evolution is not None:
-            self.keep.append(glade.evolution.obj)
         self.moves = []
-        self.chosen = False
-        self.colony = None
-        self.before = {}
-        n = 0
-        for content, low in ((self.scene, False), (self.low, True)):
-            out = [o for o in roster(content) if not getattr(o, "gone", False) and not self.kept(o)]
-            self.before[id(content)] = len(out) + sum(1 for o in getattr(content, "lives", []) + list(getattr(content, "parts", []))
-                                                      if getattr(o, "caught", False))
-            for o in out:
-                self.moves.append(Shelter(o, low, True, t + n * 0.35 + self.rng.uniform(0, 0.4), self.rng))
-                n += 1
-        self.out_at = t + n * 0.35 + Shelter.DUR + 1.0
-        for sc in glade.scenes.values():  # elsewhere: at once
-            if sc is not self.scene:
-                self.elsewhere(sc)
-        for lw in glade.lowers.values():
-            if lw is not self.low:
-                self.elsewhere(lw)
 
-    def elsewhere(self, content):
-        n = renew(content)
-        animals = [o for o in roster(content) if not self.kept(o)]
-        count = sum(1 for o in animals if not getattr(o, "gone", False)) + n
-        pick = choose(animals, self.rng, count)
-        for o in animals:
-            o.gone = not any(o is p for p in pick)
+    def keep(self, glade):
+        arena = glade.arena
+        keep = [f.a.obj for f in arena.fighters] + [p[0].obj for p in arena.picked] if arena else []
+        if arena is not None and arena.foe:
+            keep.append(arena.foe[0].obj)
+        if glade.evolution is not None:
+            keep.append(glade.evolution.obj)
+        if glade.card is not None and glade.card.animal is not None:
+            keep.append(glade.card.animal.obj)
+        return keep
 
-    def kept(self, o):
-        return any(o is k for k in self.keep)
-
-    def update(self, t):
-        if not self.chosen and t >= self.out_at:
-            self.chosen = True
-            self.come_out(t)
+    def update(self, glade, t):
+        keep = self.keep(glade)
+        kept = lambda o: any(o is k for k in keep)  # noqa: E731
+        here = [(glade.here, False)] + ([(glade.lowers.get(glade.here.key), True)] if glade.bottom else [])
+        busy = {id(m.obj) for m in self.moves if not m.done}
+        for content, low in here:
+            if content is None:
+                continue
+            for o in roster(content):
+                if getattr(o, "gone", False) or id(o) in busy:
+                    continue
+                if getattr(o, "leave_at", None) is None:
+                    o.leave_at = t + self.rng.uniform(0, LIFE)
+                elif t >= o.leave_at and not kept(o):
+                    self.swap(content, o, low, t, kept)
+        for content in list(glade.scenes.values()) + list(glade.lowers.values()):
+            if any(content is c for c, _ in here):
+                continue
+            for o in roster(content):  # elsewhere: at once
+                if getattr(o, "gone", False):
+                    continue
+                if getattr(o, "leave_at", None) is None:
+                    o.leave_at = t + self.rng.uniform(0, LIFE)
+                elif t >= o.leave_at and not kept(o):
+                    o.gone, o.leave_at = True, None
+                    new = self.newcomer(content, o, kept)
+                    if new is not None:
+                        fresh(new)
+                        new.gone = False
+                        new.leave_at = t + self.rng.uniform(0, LIFE)
         for m in self.moves:
             m.update(t)
+        self.moves = [m for m in self.moves if not m.done]
 
-    def come_out(self, t):
-        n = 0
-        for content, low in ((self.scene, False), (self.low, True)):
-            renew(content)
-            animals = [o for o in roster(content) if not self.kept(o)]
-            for o in choose(animals, self.rng, self.before.get(id(content), 0)):
-                self.moves.append(Shelter(o, low, False, t + n * 0.4 + self.rng.uniform(0, 0.4), self.rng))
-                n += 1
+    def newcomer(self, content, leaving, kept):
+        """Who emerges in its place: any animal of this place not out just now (a caught one's
+        body included: it will be someone new)."""
+        waiting = [o for o in roster(content, everyone=True) if getattr(o, "gone", False) and o is not leaving
+                   and not kept(o) and not any(m.obj is o for m in self.moves)]
+        return self.rng.choice(waiting) if waiting else None
 
-    @property
-    def done(self):
-        return self.chosen and all(m.done for m in self.moves)
+    def swap(self, content, o, low, t, kept):
+        o.leave_at = None
+        self.moves.append(Shelter(o, low, True, t, self.rng))
+        new = self.newcomer(content, o, kept)
+        if new is not None:
+            fresh(new)
+            new.leave_at = t + Shelter.DUR + 1.0 + self.rng.uniform(0, LIFE)
+            self.moves.append(Shelter(new, low, False, t + Shelter.DUR + 1.0, self.rng))
 
-    def finish(self, t=None):
-        if not self.chosen:
-            self.chosen = True
-            self.come_out(self.t0)
+    def settle(self):
+        """Everything mid-way done at once (a storm is coming, or he walked away)."""
         for m in self.moves:
-            m.begun, m.done = True, True
+            m.begun = m.done = True
             m.obj.gone = m.out
+        self.moves = []
 
     def draw(self, s, low, t, scratch):
-        self.now = t
         for m in self.moves:
             m.draw(s, low, t, scratch)
 
@@ -288,6 +292,7 @@ class Storm:
             animals = [o for o in roster(content) if not self.kept(o)]
             before = self.before.get(id(content), [])
             for o in choose(animals, self.rng, len(before), before):
+                fresh(o)
                 self.moves.append(Shelter(o, low, False, t + 0.6 + n * 0.3 + self.rng.uniform(0, 0.3), self.rng))
                 n += 1
             pond = getattr(content, "pond", None)

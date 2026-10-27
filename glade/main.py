@@ -587,8 +587,7 @@ class Glade:
         self.run = None    # a go at the Battle Tower
         self.storm = None  # a thunderstorm (storm.py): the animals take turns
         self.storm_scratch = art.solid()
-        self.turnover = None  # every five minutes a new set of animals comes out (storm.Turnover)
-        self.next_turnover = None
+        self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
 
     def scene(self, key):
@@ -669,9 +668,7 @@ class Glade:
         if view is not None:  # the Thunderstorm button, while battle stats are on screen
             m = view.mouse()
             if m and storm.button_rect(view).collidepoint(m):
-                if self.turnover is not None:
-                    self.turnover.finish()
-                    self.turnover = None
+                self.lifespans.settle()
                 self.storm, self.card, self.dex = storm.Storm(self, t), None, None
                 return
         if self.board is not None:  # the tower's board or the boxes: like the dex
@@ -936,19 +933,10 @@ class Glade:
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
-        if self.next_turnover is None:
-            self.next_turnover = t + storm.EVERY
-        if self.turnover is not None:
-            if self.turnover.scene is not self.here:
-                self.turnover.finish()
-                self.turnover = None
-            elif self.turnover.done:
-                self.turnover = None
-            else:
-                self.turnover.update(t)
-        elif t >= self.next_turnover and self.storm is None and not self.fade_to:
-            self.next_turnover = t + storm.EVERY
-            self.turnover = storm.Turnover(self, t)
+        if self.fade_to:
+            self.lifespans.settle()
+        elif self.storm is None:
+            self.lifespans.update(self, t)
         if self.storm is not None:
             if self.storm.scene is not self.here:
                 self.storm.finish()  # he walked off: it is over, and settled as it would have been
@@ -991,8 +979,7 @@ class Glade:
                 self.hunt.draw(view.canvas, view is self.bottom, t)
             if self.storm is not None:
                 self.storm.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
-            if self.turnover is not None:
-                self.turnover.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
+            self.lifespans.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             self.overlay(view, content, t)
             if self.arena is not None:
                 self.arena.draw(view.canvas, view is self.bottom, t)
