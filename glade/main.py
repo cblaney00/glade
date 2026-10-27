@@ -698,6 +698,8 @@ class Glade:
         if view is not None:  # the Thunderstorm button, while battle stats are on screen
             m = view.mouse()
             if m and storm.button_rect(view).collidepoint(m):
+                if self.updater.load(self):  # a newer glade is waiting: the button loads it
+                    return
                 self.lifespans.settle()
                 self.storm, self.card, self.dex = storm.Storm(self, t), None, None
                 return
@@ -837,7 +839,8 @@ class Glade:
 
     def storm_view(self):
         """Where the Thunderstorm button is, while it is shown (else None)."""
-        if self.storm is not None or self.evolution is not None or (self.card is None and self.dex is None):
+        if self.storm is not None or self.evolution is not None or \
+                (self.card is None and self.dex is None and not self.updater.waiting):
             return None
         return self.bottom or self.top
 
@@ -1050,6 +1053,15 @@ class Glade:
                 self.evolution.draw(view.canvas, view is self.bottom, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
+                if self.updater.waiting:  # the notice: a newer glade to check out
+                    b = storm.button_rect(view)
+                    msg = "Newer glade ready! Thunderstorm loads it" if not resume.busy(self) else "Newer glade ready after this battle"
+                    w = self.signs.font.size(msg)[0] + 14
+                    r = pygame.Rect(b.x - w - 6, b.y, w, b.h)
+                    from battle import cloth
+                    cloth(view.canvas, r, (255, 206, 90), hot=True, alpha=235)
+                    img = self.signs.font.render(msg, False, (255, 255, 255))
+                    view.canvas.blit(img, (r.x + 7, r.centery - img.get_height() // 2))
             if view is (self.bottom or self.top):
                 self.panel.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
             if view is self.map_view() and self.board is None and self.dex is None:

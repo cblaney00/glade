@@ -258,7 +258,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   starter) are each re-shown in an overlay-layer window while open, so windows, the bar and
   notifications never cover them.
 - **Updates keep your place** (`glade/resume.py`, his ask): every 5 s the glade compares its own store
-  path with the installed `glade`; when newer and not `busy` (no battle, Tower run or evolution) it
-  saves place/history/Dex page+pick+tab/boxes to `~/.local/state/glade/resume.json` and exits; the
-  config's glade-desktop loop starts the installed glade, which restores it. **So after a rebuild,
-  don't kill the glade by hand any more** — it switches over by itself within seconds.
+  path with the installed `glade`; when newer, a gold notice shows by the Thunderstorm button (which shows
+  too) and pressing it, when not `busy` (no battle, Tower run or evolution), saves place/history/Dex page+pick+tab/boxes to `~/.local/state/glade/resume.json` and exits; the
+  config's glade-desktop loop starts the installed glade, which restores it. **So after a rebuild, don't kill the
+  glade by hand any more**: tell him to press Thunderstorm to load the new one.

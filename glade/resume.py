@@ -1,10 +1,11 @@
 """Updating the glade without losing your place (his ask, 2026-10-27).
 
 After a rebuild the computer has a newer glade installed than the one running. Every few seconds
-the running glade checks; when there is a newer one and nothing is happening that can't be picked
-up again (a battle, a Battle Tower run, a creature evolving), it notes where you are (the place,
-the Forest Dex's page and creature, the boxes) and steps aside. The desktop starts the new one at
-once (pkgs/glade's glade-desktop loop), and it opens where you were.
+the running glade checks; when there is a newer one, a notice shows by the Thunderstorm button
+(which shows too), and pressing Thunderstorm loads it (his choice): it notes where you are (the
+place, the Forest Dex's page and creature, the boxes) and steps aside; the desktop starts the new
+one at once (pkgs/glade's glade-desktop loop), and it opens where you were. Not during a battle, a
+Battle Tower run or an evolution: then the button waits.
 """
 
 import json
@@ -34,15 +35,19 @@ RUNNING = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__fil
 
 class Updater:
     def __init__(self):
-        self.checked = -10.0
+        self.checked, self.waiting = -10.0, False
 
     def tick(self, glade, t):
         if t - self.checked < 5 or not RUNNING.startswith("/nix/store/"):
             return
         self.checked = t
         new = installed()
-        if not new or new == RUNNING or not new.startswith("/nix/store/") or busy(glade):
-            return
+        self.waiting = bool(new) and new != RUNNING and new.startswith("/nix/store/")
+
+    def load(self, glade):
+        """Switch to the newer glade now (the Thunderstorm button), if nothing is going on."""
+        if not self.waiting or busy(glade):
+            return False
         save(glade)
         os._exit(0)  # the desktop starts the new glade straight away
 
