@@ -1,4 +1,5 @@
-"""The fruit in the big blossom tree: each one is something he used lately.
+"""The fruit in the big blossom tree. (They used to stand for recent files and apps; since
+2026-10-27 they are only fruit, at his ask. The Watcher below is no longer started.)
 
 The lower canopy holds the apps and files he used most recently (violet plums are
 apps, amber peaches are files); the crown holds golden fruit for anything new in his
@@ -207,31 +208,20 @@ class Orchard:
     """Draws the fruit and keeps the scene's clickable spots in step with them."""
 
     def __init__(self, scene, spot_type):
-        self.scene, self.Spot = scene, spot_type
-        self.mine = []  # the fruit's spots in the scene
-        self.watch = Watcher()
-        self.shown = None
-        self.fruit = []  # (x, y, kind, phase)
+        """Just fruit now (his ask, 2026-10-27): they hang in the tree for the look and the
+        nibbling squid, and open nothing — no name boards, no links to files or apps.
+        golden fruit in the crown, violet plums and amber peaches below."""
+        self.scene = scene
         self.bites = {}  # fruit index -> when it was last bitten
-        self.icons = {k: fruit_icon(k) for k in KINDS}
+        self.fruit = []  # (x, y, kind, phase)
+        crown = [(x, y) for _, (x, y) in NEW_SLOTS]
+        lower = [(x, y) for _, (x, y) in RECENT_SLOTS]
+        for i, (x, y) in enumerate(crown + lower):
+            kind = "new" if i < len(crown) else ("app", "file")[i % 2]
+            self.fruit.append((x, y, kind, (x * 7 + y) % 10 / 10 * math.tau))
 
     def refresh(self):
-        result = self.watch.result
-        if result == self.shown:
-            return
-        self.shown = result
-        recent, new = result
-        self.fruit, spots = [], []
-        crown = [NEW_SLOTS[1]] if len(new) == 1 else NEW_SLOTS[::2] if len(new) == 2 else NEW_SLOTS
-        for (sign, (x, y)), e in list(zip(crown, new)) + list(zip(RECENT_SLOTS, recent)):
-            sp = self.Spot("app", (x - 10, y - 12, 20, 24), short(e["name"]), None, (x, y + 2), sign=sign)
-            sp.cmd, sp.icon, sp.full = e["cmd"], self.icons[e["kind"]], e.get("full", e["name"])
-            spots.append(sp)
-            self.fruit.append((x, y, e["kind"], (x * 7 + y) % 10 / 10 * math.tau))
-        self.bites = {}
-        # only its own spots are swapped, so the squid's (squids.py) stay
-        self.scene.spots[:] = [sp for sp in self.scene.spots if sp not in self.mine] + spots
-        self.mine = spots
+        pass
 
     def where(self, i, t):
         x, y, _, ph = self.fruit[i]
