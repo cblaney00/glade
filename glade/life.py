@@ -531,10 +531,11 @@ class Critter(Clock):
         self.clock = getattr(self, "clock", 0.0) + dt
         n = len(self.pts)
         pull = min(1.0, dt * 5)
+        body = 3  # the first segments are its body, level with the head; the tail starts after
         for i in range(1, n):
             px, py = self.pts[i - 1]
             x, y = self.pts[i]
-            f = i / (n - 1)
+            f = max(0.0, (i - body) / (n - 1 - body))
             sway = math.sin(self.clock * 2.2 - i * 0.55) * 3.0 * f
             rx = hx - self.facing * i * self.SEG * 0.92 + sway * 0.4
             ry = hy - math.sin(f * math.pi * 0.85) * 7 - f * f * 6 + sway
@@ -575,8 +576,8 @@ class Critter(Clock):
             for i in (-4, -7):
                 bx, by = self.pts[i]
                 pygame.draw.circle(s, ruff, (round(bx), round(by)), 3)
-        for i, k in ((0, 0.0), (2, math.pi)):  # little legs while walking
-            x, y = self.pts[i]
+        for i, k in ((0, 0.0), (2, math.pi)):  # little legs while walking, standing on the ground
+            x, y = self.pts[i][0], hy
             lift = max(0, math.sin(self.step + k)) * 3 if self.wait <= 0 else 0
             pygame.draw.line(s, self.belly, (round(x - 1), round(y + 5 - lift)), (round(x - 1), round(y + 8 - lift)), 2)
         # ears: two soft points
