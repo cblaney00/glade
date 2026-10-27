@@ -13,11 +13,14 @@ The session writes ~/.local/state/glade/claude.json through this file, run as a 
     glade-status step DONE [NEXT] DONE is finished, now on NEXT (update after EVERY step)
     glade-status attention TEXT   glow gold: he should come to the terminal (TEXT says why)
     glade-status calm             stop glowing
+    glade-status watch            (started by the hooks) every 5 s, Claude's latest message onto
+                                  the panel; when the chat ends, the panel goes
 """
 
 import json
 import os
 import pwd
+import subprocess
 import sys
 import time
 
@@ -98,6 +101,44 @@ def last_text(transcript):
     return None
 
 
+def alive(pid):
+    return bool(pid) and os.path.exists(f"/proc/{pid}")
+
+
+def watch():
+    """His ask: the panel shows Claude's newest message within 5 seconds, even mid-turn (the hooks
+    only fire around tool calls), and goes away once the chat is closed."""
+    me = os.getpid()
+    time.sleep(1)  # the hook that started it records it first
+    while True:
+        d = load()
+        if not d or d.get("watcher") != me:
+            return  # gone, or another watcher took over
+        if not alive(d.get("pid")):
+            try:
+                os.remove(PATH)
+            except OSError:
+                pass
+            return
+        text = last_text(d.get("transcript") or "")
+        if text and text != d.get("message"):
+            d = load()  # as fresh as can be, so a hook's change in between is not lost
+            d["message"], d["message_at"] = text, time.time()
+            save(d)
+        time.sleep(5)
+
+
+def ensure_watcher(d):
+    if alive(d.get("watcher")):
+        return
+    try:
+        p = subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch"], start_new_session=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        d["watcher"] = p.pid
+    except OSError:
+        pass
+
+
 def hook(event):
     name = event.get("hook_event_name", "")
     d = load()
@@ -131,6 +172,9 @@ def hook(event):
             d["attention"] = "Claude needs your OK in the terminal"
     elif name == "Stop":
         d["working"] = False
+    if event.get("transcript_path"):
+        d["transcript"] = event["transcript_path"]
+    ensure_watcher(d)
     text = last_text(event.get("transcript_path", "")) if event.get("transcript_path") else None
     if text and text != d.get("message"):
         d["message"], d["message_at"] = text, time.time()
@@ -139,6 +183,9 @@ def hook(event):
 
 def main(args):
     cmd, rest = (args[0], args[1:]) if args else ("", [])
+    if cmd == "watch":
+        watch()
+        return
     if cmd == "hook":
         try:
             hook(json.load(sys.stdin))
