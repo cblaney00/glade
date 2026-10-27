@@ -488,7 +488,7 @@ def build_glade():
     # four trees of four: his sixteen; the seed sign under them grows more (squids.GROW_AT)
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
-    additions(sc, rng, [("lanterns", 250, 150, 430, 176), ("ring", 650, 488), ("cairn", 120, 506)])
+    additions(sc, rng, [("ring", 650, 488), ("cairn", 120, 506)])
     second_wave(sc, rng, (80, 60, 760, 170), [(lambda x: 500 + 4 * math.sin(x / 50), (420, 600)), (lambda x: 488 + 3 * math.sin(x / 40), (250, 300))],
                 far=[(lambda x: 402 + 2 * math.sin(x / 40), (540, 690)), (lambda x: 446 + 2 * math.sin(x / 50), (600, 820))])
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
@@ -854,7 +854,7 @@ def build_forest():
     sc.live(Slug(rng, Track([(140, 512), (240, 518), (360, 512), (480, 520)]), (250, 220, 130), size=1.6, speed=4))
     sc.live(Slug(rng, Track([(66, 500), (64, 440), (62, 380)], up=(1, 0)), (140, 120, 220), size=1.3, speed=2,
                  spots=GLOW["pink"]))
-    additions(sc, rng, [("lanterns", 290, 130, 520, 160), ("log", 600, 500), ("ring", 820, 500)])
+    additions(sc, rng, [("log", 600, 500), ("ring", 820, 500)])
     second_wave(sc, rng, (100, 120, 700, 200), [(lambda x: 478 + 3 * math.sin(x / 40), (140, 280)), (lambda x: 512 + 3 * math.sin(x / 50), (420, 600))],
                 new=("thistle", "bramble"),
                 far=[(lambda x: 436 + 3 * math.sin(x / 60), (150, 760)), (lambda x: 394 + 2 * math.sin(x / 40), (220, 680))])
@@ -1104,7 +1104,7 @@ def build_ridge():
     # who lives here: the new animals of the snow, out from the start, and a few old friends
     grounds = [(lambda x: 470 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 506 + 3 * math.sin(x / 40), (400, 620)),
                (lambda x: 490 + 2 * math.sin(x / 60), (640, 820))]
-    additions(sc, rng, [("cairn", 580, 486), ("lanterns", 660, 300, 900, 330)])
+    additions(sc, rng, [("cairn", 580, 486), ])
     second_wave(sc, rng, (120, 80, 700, 200), grounds, fliers=("finch", "wisp"), walkers=("fox", "goat", "newt"),
                 out=("fox", "goat", "finch"),
                 far=[(lambda x: 372 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 378 + 3 * math.sin(x / 45), (660, 860)), (lambda x: 440 + 2 * math.sin(x / 40), (300, 640))])
@@ -1230,7 +1230,7 @@ def build_springs():
 
     pool = (lambda x: 418 + 0 * x, (500, 620))  # the big lower pool: the steambara bathes in it
     grounds = [pool, (lambda x: 500 + 3 * math.sin(x / 40), (480, 700)), (lambda x: 512 + 2 * math.sin(x / 50), (160, 340))]
-    additions(sc, rng, [("lanterns", 200, 300, 470, 330), ("lanterns", 520, 320, 760, 300), ("cairn", 860, 500)])
+    additions(sc, rng, [("cairn", 860, 500)])
     second_wave(sc, rng, (120, 80, 700, 180), grounds, fliers=("jelly", "moth"), walkers=("capy", "gecko", "beetle"),
                 out=("capy", "gecko", "jelly"),
                 far=[(lambda x: 404 + 2 * math.sin(x / 40), (20, 140)), (lambda x: 452 + 2 * math.sin(x / 50), (300, 700))])
@@ -1341,7 +1341,7 @@ def build_tower():
     sc.lamp(sx, sy - 24, 90, GLOW["amber"], 80)
     glowmoss(sc, art.plane(), 100, 500, 60, 14)
 
-    additions(sc, rng, [("lanterns", 300, 330, 440, 360), ("lanterns", 520, 360, 680, 330), ("ring", 860, 500)])
+    additions(sc, rng, [("ring", 860, 500)])
     second_wave(sc, rng, (100, 80, 760, 180), [(lambda x: 500 + 3 * math.sin(x / 50), (300, 640)),
                                               (lambda x: 516 + 2 * math.sin(x / 40), (700, 900))],
                 far=[(lambda x: 412 + 2 * math.sin(x / 40), (40, 360)), (lambda x: 414 + 2 * math.sin(x / 45), (820, 940))])

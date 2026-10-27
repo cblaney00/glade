@@ -664,12 +664,11 @@ class Walker(Clock):
             pygame.draw.rect(s, mix(self.body, INK, 0.3), (fx, y - 2 * z - lift, 3 * z, 2 * z))
         if big:
             y -= 4 * z
-            for side in (-1, 1):  # little root arms, forked at the ends
-                ax, ay = x + side * 3 * z, y - 6 * z
-                hx, hy = ax + side * 4 * z, ay + 3 * z + math.sin(t * 3 + side) * z
-                pygame.draw.line(s, mix(self.body, INK, 0.25), (ax, ay), (hx, hy))
-                pygame.draw.line(s, mix(self.body, INK, 0.25), (hx, hy), (hx + side * z, hy + 1.5 * z))
-                pygame.draw.line(s, mix(self.body, INK, 0.25), (hx, hy), (hx + side * 1.5 * z, hy))
+            for side in (-1, 1):  # tassels of spores hanging from under the cap (no arms: his rule)
+                ax, ay = x + side * 7 * z, y - 9 * z
+                sway = math.sin(t * 2 + side) * z
+                pygame.draw.line(s, mix(self.color, INK, 0.3), (ax, ay), (ax + sway, ay + 5 * z))
+                pygame.draw.circle(s, mix(self.color, (255, 255, 255), 0.3), (round(ax + sway), round(ay + 5.5 * z)), max(1, round(z)))
         pygame.draw.rect(s, self.body, (x - 3 * z, y - 10 * z, 6 * z, 9 * z), border_radius=max(1, round(2 * z)))
         cap = [(x - 9 * z + tilt, y - 9 * z), (x + 9 * z + tilt, y - 9 * z)]
         pygame.draw.ellipse(s, mix(self.color, INK, 0.35), (cap[0][0], y - 17 * z + 1, 18 * z, 10 * z))
@@ -1308,7 +1307,7 @@ class Walker(Clock):
         now = t
         dt = max(0.0, min(0.1, now - getattr(self, "_rt", now)))
         self._rt = now
-        want = 1.0 if self.wait > 0 else 0.0
+        want = 0.0  # it stays on all fours (his rule, 2026-10-27: no creature stands like a person)
         self.rear = getattr(self, "rear", want)
         self.rear += (want - self.rear) * min(1.0, dt * 2.5)
         r = self.rear * self.rear * (3 - 2 * self.rear)

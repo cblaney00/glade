@@ -254,8 +254,8 @@ def glow_bramble(self, s, t, st, k):
 
 
 def grow_rune(self, s, t, st):
-    """Runestand: a second stone set across its head like a lintel; Runewarden: two stone hands
-    that float beside it, carved like its face."""
+    """Runestand: a second stone set across its head like a lintel; Runewarden: two small standing
+    stones that circle it slowly, runes lit on them too."""
     z, x, y, f = self.size, self.x, self.y, self.facing
     rock, dark = self.body, mix(self.body, INK, 0.4)
     lintel = pygame.Rect(0, 0, round(14 * z), round(3.4 * z))
@@ -265,11 +265,12 @@ def grow_rune(self, s, t, st):
     pygame.draw.line(s, mix(rock, WHITE, 0.3), lintel.topleft, lintel.topright)
     if st > 2:
         for side in (-1, 1):
-            bob = math.sin(t * 1.5 + side) * 1.5 * z
-            hand = pygame.Rect(0, 0, round(5 * z), round(7 * z))
-            hand.center = (round(x + side * 11 * z), round(y - 8 * z + bob))
-            pygame.draw.rect(s, dark, hand.move(0, 1), border_radius=round(z))
-            pygame.draw.rect(s, rock, hand, border_radius=round(z))
+            a = t * 0.6 + (0 if side < 0 else math.pi)
+            cx, cy = x + math.cos(a) * 11 * z, y - 3 * z + math.sin(a) * 2 * z
+            stone = [(cx - 2 * z, cy), (cx + 2 * z, cy), (cx + 1.6 * z, cy - 6 * z), (cx, cy - 7.5 * z), (cx - 1.6 * z, cy - 6 * z)]
+            pygame.draw.polygon(s, dark, [(px, py + 1) for px, py in stone])
+            pygame.draw.polygon(s, rock, stone)
+            self.__dict__.setdefault("_orbit", {})[side] = (cx, cy - 3.5 * z)
 
 
 def glow_rune(self, s, t, st, k):
@@ -279,7 +280,7 @@ def glow_rune(self, s, t, st, k):
         s.set_at((round(x + j * 4 * z), round(y - 15.6 * z)), mix(self.color, WHITE, 0.3 * b))
     if st > 2:
         for side in (-1, 1):
-            hx, hy = x + side * 11 * z, y - 8 * z + math.sin(t * 1.5 + side) * 1.5 * z
+            hx, hy = getattr(self, "_orbit", {}).get(side, (x, y))
             glow(s, hx, hy, int(6 * z), self.color, q(60 * b + 60 * k))
             pygame.draw.line(s, self.color, (hx, hy - 2 * z), (hx, hy + 2 * z))
 

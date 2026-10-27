@@ -94,10 +94,15 @@ def gradient(surf, rect, stops, steps=6):
         surf.blit(strip, (x, y0), (0, 0, min(4, x0 + w - x), h))
 
 
+LIFT = 0.2   # how far the darkest ambient light is raised toward the brightest
+THIN = 0.75  # how much of the night mist is kept: less of it, more colour contrast
+
+
 def mist_veil(pal, strength, low=0.0, size=(W, H)):
     """A sheet of mist to lay over everything drawn so far. `low` thickens it near
     the ground, like haze pooling in a valley."""
     w, h = size
+    strength, low = strength * THIN, low * THIN
     s = pygame.Surface(size, pygame.SRCALPHA)
     for y in range(h):
         a = strength + low * max(0.0, (y - h * 0.35) / (h * 0.65)) ** 1.5
@@ -186,6 +191,7 @@ class Lighting:
     def init_light(self, pal, size=(W, H), lower=False):
         w, h = size
         top, bottom = pal["ambient"]
+        bottom = mix(bottom, top, LIFT)  # (his ask, 2026-10-27: a little brighter, easier to see)
         self.light = solid((W, H))
         if lower:  # the ground in front of you: the darkest ambient, a little brighter far away
             gradient(self.light, (0, 0, w, h), [mix(bottom, top, 0.15), scale(bottom, 0.85)], steps=8)

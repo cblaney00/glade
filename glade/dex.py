@@ -84,7 +84,7 @@ def specimen(species):
         return ("perch", "owlet" if species == "Moonhoot" else "squid")
     for kind, spec in FLIERS.items():
         if spec["species"] == species:
-            return Flier(rng, (cx + (18 if species in LEGENDS_ else 0), cy - 18, 0, 0), kind, 0.8 if species in LEGENDS_ else 1.4)
+            return Flier(rng, (cx, cy - (16 if species in LEGENDS_ else 14), 0, 0), kind, 1.5 if species in LEGENDS_ else 1.4)
     for kind, spec in WALKERS.items():
         if spec["species"] == species:
             return Walker(rng, lambda x: cy + 6, (cx, cx), kind, 1.3 if species in LEGENDS_ else 1.4)
@@ -137,6 +137,54 @@ def picture(species):
             paint(pic, thing, 1.0 + i * 0.1)
         _still[species] = pic
     return _still[species]
+
+
+PARTS = ("ling", "let", "wing", "fly", "flit", "hop", "shell", "mane", "tail", "curl", "colossus", "sovereign",
+         "monarch", "citadel", "fortress", "sentinel", "caravan", "warden", "cascade", "blossom", "glimmer",
+         "beacon", "regal", "grove", "throne", "spire", "shroud", "wraith", "bastion", "quake", "drill", "drift",
+         "glide", "plume", "stride", "runner", "marsh", "ooze", "drape", "mire", "crest", "grip", "wyrm", "paw",
+         "horn", "fluff", "cloak", "lume", "belly", "bloom", "snare", "regent", "crawl", "lantern", "shard",
+         "slink", "thread", "pede", "polis", "scale", "glow", "deep", "trill", "chirp", "bara", "soak", "wobble",
+         "bell", "stand", "gloop", "dredge", "dome", "nib", "clad", "racle", "forge", "vast", "core", "fang",
+         "fist", "loom", "whirl", "cyclone", "haven", "prim", "torch", "wick", "kin", "tide", "bound", "cliff",
+         "rest", "lord", "back", "grand", "brute", "ink", "mask", "king", "ward", "hard", "blade", "claw",
+         "strike", "master", "guard", "halo", "heart", "mmer", "streak", "tempest", "gaze", "seer", "pip",
+         "delve", "burrow", "lotl", "shade", "prance", "cling")
+
+
+def family_cut(name):
+    """Where a name's family start ends: Glintshell, Glintdome and Glintcitadel share "Glint"."""
+    num = SPECIES.get(name, {}).get("num")
+    if num is None:
+        return None
+    first = (num - 1) // 3 * 3 + 1
+    kin = [n for n, d in SPECIES.items() if first <= d["num"] < first + 3 and n != name]
+    best = 0
+    for other in kin:
+        k = 0
+        while k < min(len(name), len(other)) and name[k].lower() == other[k].lower():
+            k += 1
+        best = max(best, k)
+    return best if 3 <= best <= len(name) - 3 else None
+
+
+def fit_name(font, name, width):
+    """A name on one line, or split into two with a hyphen at a natural break: before a known
+    word inside it (Quartz-colossus), else between a vowel and a consonant near the middle."""
+    if font.size(name)[0] <= width:
+        return [name]
+    low = name.lower()
+    parts = sorted((p for p in PARTS if low.endswith(p) and len(low) - len(p) >= 3), key=len, reverse=True)
+    cuts = [len(low) - len(p) for p in parts]
+    cuts += [k for k in (family_cut(name),) if k and k >= 4]
+    vowels = "aeiouy"
+    cuts += sorted((k for k in range(3, len(name) - 2) if low[k - 1] in vowels and low[k] not in vowels),
+                   key=lambda k: abs(k - len(name) / 2))
+    for k in cuts + sorted(range(2, len(name) - 1), key=lambda k: abs(k - len(name) / 2)):
+        a, b = name[:k] + "-", name[k:]
+        if font.size(a)[0] <= width and font.size(b)[0] <= width:
+            return [a, b]
+    return [name[: len(name) // 2] + "-", name[len(name) // 2:]]
 
 
 def by_number():
@@ -244,8 +292,7 @@ class Dex:
                 s.blit(pygame.transform.scale(pic, (w, h)), (cell.x + 6, cell.y + 3))
             self.text(s, f"#{num:03}", cell.x + 4, cell.y + 3, WHITE if on else DIM)
             if name:
-                words = name.split()  # "Tree Squid" goes on two lines
-                lines = [name] if self.font.size(name)[0] <= cell.w - 4 else words  # long names: two lines
+                lines = fit_name(self.font, name, cell.w - 4)  # long names: two lines (his note: they didn't fit)
                 for j, line in enumerate(lines):
                     self.text(s, line, cell.centerx, cell.bottom - 14 - 12 * (len(lines) - 1 - j),
                               WHITE if hot or on else TEXT, center=True)

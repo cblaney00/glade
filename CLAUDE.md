@@ -237,3 +237,20 @@ started at login under Hyprland. Changing the installed copy is a config change 
 - **Stat spread** (his ask: too many finals at exactly 530): `battle._retotal` sets every final
   stage's total from 465 to 580 (by name, deterministic; Prismwyrm and Shardsovereign 600) and middles
   380-440, keeping each line's shape. Starters stay 530, legendaries 600/620. Keep new species varied too.
+- **Redesign, no humanoids** (2026-10-27, his rules): no creature may be humanoid (no
+  upright-body-with-arms). `wave5.py` now draws each of its 38 lines with its own body — most
+  aren't animals at all (a rolling bud, a candle stub, a paper screen, a water-wheel, skipping
+  stones, a gong on a stand, two sparring halves, a moving dark pool...). Pebblefist, Kickbud and
+  Twinklet lines redrawn (wave4.py), Sporestride's arms became spore tassels, Runewarden's floating
+  hands orbiting stones, and Smoldershell/Pyreclad never rear up. **Think outside the box for new
+  designs; never reuse one body for several lines.**
+- **Legendaries** (his rules): never evolve; base total 570-700; the stronger, the rarer
+  (`storm.rare`: 12% at 570 down to 1.5% at 700); **only two may ever be 700** ("main"/cover
+  legendaries) unless he asks for another. Moonward 700 (one of the two), Elderglow 640. Don't
+  borrow from Pokémon's cover legendaries (no antlered deer, no dark bird, no sky-serpent).
+  Elderglow is a drifting wreath of roots with a seed of light; Moonward a crescent of night-glass
+  with one eye and seven moons in their phases. He counts 525+ as a strong total.
+- Dex names split onto two lines at a natural break (`dex.fit_name`); 27% fewer animals out at once
+  (`storm.FEWER`); scenes a little brighter (`art.LIFT`, `art.THIN`); the floating lantern strings
+  are gone; the open stats card is shown again in an overlay-layer window (`wayland.CardFront`) so it
+  sits in front of windows, the bar and notifications.

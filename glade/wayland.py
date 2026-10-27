@@ -53,6 +53,7 @@ class Surface:
         GtkLayerShell.set_namespace(win, "glade")
         GtkLayerShell.set_layer(win, GtkLayerShell.Layer.BOTTOM)
         GtkLayerShell.set_monitor(win, monitor)
+        self.monitor = monitor
         for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
                      GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
             GtkLayerShell.set_anchor(win, edge, True)
@@ -166,6 +167,87 @@ class Surface:
         cr.get_source().set_filter(cairo.FILTER_NEAREST)
         cr.paint()
         return True
+
+
+class CardFront:
+    """The stats card, in front of everything (his ask, 2026-10-27): the glade lives on the
+    compositor's bottom layer, under the windows, the bar and the notifications, so while a card
+    is open its patch of the picture is shown again in a small window on the overlay layer, right
+    where it is. Clicks and pointing there are handed to the glade as if they were on the glade."""
+
+    def __init__(self, glade, surfaces):
+        self.glade, self.surfaces = glade, surfaces
+        self.win, self.surface, self.box = None, None, None
+
+    def make(self, surface):
+        win = Gtk.Window()
+        GtkLayerShell.init_for_window(win)
+        GtkLayerShell.set_namespace(win, "glade-card")
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
+        GtkLayerShell.set_monitor(win, surface.monitor)
+        GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
+        GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.LEFT, True)
+        GtkLayerShell.set_exclusive_zone(win, -1)
+        GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
+        area = Gtk.DrawingArea()
+        area.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
+                        | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK)
+        area.connect("draw", self.draw)
+        for ev, fn in (("motion-notify-event", surface.motion), ("enter-notify-event", surface.motion),
+                       ("button-press-event", surface.press), ("button-release-event", surface.release)):
+            area.connect(ev, lambda a, e, fn=fn: fn(a, Shifted(e, self.box)))
+        win.add(area)
+        self.win, self.area, self.surface = win, area, surface
+
+    def update(self):
+        card = self.glade.card
+        surface = next((s for s in self.surfaces if card is not None and s.view is card.view), None)
+        rect = getattr(card, "rect", None) if card is not None else None
+        if surface is None or rect is None:
+            if self.win is not None and self.win.get_visible():
+                self.win.hide()
+            return
+        if self.win is None or self.surface is not surface:
+            if self.win is not None:
+                self.win.destroy()
+            self.make(surface)
+        v = surface.view
+        sx, sy = v.rect.w / v.w, v.rect.h / v.h
+        r = pygame.Rect(rect).inflate(4, 4).clip(pygame.Rect(0, 0, v.w, v.h))
+        box = pygame.Rect(round(v.rect.x + r.x * sx), round(v.rect.y + r.y * sy), round(r.w * sx), round(r.h * sy))
+        if box != self.box:
+            self.box, self.src = box, r
+            GtkLayerShell.set_margin(self.win, GtkLayerShell.Edge.LEFT, box.x)
+            GtkLayerShell.set_margin(self.win, GtkLayerShell.Edge.TOP, box.y)
+            self.area.set_size_request(box.w, box.h)
+            self.win.resize(box.w, box.h)
+        self.src = r
+        if not self.win.get_visible():
+            self.win.show_all()
+            self.view = v
+            Surface.set_cursor(self)  # the same little pixel pointer as on the glade
+        self.area.queue_draw()
+
+    def draw(self, area, cr):
+        if self.surface is None or self.box is None:
+            return True
+        v, r = self.surface.view, self.src
+        piece = v.canvas.subsurface(r)
+        data = bytearray(pygame.image.tobytes(piece, "BGRA"))
+        img = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_RGB24, r.w, r.h, r.w * 4)
+        cr.scale(self.box.w / r.w, self.box.h / r.h)
+        cr.set_source_surface(img, 0, 0)
+        cr.get_source().set_filter(cairo.FILTER_NEAREST)
+        cr.paint()
+        return True
+
+
+class Shifted:
+    """An event from the card's window, moved into the coordinates of the glade's own window."""
+
+    def __init__(self, event, box):
+        self.button, self.type = getattr(event, "button", 0), event.type
+        self.x, self.y = event.x + (box.x if box else 0), event.y + (box.y if box else 0)
 
 
 class Keyboard:
@@ -325,6 +407,7 @@ def run():
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
 
+    front = CardFront(glade, surfaces)  # the stats card, shown in front of everything
     last = [time.monotonic()]
 
     def tick():
@@ -333,6 +416,7 @@ def run():
         glade.render(dt)
         for s in surfaces:
             s.area.queue_draw()
+        front.update()
         return True
 
     GLib.timeout_add(1000 // FPS, tick)

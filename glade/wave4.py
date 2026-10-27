@@ -228,31 +228,35 @@ def glow_shard(self, s, t, st, k):
 
 
 def draw_pebble(self, s, t):
-    """Pebblefist: a little stone fellow with big round fists. Cobblefist: broad shoulders, fists of
-    cobbles. Quarryfist: a hulking stone brawler, a mossy brow and fists like boulders."""
+    """Pebblefist: a round pebble on a coiled spring of moss; it punches by springing at things.
+    Cobblefist: a heavy cobble on a thicker coil, a knuckled ridge along its front. Quarryfist: a
+    great boulder bouncing on a coil of roots, its front worn flat from hammering."""
     z, x, y, f, st = self.size, self.x, self.y, self.facing, st_of(self)
-    legs(self, s, (x - 2.5 * z, x + 2.5 * z), 4, 2)
-    w = 5 + st
-    shaded(s, self.body, (x - w * z, y - 13 * z, 2 * w * z, 10 * z), ellipse=False)
-    pygame.draw.line(s, mix(self.body, WHITE, 0.25), (x - w * z + 1, y - 13 * z), (x + w * z - 1, y - 13 * z))
-    for j in range(2):
-        pygame.draw.line(s, mix(self.body, INK, 0.25), (x - w * z + 2 * z, y - (10 - j * 3) * z), (x + w * z - 2 * z, y - (9 - j * 3) * z))
-    jab = max(0.0, math.sin(t * 2 + self.phase)) ** 8 * 3 * z
-    r = (2.4 + st * 0.8) * z
-    for side, reach in ((-1, 0), (1, jab)):
-        fx = x + f * ((w + 2) * z + reach) if side > 0 else x - f * (w + 1.5) * z
-        pygame.draw.circle(s, mix(self.body, INK, 0.3), (round(fx), round(y - 8 * z + 1)), round(r))
-        pygame.draw.circle(s, mix(self.body, WHITE, 0.1), (round(fx), round(y - 8 * z)), round(r))
-    if st > 2:
-        pygame.draw.line(s, (100, 200, 150), (x - w * z, y - 13.5 * z), (x + w * z, y - 13.5 * z), max(2, round(1.5 * z)))
-    self.eyes(s, x + f * 1.5 * z - 1.5 * z, y - 10.5 * z, 3 * z)
-
+    jab = max(0.0, math.sin(t * 2 + self.phase)) ** 6
+    coil_h = (5 + st) * z * (1 + 0.5 * jab)
+    for i in range(6):  # the coil
+        cy = y - i * coil_h / 6
+        w = (2 + st * 0.6) * z
+        pygame.draw.ellipse(s, (90, 170, 120) if st < 3 else (130, 100, 90), (x - w + f * jab * i * 0.3 * z, cy - z, 2 * w, 2 * z), 1)
+    r = (4 + st * 1.6) * z
+    cx, cy = x + f * jab * 3 * z, y - coil_h - r
+    pygame.draw.circle(s, mix(self.body, INK, 0.3), (round(cx), round(cy + 1)), round(r))
+    pygame.draw.circle(s, self.body, (round(cx), round(cy)), round(r))
+    pygame.draw.circle(s, mix(self.body, WHITE, 0.25), (round(cx - r * 0.35), round(cy - r * 0.35)), max(1, round(r * 0.3)))
+    if st >= 2:  # knuckles of stone along its front
+        for j in range(3 + st - 2):
+            a = -0.6 + j * 0.4
+            pygame.draw.circle(s, mix(self.body, INK, 0.15), (round(cx + f * math.cos(a) * r), round(cy + math.sin(a) * r)), max(1, round((1 + 0.4 * st) * z)))
+    if st == 3:
+        pygame.draw.line(s, (100, 200, 150), (cx - r * 0.7, cy - r * 0.7), (cx + r * 0.5, cy - r * 0.85), max(2, round(1.5 * z)))
+    self.eyes(s, cx - 1.5 * z + f * 0.5 * z, cy - z, 3 * z)
+    self._fist = (cx + f * r, cy)
 
 def glow_pebble(self, s, t, st, k):
-    if k > 0:
-        z = self.size
-        glow(s, self.x + self.facing * (7 + st) * z, self.y - 8 * z, int(9 * z), self.color, q(110 * k))
-
+    jab = max(0.0, math.sin(t * 2 + self.phase)) ** 6
+    if jab > 0.5 or k > 0:
+        fx, fy = getattr(self, "_fist", (self.x, self.y))
+        glow(s, fx, fy, int((5 + 2 * st) * self.size), self.color, q(110 * max(jab, k)))
 
 def draw_hum(self, s, t):
     """Humlet: a floating crystal tuning fork, humming. Humchime: three prongs and two chimes.
@@ -320,22 +324,20 @@ def glow_umbra(self, s, t, st, k):
 # --- the Starfall Meadow -------------------------------------------------------------------
 
 def draw_twinkle(self, s, t):
-    """Twinklet: a little five-pointed star bouncing along. Twinkstride: up on legs, a ring of light
-    round it. Celestide: a tall star-being robed in night sky, a constellation on its robe."""
+    """Twinklet: a little five-pointed star that bounces along. Twinkstride: a bigger star on a
+    comet's tail that it bounces on like a spring. Celestide: a great star wreathed in a ring of
+    light, a net of constellation lines strung between its points."""
     z, x, y, f, st = self.size, self.x, self.y, self.facing, st_of(self)
     moving = self.wait <= 0
-    hop = abs(math.sin(self.step * 1.2)) * 3 * z if moving else abs(math.sin(t * 2 + self.phase)) * 0.8 * z
-    if st == 1:
-        cy = y - 6 * z - hop
-    else:
-        cy = y - (9 + 4 * (st - 2)) * z - hop * 0.4
-        legs(self, s, (x - 2 * z, x + 2 * z), (y - cy - 3 * z) / z, 1.5)
-    if st > 2:  # a robe of night sky
-        pygame.draw.polygon(s, (50, 50, 110), [(x - 3 * z, cy), (x + 3 * z, cy), (x + 6 * z, y - z), (x - 6 * z, y - z)])
-        for px, py in ((-2, 4), (1, 7), (3, 9), (-3, 10)):
-            s.set_at((round(x + px * z), round(cy + py * z)), (255, 250, 220))
-    r1, r2 = (6 + (st - 1) * 1.5) * z, (2.6 + (st - 1) * 0.6) * z
-    rot = math.sin(t * 1.5 + self.phase) * 0.15
+    bounce = abs(math.sin(self.step * 1.2)) if moving else abs(math.sin(t * 2 + self.phase)) * 0.3
+    r1, r2 = (6 + (st - 1) * 2) * z, (2.6 + (st - 1) * 0.8) * z
+    lift = (bounce * 3 + (st - 1) * 3) * z
+    cy = y - r1 - lift
+    if st >= 2:  # the comet-tail it springs on, curling under it to the ground
+        pts = [(x - f * (i * 1.6) * z, cy + r2 + i * (y - cy - r2) / 7 + math.sin(t * 4 + i) * 0.4 * z) for i in range(8)]
+        for i, (px, py) in enumerate(pts):
+            pygame.draw.circle(s, mix(self.color, (60, 50, 120), i / 8), (round(px), round(py)), max(1, round((2.2 - i * 0.2) * z)))
+    rot = math.sin(t * 1.5 + self.phase) * 0.15 + (t * 0.2 if st == 3 else 0)
     pts = []
     for i in range(10):
         a = -math.pi / 2 + i * math.pi / 5 + rot
@@ -343,17 +345,21 @@ def draw_twinkle(self, s, t):
         pts.append((x + math.cos(a) * r, cy + math.sin(a) * r))
     pygame.draw.polygon(s, mix(self.body, INK, 0.3), [(a, b + 1) for a, b in pts])
     pygame.draw.polygon(s, self.body, pts)
+    if st == 3:  # a constellation net between its points
+        for i in range(0, 10, 2):
+            ax, ay = pts[i]
+            bx, by = pts[(i + 4) % 10]
+            pygame.draw.line(s, mix(self.body, (60, 60, 120), 0.4), (ax, ay), (bx, by))
     self.eyes(s, x - 1.5 * z + f * 0.5 * z, cy, 3 * z)
     self._star = (x, cy)
-
 
 def glow_twinkle(self, s, t, st, k):
     z = self.size
     x, cy = getattr(self, "_star", (self.x, self.y - 6 * z))
     b = 0.6 + 0.4 * math.sin(t * 2.5 + self.phase)
     glow(s, x, cy, int((8 + 3 * st) * z), self.color, q(50 + 40 * b + 60 * k))
-    if st > 1:
-        pygame.draw.ellipse(s, mix(self.color, WHITE, 0.5), (x - 9 * z, cy - 1.5 * z, 18 * z, 3 * z), 1)
+    if st > 2:
+        pygame.draw.ellipse(s, mix(self.color, WHITE, 0.5), (x - 14 * z, cy - 2 * z, 28 * z, 4 * z), 1)
 
 
 def draw_tuft(self, s, t):
@@ -386,43 +392,47 @@ def glow_tuft(self, s, t, st, k):
 
 
 def draw_kick(self, s, t):
-    """Kickbud: a sprout up on two springy legs, a bud for a head, kicking now and then. Kickbloom:
-    the bud open into a flower. Kickgrove: a lean bark-armoured tree-fighter with a canopy crown."""
+    """Kickbud: a sprout on a springy coiled stem, rooted in a little ball of earth that hops; it
+    whips its bud out sideways like a kick. Kickbloom: the bud opened into a flower on a longer
+    whip of a stem. Kickgrove: a bramble of three whip-stems from one root-ball, a flower on each,
+    lashing out in turn."""
     z, x, y, f, st = self.size, self.x, self.y, self.facing, st_of(self)
-    kick = max(0.0, math.sin(t * 1.5 + self.phase)) ** 10
-    hip = y - (6 + 2 * st) * z
-    stem = mix(self.body, INK, 0.2) if st < 3 else (150, 104, 120)
-    pygame.draw.line(s, stem, (x - z, hip), (x - 2 * z, y), max(1, round(z * 1.2)))
-    pygame.draw.line(s, stem, (x + z, hip), (x + f * (2 + 8 * kick) * z, y - kick * 6 * z), max(1, round(z * 1.2)))
-    top = hip - (6 + 2 * st) * z
-    pygame.draw.line(s, stem, (x, hip), (x, top), max(2, round(z * (1.5 + st * 0.4))))
-    for side in (-1, 1):  # leaf arms
-        pygame.draw.ellipse(s, self.body, (x + side * 3 * z - 2 * z, top + 3 * z - side * f * z, 4 * z, 2.4 * z))
-    if st == 1:
-        shaded(s, self.body, (x - 3 * z, top - 5 * z, 6 * z, 6 * z))
-        pygame.draw.polygon(s, self.color, [(x - 1.5 * z, top - 4 * z), (x + 1.5 * z, top - 4 * z), (x, top - 7 * z)])
-        self.eyes(s, x - 1.5 * z + f * 0.5 * z, top - 2 * z, 3 * z)
-    elif st == 2:
-        for j in range(5):
-            a = j / 5 * math.tau + t * 0.3
-            pygame.draw.circle(s, self.color, (round(x + math.cos(a) * 3 * z), round(top - 3 * z + math.sin(a) * 3 * z)), max(1, round(2 * z)))
-        pygame.draw.circle(s, (255, 236, 140), (round(x), round(top - 3 * z)), max(1, round(1.6 * z)))
-    else:
-        for j in range(7):
-            a = math.pi + j / 6 * math.pi
-            pygame.draw.circle(s, (90, 170, 120) if j % 2 else (120, 200, 140), (round(x + math.cos(a) * 6 * z), round(top - 3 * z + math.sin(a) * 4 * z)), max(2, round(3 * z)))
-        pygame.draw.circle(s, (130, 210, 150), (round(x), round(top - 6 * z)), max(2, round(3.5 * z)))
-        for j in range(3):
-            pygame.draw.circle(s, self.color, (round(x + (j - 1) * 4 * z), round(top - (4 + j % 2 * 3) * z)), max(1, round(z)))
-        self.eyes(s, x - 1.5 * z + f * 0.5 * z, top + 1.5 * z, 3 * z)
-
+    hopy = y - abs(math.sin(self.step * 1.4)) * 2 * z if self.wait <= 0 else y
+    pygame.draw.circle(s, (130, 96, 80), (round(x), round(hopy - 2.5 * z)), max(2, round((2.6 + st * 0.6) * z)))
+    for j in range(3):
+        pygame.draw.line(s, (110, 80, 70), (x + (j - 1) * z, hopy), (x + (j - 1) * 2 * z, hopy + z))
+    stems = 1 if st < 3 else 3
+    self._heads = []
+    for k in range(stems):
+        kick = max(0.0, math.sin(t * 1.5 + self.phase + k * 2.1)) ** 8
+        base = (x, hopy - 4 * z)
+        ln = (8 + 3 * st) * z
+        lean = (k - (stems - 1) / 2) * 0.5
+        pts = []
+        for i in range(8):
+            g = i / 7
+            px = base[0] + (lean + f * kick * 1.2) * g * ln + math.sin(g * 6 + t * 3) * (0.6 + (1 - kick)) * z
+            py = base[1] - g * ln * (1 - kick * 0.6)
+            pts.append((px, py))
+        pygame.draw.lines(s, mix(self.body, INK, 0.2), False, pts, max(1, round(z * 1.2)))
+        for px, py in pts[2:6:2]:
+            pygame.draw.ellipse(s, self.body, (px - 1.6 * z, py - 0.8 * z, 3.2 * z, 1.6 * z))
+        hx, hy = pts[-1]
+        if st == 1:
+            pygame.draw.ellipse(s, self.body, (hx - 2.2 * z, hy - 3 * z, 4.4 * z, 4.4 * z))
+            pygame.draw.polygon(s, self.color, [(hx - z, hy - 2.4 * z), (hx + z, hy - 2.4 * z), (hx, hy - 4.6 * z)])
+        else:
+            for j in range(5):
+                a = j / 5 * math.tau + t * 0.3
+                pygame.draw.circle(s, self.color, (round(hx + math.cos(a) * 2.4 * z), round(hy + math.sin(a) * 2.4 * z)), max(1, round(1.6 * z)))
+            pygame.draw.circle(s, (255, 236, 140), (round(hx), round(hy)), max(1, round(1.3 * z)))
+        self._heads.append((hx, hy, kick))
+    self.eyes(s, x - 1.5 * z, hopy - 3 * z, 3 * z)
 
 def glow_kick(self, s, t, st, k):
-    kick = max(0.0, math.sin(t * 1.5 + self.phase)) ** 10
-    if kick > 0.4 or k > 0:
-        z = self.size
-        glow(s, self.x + self.facing * 10 * z, self.y - 5 * z, int(7 * z), self.color, q(90 * max(kick, k)))
-
+    for hx, hy, kick in getattr(self, "_heads", []):
+        if kick > 0.4 or k > 0:
+            glow(s, hx, hy, int(7 * self.size), self.color, q(90 * max(kick, k)))
 
 def draw_dust(self, s, t):
     """Dustlet: a fluffy puff of dust that rolls along the path. Dustwhirl: a little dust devil,

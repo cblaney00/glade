@@ -49,6 +49,9 @@ def roster(content, everyone=False):
     return out
 
 
+FEWER = 0.27  # the share of a place's animals kept back, so the screen is less crowded
+
+
 def crowd(content, rng, factor=2):
     """Bring out more of a place's animals at the start: `factor` times as many as were out."""
     animals = roster(content)
@@ -59,6 +62,9 @@ def crowd(content, rng, factor=2):
     waiting = [o for o in animals if getattr(o, "gone", False) and not getattr(o, "legendary", False)]
     for o in rng.sample(waiting, min(len(waiting), len(out) * (factor - 1))):
         o.gone = False
+    now = [o for o in animals if not getattr(o, "gone", False)]
+    for o in rng.sample(now, round(len(now) * FEWER)):  # (his ask, 2026-10-27: 27% fewer out at once)
+        o.gone = True
 
 
 def choose(animals, rng, n=None, before=None):
@@ -66,7 +72,7 @@ def choose(animals, rng, n=None, before=None):
     of everyone who lives there, old and new alike."""
     if n is None:
         n = sum(1 for o in animals if not getattr(o, "gone", False))
-    animals = [o for o in animals if not getattr(o, "legendary", False) or rng.random() < RARE]
+    animals = [o for o in animals if not getattr(o, "legendary", False) or rng.random() < rare(o)]
     return rng.sample(animals, min(n, len(animals)))
 
 
@@ -147,7 +153,12 @@ class Shelter:
             pygame.draw.ellipse(s, mix(RAIN, (255, 255, 255), 0.3), (x - 8 - k * 10, y - 3 - k * 3, 16 + k * 20, 6 + k * 6), 1)
 
 
-RARE = 0.08  # a legendary that would come out does only this often (it is one of ~30 that could)
+def rare(o):
+    """How often a legendary that would come out really does (it is one of ~30 that could): the
+    stronger it is, the rarer (his rule): 12% at a 570 total, 1.5% at 700."""
+    from battle import SPECIES
+    total = sum(SPECIES.get(getattr(o, "species", ""), {}).get("base", (630,)))
+    return 0.015 + 0.105 * max(0.0, min(1.0, (700 - total) / 130))
 LIFE = 300.0  # the longest any one animal stays out before it goes away for good
 
 
@@ -224,7 +235,7 @@ class Lifespans:
         waiting = [o for o in roster(content, everyone=True) if getattr(o, "gone", False) and o is not leaving
                    and not kept(o) and not any(m.obj is o for m in self.moves)]
         pick = self.rng.choice(waiting) if waiting else None
-        if pick is not None and getattr(pick, "legendary", False) and self.rng.random() > RARE:
+        if pick is not None and getattr(pick, "legendary", False) and self.rng.random() > rare(pick):
             common = [o for o in waiting if not getattr(o, "legendary", False)]
             pick = self.rng.choice(common) if common else None
         return pick
