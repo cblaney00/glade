@@ -526,10 +526,20 @@ class Critter(Clock):
         else:
             hy = gy - (abs(math.sin(self.step)) * 2.4 if self.wait <= 0 else 0)
         self.pts[0] = [hx, hy]
-        for i in range(1, len(self.pts)):
+        # the tail: it trails behind like a rope, but also eases back into its own shape (a
+        # soft arc rising behind it and curling up at the tip) and sways, so it never stays kinked
+        self.clock = getattr(self, "clock", 0.0) + dt
+        n = len(self.pts)
+        pull = min(1.0, dt * 5)
+        for i in range(1, n):
             px, py = self.pts[i - 1]
             x, y = self.pts[i]
-            y += 36 * dt * (i / len(self.pts))  # tail droops toward the ground
+            f = i / (n - 1)
+            sway = math.sin(self.clock * 2.2 - i * 0.55) * 3.0 * f
+            rx = hx - self.facing * i * self.SEG * 0.92 + sway * 0.4
+            ry = hy - math.sin(f * math.pi * 0.85) * 7 - f * f * 6 + sway
+            x += (rx - x) * pull
+            y += (ry - y) * pull
             dx, dy = x - px, y - py
             d = math.hypot(dx, dy) or 1
             x, y = px + dx / d * self.SEG, py + dy / d * self.SEG

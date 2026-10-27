@@ -125,6 +125,9 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
     Snail→Cairnsnail, Millipede→Luminpede, Koi→Lilyfin, Tree Squid→Canopod (species names only;
     the Python classes keep their old names).
 - **Animals come and go, like wild Pokémon** (2026-10-27, his design): `storm.Lifespans` — every animal out has its own random time (0-5 min, `storm.LIFE`); when it is up it slips away for good and a *new* animal (fresh IVs, `storm.fresh`) emerges in its place, quietly, one at a time. No big event. Places off screen change at once; animals in a battle, evolving or with their card open stay.
+- **Predator vision** (`glade/vision.py`, 2026-10-27): a golden button in the lower screen's top-left; for ~5 s everything turns grey except the animals, which keep their colour inside a golden outline.
+- **Twice as many animals out** (his ask): a second of each second-wave animal per place (`scenes.second_wave`, `lower.py`), and `storm.crowd` doubles who is out at the start.
+- **Natures and the summary** (2026-10-27): every creature has a Gen 3 nature (`team.NATURES`, `nature_of`; EVs are 84 each, `team.EVS`); stats via `battle.calc_stats`; the boxes' right panel is a full summary (base/IV/EV/stat table, moves, nature, IV web). Battles: your panel top-left, the foe's top-right, fighters face each other (`Fighter.face`).
 - **Roaming** (2026-10-27): walkers wander between every stretch of ground in their place
   (`Walker.roam`, `scenes.MEADOW` + each place's grounds; a mole digs a new hole where it stops),
   ground slugs glide on to new spots (`Slug.wander`); climbers, fliers and fish keep to their

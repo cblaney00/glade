@@ -17,13 +17,14 @@ import pygame
 
 import art
 from apex import OFFSET, Hunt, Listener
-from battle import Arena, Card, animal_under
+from battle import Arena, Card, Perched, animal_under
 from dex import Dex
 from starter import StarterBoard
 from storage import Storage
 import storm
 from team import Collection, ivs_of, nature_of
 from tower import Run, TowerBoard
+import vision
 from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
@@ -587,6 +588,7 @@ class Glade:
         self.run = None    # a go at the Battle Tower
         self.storm = None  # a thunderstorm (storm.py): the animals take turns
         self.storm_scratch = art.solid()
+        self.vision = None  # Predator vision (vision.py), for a few seconds after its button
         self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
 
@@ -667,6 +669,12 @@ class Glade:
 
     def click(self, t):
         if self.fade_to:
+            return
+        view = self.map_view()  # the Predator vision button
+        m = view.mouse() if view is not None else None
+        if m and vision.button_rect(view).collidepoint(m) and self.board is None and self.dex is None:
+            if self.vision is None:
+                self.vision = vision.Vision(t)
             return
         view = self.storm_view()
         if view is not None:  # the Thunderstorm button, while battle stats are on screen
@@ -786,7 +794,8 @@ class Glade:
                 choices = [("Open", lambda t, v=view, c=content, s=sp: self.activate(v, c, s, t)),
                            (gone, lambda t, sq=sq: colony.remove(sq)),
                            ("Battle stats", lambda t, v=view, m=m, sq=sq: self.show_card(
-                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Canopod", t))]
+                               v, m, "Moon Owlet" if getattr(sq, "kind", "squid") == "owlet" else "Canopod", t,
+                               Perched(sq)))]
             elif sp is None:
                 low = self.lower() if self.bottom else None
                 found = animal_under(self.here, low, m, view is self.bottom, t)
@@ -830,7 +839,7 @@ class Glade:
             body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
             at = body.center
         self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
-                         fight=animal is not None and self.arena is None, avoid=body)
+                         fight=animal is not None and self.arena is None and not isinstance(animal, Perched), avoid=body)
         self.card.locked = not Collection().members()
 
     def release(self, t):
@@ -995,6 +1004,12 @@ class Glade:
                 self.hunt.draw(view.canvas, view is self.bottom, t)
             if self.storm is not None:
                 self.storm.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
+            if self.vision is not None:
+                if self.vision.done(t) or self.fade_to:
+                    self.vision = None
+                else:
+                    self.vision.draw(view.canvas, view.w, view.h, self.here, self.lower() if self.bottom else None,
+                                     view is self.bottom, t)
             self.lifespans.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             self.overlay(view, content, t)
             if self.arena is not None:
@@ -1013,6 +1028,8 @@ class Glade:
                 self.evolution.draw(view.canvas, view is self.bottom, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
+            if view is self.map_view() and self.board is None and self.dex is None:
+                vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
