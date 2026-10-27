@@ -137,6 +137,19 @@ def restore(address):
 
 def focus(address):
     dispatch("submap reset", f"focuswindow address:{address}", f"alterzorder top,address:{address}")
+    lower_glade()
+
+
+def lower_glade():
+    """Tell the glade a window was picked from the dock: its Forest Dex, stats card or board, if one
+    is in front, steps back behind the windows (his ask, 2026-10-27; wayland.Front)."""
+    pipe = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "glade.ctl")
+    try:
+        fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK)
+        os.write(fd, b"lower\n")
+        os.close(fd)
+    except OSError:
+        pass
 
 
 def watch():

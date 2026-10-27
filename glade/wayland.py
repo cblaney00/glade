@@ -139,6 +139,7 @@ class Surface:
     def press(self, area, event):
         if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
             self.view.pointer = (event.x, event.y)
+            self.glade.front_raised = True  # its Dex / card / board come forward again
             if not self.glade.panel.hovered(self.view.mouse()):  # (the Claude panel wants plain typing)
                 KEYBOARD.clicked()
             self.glade.click(time.monotonic() - self.glade.t0)
@@ -180,6 +181,7 @@ class Front:
         """`panel(glade)`: (the view it is on, its rect on the canvas), or None when it is closed."""
         self.glade, self.surfaces, self.panel = glade, surfaces, panel
         self.win, self.surface, self.box = None, None, None
+        self.was_open, self.pressing = False, False
 
     def make(self, surface):
         win = Gtk.Window()
@@ -195,14 +197,20 @@ class Front:
         area.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
                         | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK)
         area.connect("draw", self.draw)
-        for ev, fn in (("motion-notify-event", surface.motion), ("enter-notify-event", surface.motion),
-                       ("button-press-event", surface.press), ("button-release-event", surface.release)):
-            area.connect(ev, lambda a, e, fn=fn: fn(a, Shifted(e, self.box)))
+        area.connect("motion-notify-event", self.motion)
+        area.connect("enter-notify-event", self.motion)
+        area.connect("button-press-event", self.press)
+        area.connect("button-release-event", self.release)
         win.add(area)
         self.win, self.area, self.surface = win, area, surface
 
     def update(self):
         found = self.panel(self.glade)
+        if found and not self.was_open:  # it has just opened: bring it forward
+            self.glade.front_raised = True
+        self.was_open = bool(found)
+        if not getattr(self.glade, "front_raised", True):
+            found = None  # stepped back behind the windows (a window was picked or dragged over it)
         view, rect = found if found else (None, None)
         surface = next((s for s in self.surfaces if view is not None and s.view is view), None)
         if surface is None or rect is None:
@@ -229,6 +237,23 @@ class Front:
             self.view = v
             Surface.set_cursor(self)  # the same little pixel pointer as on the glade
         self.area.queue_draw()
+
+    def motion(self, area, event):
+        held = bool(event.get_state() & Gdk.ModifierType.BUTTON1_MASK)
+        if held and not self.pressing:  # a window being dragged over it: step back so it can be dropped
+            self.glade.front_raised = False
+            self.win.hide()
+            return True
+        return self.surface.motion(area, Shifted(event, self.box))
+
+    def press(self, area, event):
+        self.pressing = True
+        self.glade.front_raised = True
+        return self.surface.press(area, Shifted(event, self.box))
+
+    def release(self, area, event):
+        self.pressing = False
+        return self.surface.release(area, Shifted(event, self.box))
 
     def draw(self, area, cr):
         if self.surface is None or self.box is None:
@@ -332,7 +357,9 @@ class Keyboard:
         except BlockingIOError:
             return True
         for cmd in data.split():
-            if cmd.startswith("key-") and len(cmd) == 5:
+            if cmd == "lower":  # the dock brought a window up: the Dex / card / board step back
+                self.glade.front_raised = False
+            elif cmd.startswith("key-") and len(cmd) == 5:
                 self.glade.typed(cmd[4], time.monotonic() - self.glade.t0)
             elif cmd == "keys":
                 self.window = None  # Super+Home has just cleared the windows away
@@ -375,6 +402,7 @@ class Keyboard:
                 self.off()  # a window has the focus: the keys are its again
             if self.window:  # (and the Claude panel stops typing; what he typed stays in the box)
                 self.glade.panel.stop_typing()
+                self.glade.front_raised = False  # a window has the focus: it goes in front of the Dex
         return False
 
 
