@@ -969,6 +969,7 @@ class Glade:
                 self.arena = None
             elif not self.fade_to:  # it comes along to whichever place he goes
                 self.arena.scene = self.here
+                self.arena.place(self.here)  # clear of this place's signs
                 self.arena.lower = self.lower() if self.bottom else None
                 self.arena.update(dt, t)
         if self.held is not None:

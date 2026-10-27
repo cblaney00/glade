@@ -1137,6 +1137,20 @@ class Arena:
     def fighters(self):
         return list(self.out.values()) + self.leavers
 
+    SPOTS = ((10, 324), (290, 8), (10, 8), (570, 8), (290, 150))  # where the board may sit, best first
+
+    def place(self, content):
+        """Put the board where it covers none of this place's signs or icons (the first
+        such spot; failing that, wherever it covers least)."""
+        boards = [sp.boards[2] for sp in getattr(content, "spots", []) if getattr(sp, "boards", None)]
+        if not boards:
+            return
+        def covered(xy):
+            r = pygame.Rect(xy, (self.W, self.H))
+            return sum(r.clip(b).w * r.clip(b).h for b in boards)
+        best = min(self.SPOTS, key=covered)
+        self.rect.topleft = best
+
     # --- clicks ---
     def click(self, glade, t):
         """True if the click was the battle's."""
