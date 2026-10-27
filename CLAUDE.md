@@ -104,7 +104,11 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
     its stats card as a six-sided web (`battle.iv_web`; his choice over stars/numbers). Caught
     creatures live in `~/.local/state/glade/creatures.json` as a `Collection`: a party of 6 and 8
     boxes of 30, **like Emerald's PC boxes**. His party starts **empty**.
-  - `glade/starter.py` — the first "Battle it!" with an empty party opens **choose your starter**:
+  - **Order (his rule): the Battle Tower first.** The Tower door with an empty party opens
+    **choose your starter**, then the tower board; until then a card's button says "Get a starter at
+    the Tower". Glow jars stay greyed out until a Tower run has been tried (`Collection.tried`), and
+    Tower trainers bring as many creatures as you have (1v1 on the first run, up to 6v6).
+  - `glade/starter.py` — the starter choice:
     Mossfawn (Grass), Kindlet (Fire), Pippalotl (Water), Dex #001/#004/#007 (the first nine numbers
     are their lines; everything else moved down 9). Final forms are designed, not built: Elderhart
     Grass/Ghost spirit stag, Pyreclad Fire/Steel molten pangolin knight, Leviolotl Water/Dragon
