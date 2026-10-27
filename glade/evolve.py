@@ -60,6 +60,29 @@ def set_stage(obj, stage):
             long.clear()
 
 
+SECOND, THIRD = 0.15, 0.01  # his odds (2026-10-27) of a wild animal being its line's middle or final stage
+
+
+def wild_stage(obj, rng=random):
+    """Each animal that comes out in the wild: mostly a first stage, 15% of the time its
+    middle stage, 1% its final one ("oh look, a … on my screen"). A line that has no such
+    stage yet stays a first stage; one with no final stage yet gives its middle at 1% too."""
+    first = obj.__dict__.get("_first", {}).get("name") or species_of(obj)
+    second = EVOLVES.get(first)
+    third = EVOLVES.get(second) if second else None
+    r = rng.random()
+    want = 1
+    if r < THIRD and (third or second):
+        want = 3 if third and SET_STAGE_3 else 2
+    elif r < THIRD + SECOND and second:
+        want = 2
+    if want != getattr(obj, "stage", 1):
+        set_stage(obj, want)
+
+
+SET_STAGE_3 = False  # final stages are designed but not drawn yet; set_stage learns 3 when they are
+
+
 @contextlib.contextmanager
 def no_glow():
     """While drawing a silhouette: no soft glows, just the animal's own shape."""

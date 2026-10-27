@@ -52,6 +52,9 @@ def roster(content, everyone=False):
 def crowd(content, rng, factor=2):
     """Bring out more of a place's animals at the start: `factor` times as many as were out."""
     animals = roster(content)
+    from evolve import wild_stage
+    for o in animals:  # each one in the wild might be an evolved one (15%, or 1% a final stage)
+        wild_stage(o, rng)
     out = [o for o in animals if not getattr(o, "gone", False)]
     waiting = [o for o in animals if getattr(o, "gone", False)]
     for o in rng.sample(waiting, min(len(waiting), len(out) * (factor - 1))):
@@ -152,6 +155,8 @@ def fresh(o):
     o.ivs = None
     o.nature = None
     o.caught = False
+    from evolve import wild_stage
+    wild_stage(o)  # mostly a first stage; now and then an evolved one
     o.leave_at = None
 
 
