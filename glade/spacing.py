@@ -26,9 +26,10 @@ def where(o):
     """Where an animal is, or where it is headed if it is walking somewhere."""
     name = type(o).__name__
     if name == "Walker":
+        lane = getattr(o, "lane_to", 0.0)
         if o.wait <= 0:
-            return o.target, o.ground(o.target)
-        return o.x, o.ground(o.x)
+            return o.target, o.ground(o.target) + lane
+        return o.x, o.ground(o.x) + getattr(o, "lane", 0.0)
     head = getattr(o, "head", None)
     if head is not None:
         return head[0], head[1]
@@ -42,7 +43,7 @@ def crowded(me, x, y, gap=GAP):
         if o is me or getattr(o, "gone", False):
             continue
         p = where(o)
-        if p is not None and abs(p[0] - x) < gap and abs(p[1] - y) < gap * 0.6:
+        if p is not None and abs(p[0] - x) < gap and abs(p[1] - y) < gap * 0.4:
             return True
     return False
 
@@ -54,6 +55,6 @@ def tailing(me, gap=GAP):
         if o is me or getattr(o, "gone", False) or type(o).__name__ != "Walker":
             continue
         ahead = (o.x - me.x) * me.facing
-        if 0 <= ahead < gap and abs(o.y - me.y) < gap * 0.6 and (o.wait > 0 or o.facing == me.facing):
+        if 0 <= ahead < gap and abs(o.y - me.y) < gap * 0.4 and (o.wait > 0 or o.facing == me.facing):
             return True
     return False

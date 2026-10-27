@@ -132,6 +132,8 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
 - **Room to stand** (`glade/spacing.py`, 2026-10-27, his ask: they were hard to click): walkers and ground slugs pick
   spots nobody stands on or is walking to, one resting on another soon moves on, and a walker right behind another
   going the same way pauses (`spacing.gather` gives each place's ground animals their `neighbours`).
+  Each walker also has its own lane (`Walker.lane`, a strip 7 x size deep around its ground line), chosen free with
+  each goal, so they pass beside each other rather than on one line.
 - **Lilyfin in every water** (2026-10-27, his pick; not the Ridge's frozen lake): `pond.Shoal` in the River, the
   Waterfall's pool, the Caverns' pool and the Springs' two lower pools, set as the scene's `pond` so cards, battles,
   glow jars, storms and hiding find them. The apex only fishes in the Glade's own pond; elsewhere fish are prey.

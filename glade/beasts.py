@@ -456,6 +456,11 @@ class Walker(Clock):
         if kind == "mole":
             self.xr = (self.home - 10 * size, self.home + 10 * size)  # never far from its hole
         self.target, self.wait = self.x, rng.uniform(0.5, 3)
+        # Its own lane across the ground (his ask, 2026-10-27: they all walked one line, on top of
+        # each other): a strip LANE * size deep around the ground's line, one spot in it chosen with
+        # each new goal, drifted to on the way.
+        self.lane_w = (0.0 if kind == "mole" else 7.0) * size
+        self.lane = self.lane_to = rng.uniform(-self.lane_w, self.lane_w)
         self.facing = rng.choice((-1, 1))
         self.step, self.hop, self.lift = 0.0, 0.0, 0.0
         self.phase = rng.random() * 10
@@ -476,7 +481,8 @@ class Walker(Clock):
         for i in range(6):
             was = self.ground, self.xr, self.blend
             self._retarget()
-            if i == 5 or not crowded(self, self.target, self.ground(self.target)):
+            self.lane_to = self.rng.uniform(-self.lane_w, self.lane_w)
+            if i == 5 or not crowded(self, self.target, self.ground(self.target) + self.lane_to):
                 return
             self.ground, self.xr, self.blend = was
 
@@ -493,7 +499,7 @@ class Walker(Clock):
                 if xr[0] >= xr[1]:
                     continue
             tx = self.rng.uniform(*xr)
-            x0, y0, ty = self.x, self.ground(self.x), ground(tx)
+            x0, y0, ty = self.x, self.ground(self.x) + self.lane_w, ground(tx) + self.lane_w
             if self.avoid and any(self.avoid(x0 + (tx - x0) * k / 8, y0 + (ty - y0) * k / 8) for k in range(9)):
                 continue
             old = self.ground
@@ -513,7 +519,7 @@ class Walker(Clock):
             self.wait -= dt
             if self.wait > 0.5 and self.rng.random() < dt and self.blend is None:
                 from spacing import crowded
-                if crowded(self, self.x, self.ground(self.x)):  # resting on top of someone: move on soon
+                if crowded(self, self.x, self.y + self.lift):  # resting on top of someone: move on soon
                     self.wait = self.rng.uniform(0.1, 0.5)
             if self.wait <= 0:
                 self.retarget()
@@ -545,7 +551,10 @@ class Walker(Clock):
             self.lift = math.sin(min(1.0, self.hop) * math.pi) * 9 * self.size
             if self.hop >= 1:
                 self.hop, self.lift = 0.0, 0.0
-        self.y = self.ground(self.x) - self.lift
+        if self.wait <= 0 and self.lane != self.lane_to:  # easing over into its lane as it goes
+            d = self.lane_to - self.lane
+            self.lane += max(-6 * dt, min(6 * dt, d))
+        self.y = self.ground(self.x) + self.lane - self.lift
         if self.persp:
             self.depth = self.persp(self.ground(self.x))
         # the newt's tail follows its body
