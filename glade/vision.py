@@ -36,6 +36,28 @@ def draw_button(s, view, font, on):
     s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
 
 
+DEX = (150, 230, 190)
+
+
+def dex_rect(view):
+    """The Forest Dex button, just under Predator vision."""
+    return pygame.Rect(8, 34, 150, 22)
+
+
+def draw_dex_button(s, view, font):
+    """A mint board with a little open book."""
+    r = dex_rect(view)
+    m = view.mouse()
+    hot = bool(m) and r.collidepoint(m)
+    cloth(s, r, DEX, hot=hot, alpha=230)
+    bx, by = r.x + 6, r.centery - 5
+    pygame.draw.polygon(s, (240, 236, 220), [(bx, by), (bx + 7, by + 1), (bx + 7, by + 10), (bx, by + 9)])
+    pygame.draw.polygon(s, (220, 214, 196), [(bx + 7, by + 1), (bx + 14, by), (bx + 14, by + 9), (bx + 7, by + 10)])
+    pygame.draw.line(s, (120, 90, 110), (bx + 7, by + 1), (bx + 7, by + 10))
+    img = font.render("Forest Dex", False, (255, 255, 255) if hot else TEXT)
+    s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
+
+
 class Vision:
     def __init__(self, t):
         self.t0 = t

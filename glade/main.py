@@ -676,6 +676,10 @@ class Glade:
             if self.vision is None:
                 self.vision = vision.Vision(t)
             return
+        if m and vision.dex_rect(view).collidepoint(m) and self.board is None and self.dex is None:
+            self.popup, self.card = None, None
+            self.dex = Dex(self.signs.font, None, t)  # the quick way into the Forest Dex
+            return
         view = self.storm_view()
         if view is not None:  # the Thunderstorm button, while battle stats are on screen
             m = view.mouse()
@@ -1030,6 +1034,7 @@ class Glade:
                 storm.draw_button(view.canvas, view, self.signs.font)
             if view is self.map_view() and self.board is None and self.dex is None:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
+                vision.draw_dex_button(view.canvas, view, self.signs.font)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
