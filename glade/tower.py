@@ -4,7 +4,7 @@ Walk down past the Mossy Rocks to the Tower and click its door. The very first t
 choose your starter there (starter.py), and catching wild animals only opens up once you
 have done a run (`Collection.tried`). Trainers bring as many creatures as you do (up to
 six). Your party goes in as it is (arrange it in your boxes, team.py / storage.py, at the shrine beside the door), and
-takes on the tower's trainers one after another. Your team is healed before
+takes on the tower's trainers one after another. Each trainer's team is a match for yours (`trainer`). Your team is healed before
 every battle. Each win adds to your streak, and the trainers' creatures grow stronger the
 further you get (better IVs); a loss ends the run. Your best streak is kept.
 """
@@ -23,14 +23,31 @@ TRAINERS = ["Moss Warden Ivy", "Lantern Keeper Bram", "Tidepool Nell", "Starwatc
             "Glowworm Hermit Tam", "Mist Walker Ysolde", "Thunder Chaser Rook", "Slug Racer Fen", "Aurora Seer Lumi"]
 
 
-def trainer(streak, rng, size=TEAM):
-    """The next challenger: a name, and as many creatures as you bring (six once your party
-    is full), all different. The first few have middling IVs; from about the tenth on they
-    are near perfect."""
-    floor = min(28, 6 + streak * 3)
+def trainer(streak, rng, mine=TEAM):
+    """The next challenger: a name, and one creature for each of yours (his rule: the tower is
+    won by strategy and luck, not by grinding). Each of theirs is as strong as the one of yours
+    it stands for: a different kind with a base-stat total within 20 of it (a first stage
+    against a first stage, a final one against a final one), with IVs about as good as its
+    own (each within 6, shuffled about). It is matched to whatever party you bring, so it stays
+    fair as your party changes, and the streak does not make them stronger."""
+    from team import roll_ivs
+    if isinstance(mine, int):
+        mine = [None] * mine
+    totals = [sum(SPECIES[k.species]["base"]) if k else 310 for k in mine]
+    taken = {k.species for k in mine if k}
     team = []
-    for species in rng.sample(sorted(SPECIES), max(1, min(TEAM, size))):
-        team.append((species, tuple(rng.randint(floor, 31) for _ in range(6)), None))
+    for k, total in zip(mine[:TEAM], totals):
+        near = [sp for sp, d in SPECIES.items() if abs(sum(d["base"]) - total) <= 20 and sp not in taken]
+        if not near:
+            near = sorted((sp for sp in SPECIES if sp not in taken), key=lambda sp: abs(sum(SPECIES[sp]["base"]) - total))[:3]
+        species = rng.choice(sorted(near))
+        taken.add(species)
+        if k is None:
+            ivs = roll_ivs(rng)
+        else:
+            ivs = [max(0, min(31, v + rng.randint(-6, 6))) for v in k.ivs]
+            rng.shuffle(ivs)
+        team.append((species, tuple(ivs), None))
     return rng.choice(TRAINERS), team
 
 
@@ -44,7 +61,7 @@ class Run:
         self.recorded = False
 
     def battle(self, t):
-        name, foes = trainer(self.streak, self.rng, len(self.team))
+        name, foes = trainer(self.streak, self.rng, self.team)
         intro = f"{name} wants to battle! (Battle {self.streak + 1})"
         return foes, intro
 

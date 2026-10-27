@@ -118,6 +118,7 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
     "pick" (the moon egg, unchanged), "wild" (the stats card's **Battle it!**), "tower".
   - `glade/storage.py` — the boxes screen (party left, box grid middle, info + IV web right; click
     to pick up, click to put down/swap). Opened at the Tower's shrine or the Dex's "Your creatures".
+  - (2026-10-27) Tower fairness, his rule: strategy and luck, not grinding. `tower.trainer` matches each of your creatures with a different kind of a similar base total (±20) and similar IVs (±6), whatever party you bring; the streak does not raise them. Simulated: ~50% a battle.
   - `glade/tower.py` — **The Battle Tower**, a place below the Mossy Rocks (path down the lower
     screen). Your party as it is (no separate picking — his call) vs endless trainers' sixes; IVs
     rise with the streak; best streak saved.
