@@ -120,7 +120,7 @@ class Flier(Clock):
     def draw_bat(self, s, t):
         z, x, y = self.size, self.x, self.y
         st = getattr(self, "stage", 1)  # Gloomglide and Nightshroud: broader wings, slower beats, gliding
-        span = 1 + 0.3 * (st - 1)
+        span = 1 + 0.15 * (st - 1)
         beat = math.sin(t * 16 / (1 + 0.7 * (st - 1)) + self.phase) * (1 - 0.25 * (st - 1))
         self._wings = []
         if st > 1:  # a membrane between its legs, like a cape

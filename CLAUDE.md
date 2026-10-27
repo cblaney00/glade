@@ -199,3 +199,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   also move slower far away. `Walker.size` is a property over `_size` (what `set_stage` sets).
   Every place has `far=` stretches in its `second_wave` call (paths, the far river bank, the
   snowfield behind the lake, …): two walkers each that wander only there, plus a small far flier.
+- **Heights** (2026-10-27, his rules): every species has a Pokédex-style height in feet
+  (`evolve.HEIGHT`, shown in the Dex entry's picture corner). Middle stages ~2-4 ft, finals mostly
+  4-6 ft; Dragonite's 7'03" is his absolute maximum and only for a rare few (Prismwyrm 7'02",
+  Leviolotl 6'10"); never Steelix-big; with 200+ planned, most stay small. An evolved creature is
+  drawn `evolve.growth` times its first stage: (height ratio) ** 0.6, capped at 3.2. Dex pictures
+  and battle bodies cap that so they fit. **Give every new species a HEIGHT.**

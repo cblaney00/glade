@@ -38,7 +38,51 @@ EVOLVES = {"Duskling": "Glowtail", "Driftlet": "Nimbusdrift", "Lanternwing": "Be
            "Mossprance": "Lichenmane", "Lichenmane": "Eldermane",
            "Kindlet": "Smoldershell", "Smoldershell": "Pyreclad",
            "Pippalotl": "Frillotl", "Frillotl": "Leviolotl"}
-SIZE = {1: 1.0, 2: 1.3, 3: 1.6}  # how much bigger each stage is
+# How tall each creature is, in feet, the way the Pokédex gives it (his rules, 2026-10-27):
+# like Pokémon, a middle stage is about 2-4 ft and a final one mostly 4-6 ft; Dragonite's 7'03"
+# is the most he will have, and only rarely (Prismwyrm and Leviolotl here); nothing like
+# Steelix. With 200+ creatures planned, most stay small.
+HEIGHT = {
+    "Mossprance": 2.0, "Lichenmane": 3.6, "Eldermane": 6.2,
+    "Kindlet": 1.4, "Smoldershell": 3.0, "Pyreclad": 5.6,
+    "Pippalotl": 1.5, "Frillotl": 3.3, "Leviolotl": 6.8,
+    "Duskling": 1.0, "Glowtail": 2.6, "Cometail": 4.6,
+    "Driftlet": 0.8, "Nimbusdrift": 2.2, "Skyveil": 4.9,
+    "Gloamooze": 1.2, "Gloomdrape": 2.4, "Nightmire": 3.9,
+    "Cairncurl": 0.9, "Cairnspire": 2.0, "Cairnhold": 3.6,
+    "Luminpede": 1.1, "Luminthread": 3.0, "Glowcoil": 5.9,
+    "Lilyfin": 1.3, "Lilyveil": 2.8, "Lotuscrest": 4.8,
+    "Canopod": 1.0, "Boughgrip": 2.2, "Canopolis": 4.0,
+    "Lanternwing": 1.0, "Beaconwing": 2.1, "Hearthwing": 3.4,
+    "Gloomflit": 0.8, "Gloomglide": 2.0, "Nightshroud": 4.4,
+    "Glimmerfly": 1.1, "Glimmerwyrm": 3.1, "Prismwyrm": 7.2,
+    "Mistwisp": 1.0, "Mistshade": 2.6, "Mistwraith": 4.9,
+    "Brawlhop": 1.3, "Thudhop": 3.1, "Titanhop": 5.2,
+    "Mossdelve": 0.9, "Mossburrow": 2.3, "Mossquake": 4.1,
+    "Sporeling": 1.2, "Sporestride": 2.9,
+    "Moonhoot": 1.0, "Frostpaw": 1.3, "Fluffhorn": 1.8, "Shimmerchirp": 0.7, "Steambara": 2.0,
+    "Embercling": 1.1, "Vaporwobble": 1.4, "Rimeslink": 1.0, "Coppernib": 0.6, "Bramblit": 1.1,
+    "Thistlume": 0.9, "Runelet": 1.4, "Sparkfly": 0.4, "Murkling": 1.2, "Glintshell": 0.9,
+}
+
+
+def feet(species):
+    """Its height the Pokédex way, e.g. 3'07"."""
+    h = HEIGHT.get(species)
+    if h is None:
+        return "?"
+    inches = round(h * 12)
+    return f"{inches // 12}'{inches % 12:02}\""
+
+
+def growth(species):
+    """How much bigger than its first stage an evolved creature is drawn: by how much taller
+    it is, eased (a 6x taller final stage is drawn about 3x bigger, so it still fits the glade)."""
+    first, _ = stage_of(species)
+    a, b = HEIGHT.get(first), HEIGHT.get(species)
+    if not a or not b:
+        return 1.0
+    return max(1.0, min(3.2, (b / a) ** 0.6))
 
 
 def species_at(first, stage):
@@ -71,7 +115,7 @@ def set_stage(obj, stage):
                                                    name=species_of(obj)))
     obj.stage = stage
     if first["size"] is not None:
-        obj.size = first["size"] * SIZE[stage]
+        obj.size = first["size"] * growth(species_at(first["name"], stage) or first["name"])
     obj.species = species_at(first["name"], stage) if stage > 1 else first["species"]
     if type(obj).__name__ == "Critter":
         if stage >= 2:

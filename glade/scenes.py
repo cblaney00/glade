@@ -148,7 +148,7 @@ WALK = ("toad", "mole", "sporeling", "newt", "beetle")
 def persp(y):
     """How big something standing at y looks on the upper screen: 1 at the front of the
     meadow (y 512), smaller further back toward the hills."""
-    return max(0.42, min(1.05, (y - 200) / 312))
+    return max(0.6, min(1.05, 0.35 + 0.65 * (y - 200) / 312))  # (the far river bank was a tad small at 0.42)
 
 
 def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(), far=()):

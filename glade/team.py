@@ -262,8 +262,9 @@ def body(species, at=(480, 300)):
         if thing[1] == "owlet":
             sq.kind = "owlet"
         if len(thing) > 2:  # Boughgrip, Canopolis
-            from evolve import SIZE
-            sq.stage, sq.size = thing[2], SIZE[thing[2]]
+            from evolve import growth, species_at
+            sq.stage = thing[2]
+            sq.size = min(1.6, growth(species_at("Canopod", thing[2])))
         return Drawn(sq, perched=True)
     shift(thing, dx, dy)
     return Drawn(thing)

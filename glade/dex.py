@@ -53,8 +53,10 @@ def specimen(species):
             thing.dir, thing.d = 1, thing.track.length - 3
             return thing
         set_stage(thing, n)
-        if n == 3 and hasattr(thing, "size"):  # a final stage is big: smaller in the picture
-            thing.size *= 0.6
+        if hasattr(thing, "size"):  # pictures (and the battle field) have room for only so much:
+            from evolve import growth  # a big one is drawn smaller there (its height is written by it)
+            g = growth(species)
+            thing.size *= min(1.0, (1.25 if n == 2 else 1.15) / g)
         return thing
     rng = random.Random(7)
     cx, cy = PW // 2, PH - 12
@@ -338,6 +340,8 @@ class Dex:
         frame = big.get_rect(midtop=(area.centerx, y))
         s.blit(big, frame)
         pygame.draw.rect(s, mix(CLOTH, (255, 255, 255), 0.3), frame.inflate(2, 2), 1, border_radius=3)
+        from evolve import feet
+        self.text(s, feet(name), frame.right - 6, frame.bottom - 16, TEXT, right=True)  # how tall it is
         y = frame.bottom + 8
         self.text(s, "Ability", x, y, DIM)
         self.text(s, sp["ability"], area.right - 12, y, TEXT, right=True)
