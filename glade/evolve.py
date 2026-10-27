@@ -26,7 +26,30 @@ from art import glow, mix
 from battle import cloth, draw_elsewhere, species_of
 
 EVOLVES = {"Duskit": "Glowtail", "Driftquid": "Nimbusquid", "Lantern Moth": "Beacon Moth",
-           "Brawl Toad": "Bruiser Toad", "Sporeling": "Sporestride"}
+           "Brawl Toad": "Bruiser Toad", "Sporeling": "Sporestride",
+           # the starters' lines, all three stages (2026-10-27)
+           "Mossfawn": "Lichenhart", "Lichenhart": "Elderhart",
+           "Kindlet": "Smoldershell", "Smoldershell": "Pyreclad",
+           "Pippalotl": "Frillotl", "Frillotl": "Leviolotl"}
+SIZE = {1: 1.0, 2: 1.3, 3: 1.6}  # how much bigger each stage is
+
+
+def species_at(first, stage):
+    """The name of `first`'s line at that stage (None if the line has not got that far)."""
+    name = first
+    for _ in range(stage - 1):
+        name = EVOLVES.get(name)
+        if name is None:
+            return None
+    return name
+
+
+def stage_of(species):
+    """(its line's first stage, which stage it is)."""
+    n = 1
+    while species in EVOLVED_FROM:
+        species, n = EVOLVED_FROM[species], n + 1
+    return species, n
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself
 BANNER = 2.6      # how long "… evolved into …!" stays up afterwards
@@ -35,22 +58,22 @@ SPARK = (200, 230, 255)
 
 
 def set_stage(obj, stage):
-    """Make an animal its first (1) or middle (2) stage. Reversible: the first-stage
-    values are kept the first time."""
+    """Make an animal stage 1, 2 or 3 of its line. Reversible: the first-stage values are
+    kept the first time."""
     first = obj.__dict__.setdefault("_first", dict(size=getattr(obj, "size", None), species=getattr(obj, "species", None),
                                                    name=species_of(obj)))
     obj.stage = stage
     if first["size"] is not None:
-        obj.size = first["size"] * (1.3 if stage == 2 else 1.0)
-    obj.species = EVOLVES[first["name"]] if stage == 2 else first["species"]
+        obj.size = first["size"] * SIZE[stage]
+    obj.species = species_at(first["name"], stage) if stage > 1 else first["species"]
     if type(obj).__name__ == "Critter":
-        if stage == 2:
+        if stage >= 2:
             obj.SEG = 5.2  # a longer body and tail
         else:
             obj.__dict__.pop("SEG", None)
     if type(obj).__name__ == "Squid":
         long = obj.__dict__.setdefault("_long", [])
-        if stage == 2 and not long:  # two long hunting tentacles
+        if stage >= 2 and not long:  # two long hunting tentacles
             for _ in range(2):
                 arm = [[obj.x, obj.y] for _ in range(16)]
                 long.append(arm)
@@ -60,11 +83,11 @@ def set_stage(obj, stage):
             long.clear()
 
 
-SECOND, THIRD = 0.15, 0.01  # his odds (2026-10-27) of a wild animal being its line's middle or final stage
+SECOND, THIRD = 0.07, 0.01  # his odds (2026-10-27) of a wild animal being its line's middle or final stage
 
 
 def wild_stage(obj, rng=random):
-    """Each animal that comes out in the wild: mostly a first stage, 15% of the time its
+    """Each animal that comes out in the wild: mostly a first stage, 7% of the time its
     middle stage, 1% its final one ("oh look, a … on my screen"). A line that has no such
     stage yet stays a first stage; one with no final stage yet gives its middle at 1% too."""
     first = obj.__dict__.get("_first", {}).get("name") or species_of(obj)
@@ -73,14 +96,11 @@ def wild_stage(obj, rng=random):
     r = rng.random()
     want = 1
     if r < THIRD and (third or second):
-        want = 3 if third and SET_STAGE_3 else 2
+        want = 3 if third else 2
     elif r < THIRD + SECOND and second:
         want = 2
     if want != getattr(obj, "stage", 1):
         set_stage(obj, want)
-
-
-SET_STAGE_3 = False  # final stages are designed but not drawn yet; set_stage learns 3 when they are
 
 
 @contextlib.contextmanager
@@ -98,6 +118,8 @@ class Evolution:
     def __init__(self, animal, species, t):
         self.a, self.obj, self.t0, self.now = animal, animal.obj, t, t
         self.old, self.new = species, EVOLVES[species]
+        self.was = getattr(animal.obj, "stage", 1)  # it goes from this stage to the next
+        self.to = self.was + 1
         self.obj.gone = True  # drawn here until it is done
         self.swapped = self.shown = False
         self.scratch = art.solid()
@@ -113,7 +135,7 @@ class Evolution:
         self.now = t
         f = t - self.t0
         if f >= 3.2 and not self.swapped:  # under the flash: it has evolved
-            set_stage(self.obj, 2)
+            set_stage(self.obj, self.to)
             self.swapped = True
         if f >= 3.4 and not self.shown:
             self.obj.gone = False  # from here it is in the glade again, lit like everyone else
@@ -122,7 +144,7 @@ class Evolution:
     def finish(self):
         """He walked away mid-way: it simply has evolved."""
         if not self.swapped:
-            set_stage(self.obj, 2)
+            set_stage(self.obj, self.to)
             self.swapped = True
         self.obj.gone = False
         self.now = self.t0 + LENGTH + BANNER + 1
@@ -148,7 +170,7 @@ class Evolution:
             shape = pygame.mask.from_threshold(self.scratch.subsurface(box), KEY, (1, 1, 1, 255))
             shape.invert()
             s.blit(shape.to_surface(setcolor=(255, 255, 255, 255), unsetcolor=(0, 0, 0, 0)), box.topleft)
-        set_stage(self.obj, 2 if self.swapped else 1)
+        set_stage(self.obj, self.to if self.swapped else self.was)
 
     def draw(self, s, low, t):
         self.now = t
@@ -171,7 +193,7 @@ class Evolution:
             elif f < 3.4:  # a white shape, flickering between old and new, faster and faster
                 k = ease((f - 0.6) / 2.6)
                 period = 0.5 - 0.44 * k
-                stage = 2 if int((f - 0.6) / period) % 2 else 1
+                stage = self.to if int((f - 0.6) / period) % 2 else self.was
                 glow(s, x, y, int(28 + 20 * k), SPARK, round(100 + 100 * k) // 12 * 12)
                 self.silhouette(s, t, stage)
             # specks of light gather in, then burst out once it has evolved

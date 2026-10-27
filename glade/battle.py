@@ -183,6 +183,8 @@ MOVES = {
     "Icy Wind": mv("Ice", 55, 95, 15, sec=(100, {"spe": -1})),
     "Fire Punch": mv("Fire", 75, 100, 15, c=1, sec=(10, "brn")),
     "Headbutt": mv("Normal", 70, 100, 15, c=1, sec=(30, "flinch")),
+    "Blaze Kick": mv("Fire", 85, 90, 10, c=1, highcrit=1, sec=(10, "brn")),
+    "Meteor Mash": mv("Steel", 100, 85, 10, c=1, sec=(20, ("self", {"atk": 1}))),
     "Struggle": mv("???", 50, None, 1, c=1, recoil=4),
 }
 
@@ -278,6 +280,25 @@ SPECIES = {
     "Pippalotl": dict(num=7, types=("Water",), base=(52, 48, 50, 60, 58, 46), ability="Torrent",
                       pool=["Water Gun", "Bubble Beam", "Water Pulse", "Surf", "Dragon Breath", "Twister", "Amnesia",
                             "Haze", "Rest"]),
+    # the starters' later stages (2026-10-27): middle ~405, final 530, like Hoenn's starters
+    "Lichenhart": dict(num=2, types=("Grass",), base=(60, 68, 58, 80, 76, 63), ability="Overgrow",
+                       pool=["Magical Leaf", "Giga Drain", "Leech Seed", "Synthesis", "Calm Mind", "Take Down",
+                             "Quick Attack", "Astonish", "Confuse Ray"]),
+    "Elderhart": dict(num=3, types=("Grass", "Ghost"), base=(80, 85, 75, 110, 100, 80), ability="Overgrow",
+                      pool=["Giga Drain", "Magical Leaf", "Shadow Ball", "Leech Seed", "Calm Mind", "Synthesis",
+                            "Will-O-Wisp", "Confuse Ray", "Psychic", "Pain Split"]),
+    "Smoldershell": dict(num=5, types=("Fire",), base=(62, 78, 82, 62, 64, 57), ability="Blaze",
+                         pool=["Ember", "Fire Punch", "Blaze Kick", "Flamethrower", "Metal Claw", "Iron Defense",
+                               "Rock Tomb", "Iron Tail"]),
+    "Pyreclad": dict(num=6, types=("Fire", "Steel"), base=(85, 110, 105, 80, 80, 70), ability="Blaze",
+                     pool=["Blaze Kick", "Fire Punch", "Flamethrower", "Meteor Mash", "Iron Tail", "Rock Slide",
+                           "Earthquake", "Swords Dance", "Iron Defense", "Bulk Up"]),
+    "Frillotl": dict(num=8, types=("Water",), base=(68, 60, 66, 78, 74, 59), ability="Torrent",
+                     pool=["Water Pulse", "Bubble Beam", "Surf", "Dragon Breath", "Twister", "Ice Beam", "Amnesia",
+                           "Haze", "Rest"]),
+    "Leviolotl": dict(num=9, types=("Water", "Dragon"), base=(95, 80, 85, 105, 95, 70), ability="Torrent",
+                      pool=["Surf", "Hydro Pump", "Dragon Claw", "Dragon Breath", "Ice Beam", "Dragon Dance",
+                            "Waterfall", "Earthquake", "Calm Mind", "Rest"]),
     # middle evolutions (evolve.py): base totals about 410 (Ivysaur 405), same shape, a few
     # stronger moves; numbered right after their first stage
     "Glowtail": dict(num=11, types=("Normal",), base=(70, 75, 61, 46, 61, 96), ability="Guts",

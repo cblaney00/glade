@@ -394,7 +394,9 @@ class Walker(Clock):
 
     def draw(self, s, t):
         self.update(self.tick(t), t)
-        getattr(self, "draw_" + self.kind)(s, t)
+        stage = getattr(self, "stage", 1)
+        fn = getattr(self, f"draw_{self.kind}{stage}", None) if stage > 1 else None
+        (fn or getattr(self, "draw_" + self.kind))(s, t)
 
     def eyes(self, s, x, y, gap, r=1):
         blink = (self.phase * 3 + getattr(self, "_t", 0.0)) % 5 < 0.12  # every few seconds
@@ -757,6 +759,14 @@ class Walker(Clock):
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 15 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
+        stage = getattr(self, "stage", 1)
+        fn = getattr(self, f"shine_{self.kind}{stage}", None) if stage > 1 else None
+        if fn:
+            fn(s, t, swell(t - self.poked, 0.1, 0.8))
+        else:
+            self.shine_base(s, t)
+
+    def shine_base(self, s, t, _k=None):
         z, x, y, f = self.size, self.x, self.y, self.facing
         k = swell(t - self.poked, 0.1, 0.8)
         if self.kind == "sporeling":
@@ -847,6 +857,264 @@ class Walker(Clock):
             glow(s, hx - f * 2 * z, hy - 4 * z, int(8 * z), self.color, q(50 + 70 * k))
         elif self.kind == "toad" and k > 0:
             glow(s, x, y - 6 * z, int(12 * z), self.color, q(80 * k))
+
+    # --- the starters' later stages (2026-10-27) ------------------------------------------
+    # Each is drawn by draw_<kind><stage> / shine_<kind><stage> when there is one.
+
+    def antler(self, s, x, y, ln, ang, depth, color, tips):
+        """One branching antler tine; its ends are collected in `tips`."""
+        ex, ey = x + math.cos(ang) * ln, y + math.sin(ang) * ln
+        pygame.draw.line(s, color, (round(x), round(y)), (round(ex), round(ey)), max(1, round(self.size * (0.5 + depth * 0.35))))
+        if depth <= 0:
+            tips.append((ex, ey))
+            return
+        self.antler(s, ex, ey, ln * 0.72, ang - 0.45, depth - 1, color, tips)
+        self.antler(s, ex, ey, ln * 0.62, ang + 0.5, depth - 1, color, tips)
+
+    def head_of_fawn(self):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        nx, ny = x + f * 6 * z, y - 12 * z
+        return nx + f * 1.5 * z, ny - 2 * z
+
+    # Lichenhart: the fawn grown into a young stag, its first antlers hung with moss
+    def draw_fawn2(self, s, t):
+        self.draw_fawn(s, t)
+        z, f = self.size, self.facing
+        hx, hy = self.head_of_fawn()
+        bone, moss = (232, 218, 196), (120, 186, 136)
+        self.tips = []
+        for side in (-1, 1):
+            bx = hx - f * 0.5 * z + side * 1.2 * z
+            self.antler(s, bx, hy - 2.5 * z, 3.4 * z, -math.pi / 2 + side * 0.35 - f * 0.25, 1, bone, self.tips)
+        for i, (tx, ty) in enumerate(self.tips):  # moss draped from the tines
+            if i % 2 == 0:
+                sway = math.sin(t * 1.5 + i) * 0.6 * z
+                pygame.draw.line(s, moss, (round(tx), round(ty)), (round(tx + sway), round(ty + 3 * z)))
+        x, y = self.x, self.y
+        for i in range(4):  # lichen patches on the mantle
+            s.set_at((round(x - 4 * z + i * 2.5 * z), round(y - 10.5 * z)), (200, 236, 190))
+
+    # Elderhart: an ancient spirit stag, grey-green and half there, its antlers a whole moss-hung
+    # tree with little spirit lanterns at the tips, mist where its hooves should be
+    def draw_fawn3(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        coat = (176, 196, 186)
+        dark = mix(coat, INK, 0.4)
+        moss = (96, 160, 122)
+        for i, lx in enumerate((-5, -2.5, 3, 5.5)):  # long legs fading into mist
+            kick = math.sin(self.step * 1.0 + i * 1.6) * 1.2 * z if moving else 0
+            top = (x + lx * z, y - 8 * z)
+            foot = (x + lx * z + kick, y - 1 * z)
+            pygame.draw.line(s, dark if i % 2 else coat, top, foot, max(1, round(1.1 * z)))
+        pygame.draw.ellipse(s, dark, (x - 9 * z, y - 15 * z + 1, 18 * z, 8 * z))
+        pygame.draw.ellipse(s, coat, (x - 9 * z, y - 15 * z, 18 * z, 8 * z))
+        # its mantle: a heavy fall of moss over the back, hanging in strands
+        pygame.draw.ellipse(s, moss, (x - 8 * z, y - 16 * z, 15 * z, 5 * z))
+        for i in range(7):
+            sx = x - 7 * z + i * 2.2 * z
+            ln = (3 + (i * 5) % 4) * z
+            sway = math.sin(t * 1.2 + i * 0.9) * 0.5 * z
+            pygame.draw.line(s, mix(moss, INK, 0.2), (sx, y - 12.5 * z), (sx + sway, y - 12.5 * z + ln))
+        pygame.draw.line(s, coat, (x - f * 9 * z, y - 13 * z), (x - f * 11 * z, y - 14 * z), max(1, round(z)))
+        nx, ny = x + f * 7 * z, y - 17 * z
+        pygame.draw.line(s, coat, (x + f * 5 * z, y - 13 * z), (nx, ny), max(2, round(2.4 * z)))
+        hx, hy = nx + f * 1.5 * z, ny - 2 * z
+        pygame.draw.ellipse(s, coat, (hx - 3 * z, hy - 2.5 * z, 6 * z, 5 * z))
+        pygame.draw.ellipse(s, coat, (hx + f * 1.5 * z - 1.5 * z, hy - 0.5 * z, 4.5 * z, 3 * z))
+        s.set_at((round(hx + f * 3.6 * z), round(hy + 0.5 * z)), INK)
+        for e in (-1, 1):
+            ex = hx - f * 1.5 * z + e * 1.4 * z
+            pygame.draw.ellipse(s, coat, (ex - (4 * z if e < 0 else 0), hy - 3.5 * z, 4 * z, 2 * z))
+        # the antlers: a tree of tines
+        bone = (214, 206, 190)
+        self.tips = []
+        for side in (-1, 1):
+            bx = hx - f * 0.5 * z + side * 1.2 * z
+            self.antler(s, bx, hy - 2.5 * z, 4.6 * z, -math.pi / 2 + side * 0.4 - f * 0.2, 3, bone, self.tips)
+        for i, (tx, ty) in enumerate(self.tips):  # moss hanging off the antlers
+            if i % 3 == 0:
+                sway = math.sin(t * 1.3 + i) * 0.7 * z
+                pygame.draw.line(s, moss, (round(tx), round(ty)), (round(tx + sway), round(ty + 4 * z)))
+
+    def shine_fawn3(self, s, t, k):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        hx, hy = self.head_of_fawn()
+        hx, hy = x + f * 8.5 * z, y - 19 * z
+        for e in (0.3, 2.2):  # pale glowing eyes
+            s.set_at((round(hx + f * e * z - f * z), round(hy - 0.5 * z)), (200, 255, 236))
+        for i, (tx, ty) in enumerate(getattr(self, "tips", [])):  # spirit lanterns on the tines
+            if i % 2:
+                continue
+            b = 0.6 + 0.4 * math.sin(t * 1.6 + i * 1.3 + self.phase)
+            c = (150, 255, 210) if i % 4 == 0 else (190, 170, 255)
+            ly = ty + 2 * z + math.sin(t * 1.4 + i) * 0.5 * z
+            glow(s, tx, ly, int(5 * z), c, q(70 * b + 50 * k))
+            s.set_at((round(tx), round(ly)), mix(c, (255, 255, 255), 0.6))
+        for i in range(4):  # mist curling round its hooves
+            kk = (t * 0.5 + i * 0.25 + self.phase) % 1.0
+            mx = x + (i - 1.5) * 3.2 * z + math.sin(t + i) * z
+            my = y - 1 * z - kk * 3 * z
+            glow(s, mx, my, int(3 * z), (190, 230, 220), q(60 * (1 - kk)))
+
+    # Smoldershell: the pangolin grown heavy, a crest plate on its brow, its scales seamed with fire
+    def draw_pangolin2(self, s, t):
+        self.draw_pangolin(s, t)
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        hx, hy = x + f * 7 * z, y - 5 * z
+        plate = mix(self.body, (230, 200, 190), 0.25)
+        pygame.draw.polygon(s, plate, [(hx - f * 3 * z, hy - 3 * z), (hx + f * 1 * z, hy - 3.5 * z), (hx - f * 1 * z, hy - 6 * z)])
+        pygame.draw.line(s, mix(self.body, INK, 0.4), (x - 6 * z, y - 2 * z), (x + 6 * z, y - 2 * z))  # a heavier belly line
+
+    def shine_pangolin2(self, s, t, k):
+        self.shine_base(s, t, k)
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        tx = x - f * 8 * z
+        for i in range(3):  # its tail tip is a little flame now
+            fl = math.sin(t * 9 + i * 2 + self.phase) * 0.8 * z
+            pygame.draw.line(s, mix((255, 200, 90), (255, 90, 50), i / 3), (tx + fl, y - 8 * z - i * 1.5 * z), (tx, y - 6 * z), 1)
+        glow(s, tx, y - 9 * z, int(8 * z), self.color, q(90 + 50 * k))
+
+    # Pyreclad: a knight of a pangolin in steel plate, molten fire showing in every seam, a visored
+    # helm, and a tail that ends in a blazing armoured mace
+    def draw_pangolin3(self, s, t):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        moving = self.wait <= 0
+        steel, steel_d, steel_l = (150, 156, 186), (86, 88, 120), (210, 214, 236)
+        for i in range(2):
+            lx = x + (i * 2 - 1) * 4.5 * z
+            lift = max(0.0, math.sin(self.step * 1.2 + i * math.pi)) * z if moving else 0
+            pygame.draw.rect(s, steel_d, (lx - 1.4 * z, y - 4 * z - lift, 2.8 * z, 4 * z))
+            pygame.draw.line(s, steel_l, (lx - 1.4 * z, y - lift - 0.5), (lx + 1.4 * z + f * z, y - lift - 0.5))
+        tx = x - f * 11 * z  # the tail: armoured segments to a spiked mace
+        for i in range(3):
+            pygame.draw.circle(s, steel_d, (round(x - f * (7 + i * 1.6) * z), round(y - (6 + i * 0.6) * z)), max(2, round((2.6 - i * 0.4) * z)))
+        pygame.draw.circle(s, steel_d, (round(tx), round(y - 8 * z)), max(2, round(3.2 * z)))
+        pygame.draw.circle(s, steel, (round(tx), round(y - 8.4 * z)), max(2, round(2.6 * z)))
+        for a in range(6):
+            ang = a / 6 * math.tau
+            pygame.draw.line(s, steel_l, (tx + math.cos(ang) * 2.4 * z, y - 8 * z + math.sin(ang) * 2.4 * z),
+                             (tx + math.cos(ang) * 4 * z, y - 8 * z + math.sin(ang) * 4 * z))
+        body = pygame.Rect(0, 0, round(18 * z), round(12 * z))
+        body.midbottom = (round(x), round(y - 2 * z))
+        pygame.draw.ellipse(s, steel_d, body.move(0, 1))
+        pygame.draw.ellipse(s, steel, body)
+        for row in range(3):  # plate on plate
+            ry = body.y + (2 + row * 3.2) * z
+            n = 3 + row
+            for kk in range(n):
+                cx = body.x + (kk + 0.5) * body.w / n
+                pygame.draw.arc(s, steel_l, (cx - 2.4 * z, ry - z, 4.8 * z, 3.4 * z), 0.2, 2.9, 1)
+        pygame.draw.line(s, steel_l, (body.x + 3 * z, body.y + z), (body.right - 4 * z, body.y + z))
+        hx, hy = x + f * 9 * z, y - 7 * z  # the helm
+        helm = [(hx - f * 3 * z, hy - 4 * z), (hx + f * 3.5 * z, hy - 1 * z), (hx + f * 4.5 * z, hy + 1.5 * z),
+                (hx - f * 3 * z, hy + 3 * z)]
+        pygame.draw.polygon(s, steel_d, [(px, py + 1) for px, py in helm])
+        pygame.draw.polygon(s, steel, helm)
+        pygame.draw.polygon(s, (226, 96, 70), [(hx - f * 2 * z, hy - 4 * z), (hx - f * 6 * z, hy - 8 * z), (hx - f * 4 * z, hy - 3.5 * z)])  # a crest plume
+
+    def shine_pangolin3(self, s, t, k):
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        hx, hy = x + f * 9 * z, y - 7 * z
+        b = 0.7 + 0.3 * math.sin(t * 3 + self.phase)
+        pygame.draw.line(s, (255, 200, 110), (hx - f * 0.5 * z, hy), (hx + f * 3 * z, hy + 0.6 * z), max(1, round(z * 0.8)))  # the visor slit
+        glow(s, hx + f * z, hy, int(5 * z), self.color, q(80 * b))
+        body_y = y - 8 * z
+        for row in range(3):  # molten seams between the plates
+            ry = y - 12 * z + (2 + row * 3.2) * z + 1.5 * z
+            n = 3 + row
+            for kk in range(n - 1):
+                cx = x - 9 * z + (kk + 1) * 18 * z / n
+                bb = 0.5 + 0.5 * math.sin(t * 2.4 + row + kk * 1.4 + self.phase)
+                s.set_at((round(cx), round(ry)), mix(self.color, (255, 236, 160), bb * 0.6))
+        tx = x - f * 11 * z  # the mace burns
+        for i in range(5):
+            a = t * 6 + i * 1.3 + self.phase
+            fl = (math.sin(a) * 1.5 * z, -abs(math.cos(a * 0.7)) * 4 * z - 3 * z)
+            pygame.draw.line(s, mix((255, 210, 100), (255, 80, 40), i / 5), (tx, y - 9 * z), (tx + fl[0], y - 9 * z + fl[1]), 1)
+        glow(s, tx, y - 11 * z, int(11 * z), self.color, q(110 + 60 * k))
+        glow(s, x, body_y, int(14 * z), self.color, q(30 + 30 * k))
+
+    # Frillotl: the axolotl grown longer, a second, bigger ruff of gills and a fin down its back
+    def draw_axolotl2(self, s, t):
+        self.draw_axolotl(s, t)
+        z, x, y, f = self.size, self.x, self.y, self.facing
+        hx, hy = x + f * 6 * z, y - 6 * z
+        sway = math.sin(t * 2.5 + self.phase) * z
+        for g in range(4):  # the bigger outer gills
+            for side in (-1, 1):
+                a = -math.pi / 2 - f * 1.0 + side * (0.3 + g * 0.36)
+                ln = (7 - g) * z
+                gx = hx - f * 2.5 * z + math.cos(a) * ln
+                gy = hy - 1.5 * z + math.sin(a) * ln * (1 if side < 0 else -0.6) + sway * 0.5
+                pygame.draw.line(s, (240, 110, 190), (hx - f * 2.5 * z, hy - 1.5 * z), (gx, gy), max(1, round(z)))
+        for i in range(5):  # a soft fin along the back
+            fx = x - f * (i * 2.2 - 3) * z
+            pygame.draw.line(s, mix(self.body, (255, 255, 255), 0.35), (fx, y - 7 * z), (fx - f * z, y - (9 - i * 0.3) * z))
+
+    def shine_axolotl2(self, s, t, k):
+        self.shine_base(s, t, k)
+        z, x, y = self.size, self.x, self.y
+        for i in range(4):  # teal spots down its sides
+            b = 0.5 + 0.5 * math.sin(t * 1.8 + i * 1.6 + self.phase)
+            s.set_at((round(x - 4 * z + i * 2.6 * z), round(y - 4 * z)), mix((120, 240, 230), (255, 255, 255), b * 0.4))
+
+    # Leviolotl: a great river dragon, long and sinuous, the axolotl's gills now a crown of
+    # glowing fronds, with little horns, whiskers, and a fin all down its back
+    def draw_axolotl3(self, s, t):
+        z, f, pts = self.size, self.facing, self.tail
+        body, belly = (232, 150, 200), (255, 214, 232)
+        dark = mix(body, INK, 0.35)
+        n = len(pts)
+        wave = [math.sin(t * 2.4 - i * 0.7 + self.phase) * 1.6 * z * (i / n) for i in range(n)]
+        radii = [3.4, 3.8, 3.8, 3.6, 3.3, 3.0, 2.6, 2.2, 1.8, 1.4]
+        for i in (1, 4):  # four stubby legs
+            px, py = pts[i]
+            for side in (-1, 1):
+                step = math.sin(self.step + i + side) * 1.5 * z if self.wait <= 0 else 0
+                pygame.draw.line(s, dark, (px, py - 2 * z + wave[i]), (px + f * step + side * 1.2 * z, py), max(1, round(1.2 * z)))
+        for i in reversed(range(n)):
+            px, py = pts[i]
+            pygame.draw.circle(s, dark, (round(px), round(py - 3 * z + wave[i] + 1)), max(1, round(radii[i] * z)))
+        for i in reversed(range(n)):
+            px, py = pts[i]
+            r = max(1, round(radii[i] * z))
+            pygame.draw.circle(s, body, (round(px), round(py - 3 * z + wave[i])), r)
+            pygame.draw.circle(s, belly, (round(px), round(py - 3 * z + wave[i] + r * 0.5)), max(1, round(r * 0.45)))
+        for i in range(1, n - 1):  # the fin along its back
+            px, py = pts[i]
+            top = py - 3 * z + wave[i] - radii[i] * z
+            pygame.draw.line(s, (130, 220, 230), (round(px), round(top)), (round(px - f * z), round(top - (2.4 - i * 0.15) * z)))
+        hx, hy = pts[0]
+        hx, hy = hx + f * 4 * z, hy - 5 * z + wave[0]
+        pygame.draw.ellipse(s, dark, (hx - 5 * z, hy - 3.5 * z + 1, 11 * z, 7 * z))
+        pygame.draw.ellipse(s, body, (hx - 5 * z, hy - 3.5 * z, 11 * z, 7 * z))
+        pygame.draw.ellipse(s, body, (hx + f * 3 * z - 2.5 * z, hy - 1 * z, 6 * z, 4 * z))  # snout
+        for side in (-1, 1):  # horns
+            hb = hx - f * 1 * z + side * 1.5 * z
+            pygame.draw.line(s, (250, 236, 220), (hb, hy - 3 * z), (hb - f * 2 * z, hy - 6 * z), max(1, round(z)))
+        for i in range(2):  # whiskers
+            w_ = math.sin(t * 2 + i) * z
+            pygame.draw.line(s, belly, (hx + f * 5 * z, hy + 1 * z), (hx + f * 9 * z, hy + (1.5 + i * 1.5) * z + w_))
+        pygame.draw.rect(s, INK, (round(hx + f * 2 * z) - 1, round(hy - 1.5 * z), 2, 2))
+        s.set_at((round(hx + f * 2 * z), round(hy - 1.5 * z)), (255, 255, 255))
+
+    def shine_axolotl3(self, s, t, k):
+        z, f = self.size, self.facing
+        hx, hy = self.tail[0]
+        wave0 = math.sin(t * 2.4 + self.phase) * 1.6 * z * 0
+        hx, hy = hx + f * 4 * z, hy - 5 * z + wave0
+        sway = math.sin(t * 2 + self.phase) * z
+        for g in range(5):  # the crown of glowing gill-fronds
+            for side in (-1, 1):
+                a = -math.pi / 2 - f * 0.9 + side * (0.25 + g * 0.32)
+                ln = (8 - g) * z
+                gx = hx - f * 2 * z + math.cos(a) * ln
+                gy = hy - 2 * z + math.sin(a) * ln * (1 if side < 0 else -0.55) + sway * 0.5
+                c = mix((255, 120, 200), (150, 240, 255), g / 4)
+                pygame.draw.line(s, c, (hx - f * 2 * z, hy - 2 * z), (gx, gy), max(1, round(z)))
+                s.set_at((round(gx), round(gy)), (255, 240, 250))
+        glow(s, hx - f * 2 * z, hy - 6 * z, int(12 * z), self.color, q(70 + 70 * k))
 
 
 # --- the owlet: a tree dweller --------------------------------------------------------
