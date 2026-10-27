@@ -271,8 +271,8 @@ class Flier(Clock):
     def shine(self, s, t):
         self.shine_flier(s, t)
         lit = getattr(self, "glow_" + self.kind, None)  # a later stage's own lights (grown.py)
-        if lit and getattr(self, "stage", 1) > 1:
-            lit(s, t, self.stage, swell(t - self.poked, 0.1, 0.6))
+        if lit and (getattr(self, "stage", 1) > 1 or self.kind in LIT):
+            lit(s, t, getattr(self, "stage", 1), swell(t - self.poked, 0.1, 0.6))
 
     def shine_flier(self, s, t):
         z, x, y = self.size, self.x, self.y
@@ -375,7 +375,7 @@ class Flier(Clock):
                     nx, ny = px - f * 2 * z, py + (1 if (j + int(t * 13)) % 2 else -1) * 2 * z
                     pygame.draw.line(s, self.color, (px, py), (nx, ny))
                     px, py = nx, ny
-        else:  # the wisp
+        elif self.kind == "wisp":
             flick = 0.75 + 0.25 * math.sin(t * 11 + self.phase) * math.sin(t * 7.3)
             st = getattr(self, "stage", 1)
             if st > 1:  # misty arms (and, for Mistwraith, the tatters of a cloak) trailing behind
@@ -1055,7 +1055,7 @@ class Walker(Clock):
         else:
             self.shine_base(s, t)
         lit = getattr(self, "glow_" + self.kind, None)
-        if lit and stage > 1:
+        if lit and (stage > 1 or self.kind in LIT):
             lit(s, t, stage, swell(t - self.poked, 0.1, 0.8))
 
     def shine_base(self, s, t, _k=None):
