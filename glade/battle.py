@@ -431,6 +431,7 @@ class Battle:
         theirs = theirs if isinstance(theirs, list) else [theirs]
         self.teams = [[as_mon(x, self.rng, False) for x in mine][:6], [as_mon(x, self.rng, True) for x in theirs][:6]]
         self.active = [0, 0]
+        self.fought = {0}  # which of yours have been out in this battle
         self.wild = wild
         self.need = None
         self.caught = None
@@ -522,6 +523,8 @@ class Battle:
         if old.status == "tox":
             old.toxic = 0
         self.active[side] = i
+        if side == 0:
+            self.fought.add(i)
         new = self.mons[side]
         if side == 0:
             self.say(f"Come back, {old.name}! Go, {new.name}!" if old.hp > 0 else f"Go, {new.name}!")

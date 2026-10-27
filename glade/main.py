@@ -593,6 +593,10 @@ class Glade:
         self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
 
+    def now(self):
+        """The glade's own clock: seconds since it started."""
+        return time.monotonic() - self.t0
+
     def scene(self, key):
         if key not in self.scenes:
             self.scenes[key] = BUILDERS[key]()

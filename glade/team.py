@@ -83,19 +83,22 @@ BOXES, PER_BOX = 8, 30
 class Kept:
     """One caught creature."""
 
-    def __init__(self, species, ivs, moves, nature=None, evs=None):
+    def __init__(self, species, ivs, moves, nature=None, evs=None, uid=None, wins=0):
         self.species, self.ivs, self.moves = species, tuple(ivs), list(moves)
         self.nature = nature or random.choice(NATURES)
         self.evs = tuple(evs or EVS)
+        self.uid = uid or "%08x" % random.getrandbits(32)  # which one it is, wherever it is kept
+        self.wins = wins  # Battle Tower battles it fought in and won: at 3, then 6 more, it can evolve
 
     def as_dict(self):
         return dict(species=self.species, ivs=list(self.ivs), moves=self.moves, nature=self.nature,
-                    evs=list(self.evs))
+                    evs=list(self.evs), uid=self.uid, wins=self.wins)
 
 
 def _kept(d):
     try:
-        return Kept(d["species"], d["ivs"], d["moves"], d.get("nature"), d.get("evs")) if d else None
+        return Kept(d["species"], d["ivs"], d["moves"], d.get("nature"), d.get("evs"), d.get("uid"),
+                    d.get("wins", 0)) if d else None
     except (KeyError, TypeError):
         return None
 
@@ -116,8 +119,15 @@ class Collection:
         self.names = (data.get("box_names") or [f"Box {i + 1}" for i in range(BOXES)])[:BOXES]
         self.best = data.get("tower_best", 0)
         self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
-        if data and any(k and not (d or {}).get("nature") for k, d in zip(self.party, data.get("party", []))):
-            self.save()  # creatures caught before natures existed: theirs is chosen now, for good
+        saved = [d for d in data.get("party", []) if d] + [d for row in data.get("boxes", []) for d in row if d]
+        if any(not d.get("nature") or not d.get("uid") for d in saved):
+            self.save()  # creatures kept before natures (or ids) existed: theirs are chosen now, for good
+
+    def find(self, uid):
+        for k in self.everyone():
+            if k.uid == uid:
+                return k
+        return None
 
     def members(self):
         return [k for k in self.party if k]

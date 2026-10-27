@@ -182,6 +182,7 @@ class Storage:
         what = f"+{SHORT[up]} -{SHORT[down]}" if up else "no effect"
         self.text(s, what, x0, y + 75, DIM)
         self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 89, DIM)
+        self.text(s, f"Tower wins: {kept.wins}", x0, y + 102, DIM)
         # the stats table: base, IV, EV and the stat itself (raised: mint, lowered: pink)
         maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature)
         values = [maxhp] + [stats[k] for k in ("atk", "def", "spa", "spd", "spe")]

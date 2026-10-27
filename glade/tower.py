@@ -57,6 +57,30 @@ class Run:
         arena.mouse = g.top.mouse
         return arena
 
+    WINS_TO_EVOLVE = (3, 9)  # fought in 3 won battles: its middle form; 6 more: its final form
+
+    def count_wins(self, battle):
+        """Each of yours that went out in a won battle has one more Tower win; any that have
+        enough may evolve (you can stop it: evolve_party.py)."""
+        from evolve import EVOLVES, stage_of
+        box = Collection()
+        ready = []
+        for i in sorted(battle.fought):
+            if i >= len(self.team):
+                continue
+            mine = self.team[i]
+            kept = box.find(mine.uid) or mine
+            kept.wins += 1
+            mine.wins = kept.wins
+            nxt = EVOLVES.get(kept.species)
+            _, stage = stage_of(kept.species)
+            if nxt and kept.wins >= self.WINS_TO_EVOLVE[min(stage, 2) - 1]:
+                ready.append(mine)
+        box.save()
+        if ready and self.glade.board is None:
+            from evolve_party import EvolveBoard
+            self.glade.board = EvolveBoard(self.glade.signs.font, ready, self.glade.now())
+
     def record(self):
         box = Collection()
         if self.streak > box.best:
@@ -76,6 +100,7 @@ class Run:
                 arena.counted = True
                 self.streak += 1
                 self.record()
+                self.count_wins(arena.battle)
 
             def next_one(t):
                 arena.counted = False
