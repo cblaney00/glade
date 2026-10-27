@@ -211,3 +211,19 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Leviolotl 6'10"); never Steelix-big; with 200+ planned, most stay small. An evolved creature is
   drawn `evolve.growth` times its first stage: (height ratio) ** 0.6, capped at 3.2. Dex pictures
   and battle bodies cap that so they fit. **Give every new species a HEIGHT.**
+- **Forest Dex pages two and three** (2026-10-27, his ask; names chosen by Claude under his rule, he
+  said "just go"): all 144 numbers are filled. Page two's later stages (`battle._PAGE2`, stats keep
+  the line's shape at 410/530 via `_spread`) are drawn as extras on their first stage in
+  `glade/grown.py` (`grow_<kind>` after drawing, `glow_<kind>` after its lights, hooked into
+  Walker/Flier draw/shine; Moonhoot's line through `owlet(..., stage)`). Page three is sixteen new
+  three-stage lines (`battle._PAGE3`, #097-#144) in `glade/wave4.py`: each kind's `draw_<kind>` /
+  `glow_<kind>` handles all three stages; `beasts.LIT` lists the kinds that light their surroundings.
+  Heights for all of them in `evolve.HEIGHT`. Next new line: #145 (page four).
+- **Two new places** (his picks): **The Crystal Caverns** (`build_caverns`, MAP (0,-2), up from the
+  Waterfall through a crystal-lit cave mouth on its left flank) and **The Starfall Meadow**
+  (`build_meadow`, MAP (1,-1), right from the Waterfall; falling stars). Page three's creatures live
+  only there, eight lines each.
+- **Additions to the older places** (his ask, Claude's picks): `scenes.additions` — strings of paper
+  lanterns, fairy rings, rune cairns, hollow logs, glowing lotuses; skipped where they'd sit on a path.
+- Claude panel: it takes the keyboard only while the pointer is on the reply box or he is typing, and
+  stops typing as soon as a window is focused, so clicking his terminal always gets the keys back.

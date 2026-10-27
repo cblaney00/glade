@@ -13,7 +13,7 @@ import random
 import pygame
 
 import art
-from art import GLOW, H, W, at_depth, mix
+from art import GLOW, H, W, at_depth, glow, mix
 from beasts import FLIERS, Flier, Walker
 from orchard import Nibbler, Orchard
 from storm import newcomer
@@ -35,9 +35,12 @@ MAP = {
     "ridge": (-2, 0),
     "springs": (2, 0),
     "tower": (0, 2),
+    "caverns": (0, -2),
+    "meadow": (1, -1),
 }
 LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
-         ("forest", "ridge"), ("river", "springs"), ("rocks", "tower")]
+         ("forest", "ridge"), ("river", "springs"), ("rocks", "tower"),
+         ("waterfall", "caverns"), ("waterfall", "meadow")]
 
 
 def heading(here, there):
@@ -477,6 +480,7 @@ def build_glade():
     # four trees of four: his sixteen; the seed sign under them grows more (squids.GROW_AT)
     sc.critter = Critter(rng, lambda x: 460 + 6 * math.sin(x / 80), (360, 640))
     sc.live(sc.critter)
+    additions(sc, rng, [("lanterns", 250, 150, 430, 176), ("ring", 650, 488), ("cairn", 120, 506)])
     second_wave(sc, rng, (80, 60, 760, 170), [(lambda x: 500 + 4 * math.sin(x / 50), (420, 600)), (lambda x: 488 + 3 * math.sin(x / 40), (250, 300))],
                 far=[(lambda x: 402 + 2 * math.sin(x / 40), (540, 690)), (lambda x: 446 + 2 * math.sin(x / 50), (600, 820))])
     bugs = sc.live(Fireflies(rng, (0, 200, W, 300), 34))
@@ -630,8 +634,22 @@ def build_waterfall():
     squids(sc, rng, (80, 120, 800, 220), [GLOW["violet"], GLOW["cyan"]])
     front_frame(sc, rng, top=False)
 
+    lay = art.plane()  # the way up into the Crystal Caverns, and the path out to the Starfall Meadow
+    pygame.draw.ellipse(lay, (20, 12, 36), (150, 318, 56, 52))
+    pygame.draw.rect(lay, (20, 12, 36), (150, 344, 56, 30))
+    for j, c in enumerate(CAVE_CRYSTAL):
+        crystal(lay, 160 + j * 16, 372, 14 + j * 4, 4, c)
+    for j in range(4):  # steps of stone up to it
+        pygame.draw.rect(lay, sc.col("stone", 0.25), (140 + j * 4, 374 + j * 7, 76 - j * 8, 7))
+        pygame.draw.line(lay, mix(sc.col("stone", 0.25), (255, 255, 255), 0.2), (140 + j * 4, 374 + j * 7), (216 - j * 4, 374 + j * 7))
+    earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
+    art.path(lay, [(780, 470), (860, 460), (920, 452), (984, 446)], [24, 32, 40, 48], earth, edge, rng=rng)
+    sc.raw(lay)
+    sc.lamp(178, 350, 90, CAVE_CRYSTAL[0], 80)
     sc.spots = [
         Spot("go", (392, 480, 168, 60), "Back to the Glade", "glade", (468, 516), sign=(470, 506)),
+        Spot("go", (140, 316, 80, 90), "The Crystal Caverns", "caverns", (178, 350), sign=(178, 302)),
+        Spot("go", (872, 420, 88, 70), "The Starfall Meadow", "meadow", (920, 454), sign=(850, 412)),
     ]
     sc.lower = dict(ground=0.2, props=["rocks"], fly=GLOW["cyan"], walkers=WALK + ("rune",), fliers=FLY + ("spark",),
                     out=("rune", "spark"), paths=[dict(
@@ -742,6 +760,7 @@ def build_river():
                        16, 40, stiff=1.3))
     sc.live(Slug(rng, Track([(320, 506), (420, 512), (520, 508), (640, 514), (760, 506)]), (230, 200, 120), size=1.6,
                  speed=4))
+    additions(sc, rng, [("lotus", 230, 362), ("lotus", 300, 384), ("lotus", 540, 372), ("lotus", 470, 392), ("log", 420, 470), ("cairn", 880, 486)])
     second_wave(sc, rng, (100, 60, 760, 220), [(lambda x: 505 + 4 * math.sin(x / 55), (420, 600)), (lambda x: 510 + 3 * math.sin(x / 50), (120, 300))],
                 new=("murk", "glint"),
                 far=[(lambda x: 312 + 2 * math.sin(x / 50), (60, 520)), (lambda x: 432 + 2 * math.sin(x / 40), (200, 600))])
@@ -827,6 +846,7 @@ def build_forest():
     sc.live(Slug(rng, Track([(140, 512), (240, 518), (360, 512), (480, 520)]), (250, 220, 130), size=1.6, speed=4))
     sc.live(Slug(rng, Track([(66, 500), (64, 440), (62, 380)], up=(1, 0)), (140, 120, 220), size=1.3, speed=2,
                  spots=GLOW["pink"]))
+    additions(sc, rng, [("lanterns", 290, 130, 520, 160), ("log", 600, 500), ("ring", 820, 500)])
     second_wave(sc, rng, (100, 120, 700, 200), [(lambda x: 478 + 3 * math.sin(x / 40), (140, 280)), (lambda x: 512 + 3 * math.sin(x / 50), (420, 600))],
                 new=("thistle", "bramble"),
                 far=[(lambda x: 436 + 3 * math.sin(x / 60), (150, 760)), (lambda x: 394 + 2 * math.sin(x / 40), (220, 680))])
@@ -949,6 +969,7 @@ def build_rocks():
             sc.live(Slug(rng, Track([(x, y - 1) for x, y in pts]), body, size=sz, speed=2.5, spots=spots, shell=shell))
     sc.live(Slug(rng, Track([(600, 524), (700, 520), (800, 528), (900, 522)]), (200, 120, 200), size=1.6, speed=4,
                  spots=GLOW["violet"]))
+    additions(sc, rng, [("cairn", 90, 486), ("cairn", 880, 470), ("ring", 330, 500)])
     second_wave(sc, rng, (100, 40, 760, 160), [(lambda x: 506 + 3 * math.sin(x / 50), (300, 520)), (lambda x: 505 + 2 * math.sin(x / 40), (40, 110))],
                 far=[(lambda x: 424 + 2 * math.sin(x / 40), (20, 200)), (lambda x: 434 + 2 * math.sin(x / 45), (700, 930))])
     bugs = sc.live(Fireflies(rng, (0, 180, W, 300), 26, color=GLOW["pink"]))
@@ -1075,6 +1096,7 @@ def build_ridge():
     # who lives here: the new animals of the snow, out from the start, and a few old friends
     grounds = [(lambda x: 470 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 506 + 3 * math.sin(x / 40), (400, 620)),
                (lambda x: 490 + 2 * math.sin(x / 60), (640, 820))]
+    additions(sc, rng, [("cairn", 580, 486), ("lanterns", 660, 300, 900, 330)])
     second_wave(sc, rng, (120, 80, 700, 200), grounds, fliers=("finch", "wisp"), walkers=("fox", "goat", "newt"),
                 out=("fox", "goat", "finch"),
                 far=[(lambda x: 372 + 3 * math.sin(x / 50), (120, 300)), (lambda x: 378 + 3 * math.sin(x / 45), (660, 860)), (lambda x: 440 + 2 * math.sin(x / 40), (300, 640))])
@@ -1200,6 +1222,7 @@ def build_springs():
 
     pool = (lambda x: 418 + 0 * x, (500, 620))  # the big lower pool: the steambara bathes in it
     grounds = [pool, (lambda x: 500 + 3 * math.sin(x / 40), (480, 700)), (lambda x: 512 + 2 * math.sin(x / 50), (160, 340))]
+    additions(sc, rng, [("lanterns", 200, 300, 470, 330), ("lanterns", 520, 320, 760, 300), ("cairn", 860, 500)])
     second_wave(sc, rng, (120, 80, 700, 180), grounds, fliers=("jelly", "moth"), walkers=("capy", "gecko", "beetle"),
                 out=("capy", "gecko", "jelly"),
                 far=[(lambda x: 404 + 2 * math.sin(x / 40), (20, 140)), (lambda x: 452 + 2 * math.sin(x / 50), (300, 700))])
@@ -1310,6 +1333,7 @@ def build_tower():
     sc.lamp(sx, sy - 24, 90, GLOW["amber"], 80)
     glowmoss(sc, art.plane(), 100, 500, 60, 14)
 
+    additions(sc, rng, [("lanterns", 300, 330, 440, 360), ("lanterns", 520, 360, 680, 330), ("ring", 860, 500)])
     second_wave(sc, rng, (100, 80, 760, 180), [(lambda x: 500 + 3 * math.sin(x / 50), (300, 640)),
                                               (lambda x: 516 + 2 * math.sin(x / 40), (700, 900))],
                 far=[(lambda x: 412 + 2 * math.sin(x / 40), (40, 360)), (lambda x: 414 + 2 * math.sin(x / 45), (820, 940))])
@@ -1330,6 +1354,267 @@ def build_tower():
     return sc.done()
 
 
+# --- small additions to the older places (2026-10-27, his ask: more in the existing areas) ------
+
+LANTERN_COLORS = [(255, 190, 120), (255, 150, 200), (190, 170, 255), (150, 240, 220)]
+
+
+def additions(sc, rng, things):
+    """Little things that make a place feel lived in: ("lanterns", x0, y0, x1, y1) a string of paper
+    lanterns, ("ring", x, y) a fairy ring of glowing mushrooms, ("cairn", x, y) a stack of stones
+    with a glowing rune, ("log", x, y) a hollow mossy log, ("lotus", x, y) a glowing lotus on the
+    water. Anything that would sit on a path is left out."""
+    lay = art.plane()
+    glows = []
+    for kind, *a in things:
+        if kind != "lanterns" and art.on_path(a[0], a[1]):
+            continue
+        if kind == "lanterns":
+            x0, y0, x1, y1 = a
+            n = max(3, int(math.hypot(x1 - x0, y1 - y0) // 28))
+            pts = []
+            for i in range(n + 1):
+                f = i / n
+                pts.append((x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + math.sin(f * math.pi) * 18))
+            pygame.draw.lines(lay, (60, 44, 70), False, pts)
+            for i, (x, y) in enumerate(pts[1:-1]):
+                c = LANTERN_COLORS[i % len(LANTERN_COLORS)]
+                pygame.draw.line(lay, (60, 44, 70), (x, y), (x, y + 4))
+                pygame.draw.ellipse(lay, mix(c, (40, 20, 50), 0.3), (x - 4, y + 4, 9, 11))
+                pygame.draw.ellipse(lay, c, (x - 4, y + 4, 8, 10))
+                pygame.draw.line(lay, (60, 44, 70), (x - 2, y + 4), (x + 2, y + 4))
+                sc.emit.set_at((round(x), round(y + 9)), art.scale(c, 0.6))
+                glows.append((x, y + 9, 40, c, 70, i * 1.1))
+        elif kind == "ring":
+            x, y = a
+            for i in range(7):
+                ang = i / 7 * math.tau
+                mushroom(lay, round(x + math.cos(ang) * 26), round(y + math.sin(ang) * 7), 3 + i % 2,
+                         (200, 150, 255) if i % 2 else (150, 240, 220), sc, glows)
+        elif kind == "cairn":
+            x, y = a
+            stone = sc.col("stone", 0.2)
+            for j, (w, h) in enumerate(((22, 9), (17, 8), (13, 7), (8, 6))):
+                cy = y - sum(hh for _, hh in ((22, 9), (17, 8), (13, 7), (8, 6))[:j]) - h // 2
+                pygame.draw.ellipse(lay, mix(stone, (20, 10, 40), 0.35), (x - w // 2, cy - h // 2 + 1, w, h))
+                pygame.draw.ellipse(lay, mix(stone, (255, 255, 255), 0.06 * j), (x - w // 2, cy - h // 2, w, h))
+            c = GLOW["cyan"]
+            for dy in (-14, -12, -10):
+                lay.set_at((x, y + dy), c)
+            lay.set_at((x - 1, y - 13), c)
+            lay.set_at((x + 1, y - 11), c)
+            glows.append((x, y - 12, 50, c, 60, x * 0.03))
+        elif kind == "log":
+            x, y = a
+            bark = sc.col("wood", 0.2)
+            pygame.draw.ellipse(lay, mix(bark, (20, 10, 40), 0.4), (x - 40, y - 15, 80, 18))
+            pygame.draw.rect(lay, bark, (x - 38, y - 16, 76, 14), border_radius=6)
+            for k in range(-34, 34, 6):
+                pygame.draw.line(lay, mix(bark, (20, 10, 40), 0.25), (x + k, y - 14), (x + k + 3, y - 4))
+            pygame.draw.ellipse(lay, mix(bark, (255, 230, 220), 0.25), (x + 32, y - 17, 10, 16))
+            pygame.draw.ellipse(lay, (24, 14, 34), (x + 34, y - 14, 6, 10))
+            pygame.draw.ellipse(lay, sc.col("moss", 0.2), (x - 30, y - 19, 44, 6))
+            for k, cap in ((-24, GLOW["pink"]), (-10, GLOW["violet"]), (6, GLOW["cyan"])):
+                mushroom(lay, x + k, y - 15, 3, cap, sc, glows)
+        elif kind == "lotus":
+            x, y = a
+            pygame.draw.ellipse(lay, (60, 120, 100), (x - 9, y - 2, 18, 6))
+            for j in range(6):
+                ang = math.pi + j / 5 * math.pi
+                tip = (x + math.cos(ang) * 6, y - 2 + math.sin(ang) * 6)
+                pygame.draw.polygon(lay, (255, 196, 230) if j % 2 else (255, 224, 240), [(x - 2, y), (x + 2, y), tip])
+            pygame.draw.circle(lay, (255, 236, 160), (x, y - 2), 2)
+            glows.append((x, y - 3, 44, (255, 180, 220), 70, x * 0.05))
+    sc.raw(lay)
+    if glows:
+        sc.live(Pulses(glows, speed=0.7))
+
+
+class FallingStars:
+    """Now and then a star streaks down the sky (the Starfall Meadow)."""
+
+    def __init__(self, rng):
+        self.rng, self.next, self.star = rng, 3.0, None
+
+    def shine(self, s, t):
+        if self.star is None and t > self.next:
+            self.star = (t, self.rng.uniform(100, 860), self.rng.uniform(30, 160), self.rng.choice((-1, 1)))
+            self.next = t + self.rng.uniform(4, 12)
+        if self.star is None:
+            return
+        t0, x, y, d = self.star
+        a = (t - t0) / 0.9
+        if a > 1:
+            self.star = None
+            return
+        hx, hy = x + d * a * 220, y + a * 110
+        for i in range(14):
+            f = i / 14
+            s.set_at((round(hx - d * f * 50), round(hy - f * 25)), mix((255, 250, 220), (40, 30, 90), f))
+        glow(s, hx, hy, 8, (255, 240, 200), 120)
+
+
+# --- The Crystal Caverns (up from the Waterfall) and the Starfall Meadow (right of it) -------
+# (2026-10-27, his picks: two new places for the Forest Dex's page three)
+
+CAVE_CRYSTAL = [(190, 140, 255), (130, 230, 255), (255, 150, 220)]
+
+
+def crystal(lay, x, y, h, w, color, lean=0.0):
+    """One big crystal, faceted: a lit face and a shaded one, a bright edge."""
+    tip = (x + lean * h, y - h)
+    left, right = (x - w, y), (x + w, y)
+    mid = (x + lean * h * 0.3, y - h * 0.15)
+    pygame.draw.polygon(lay, mix(color, (30, 20, 60), 0.45), [left, mid, tip])
+    pygame.draw.polygon(lay, mix(color, (30, 20, 60), 0.15), [mid, right, tip])
+    pygame.draw.line(lay, mix(color, (255, 255, 255), 0.6), mid, tip)
+
+
+def build_caverns():
+    rng = make_rng(91)
+    p = pal(sky=[(8, 6, 22), (14, 10, 34), (20, 14, 44), (26, 18, 54)],
+            mist=(60, 40, 110), shade=(10, 6, 26), ambient=((200, 190, 255), (60, 44, 110)),
+            leaf=(120, 100, 190), leaf2=(150, 130, 210), leaf3=(70, 56, 130), stone=(110, 96, 170),
+            earth=(150, 130, 200), earth_edge=(96, 80, 150), water=(70, 110, 220), moss=(130, 230, 220))
+    sc = Scene("caverns", "The Crystal Caverns", p, rng)
+    rock, rock2 = sc.col("stone", 0.7), sc.col("stone", 0.45)
+    # the far wall of the cavern, and its ceiling hung with stalactites
+    lay = art.plane()
+    pygame.draw.rect(lay, mix(rock, p["shade"], 0.5), (0, 0, W, H))
+    art.ridge(lay, rng, 200, 50, rock, scales=(160, 50, 16))
+    for _ in range(40):
+        x, ln = rng.randint(0, W), rng.randint(20, 90)
+        w = rng.randint(6, 18)
+        pygame.draw.polygon(lay, mix(rock, p["shade"], 0.3), [(x - w, 0), (x + w, 0), (x + rng.randint(-3, 3), ln)])
+    sc.add(lay, 0.8, veil=0.06)
+    glows = []
+    lay = art.plane()  # far crystals, glowing out of the wall
+    for _ in range(14):
+        x, y = rng.randint(30, W - 30), rng.randint(230, 330)
+        c = rng.choice(CAVE_CRYSTAL)
+        crystal(lay, x, y, rng.randint(20, 46), rng.randint(5, 10), mix(c, rock, 0.35), rng.uniform(-0.3, 0.3))
+        glows.append((x, y - 20, 60, c, 40, rng.random() * 6))
+    sc.add(lay, 0.6, veil=0.03)
+    # the middle: rock shelves either side, an underground pool lit from below
+    lay = art.plane()
+    pygame.draw.polygon(lay, rock2, [(0, 300), (140, 320), (260, 360), (300, 420), (0, 430)])
+    pygame.draw.polygon(lay, rock2, [(W, 290), (800, 316), (690, 360), (650, 420), (W, 430)])
+    art.ridge(lay, rng, 410, 10, sc.col("stone", 0.3), scales=(120, 40, 14))
+    pool = sc.col("water", 0.3)
+    pygame.draw.ellipse(lay, mix(pool, (20, 30, 80), 0.3), (300, 400, 360, 60))
+    pygame.draw.ellipse(lay, mix(pool, CAVE_CRYSTAL[1], 0.3), (320, 408, 320, 44))
+    for i in range(8):
+        pygame.draw.arc(lay, mix(pool, (230, 244, 255), 0.3), (360 + i * 14, 414 + (i % 3) * 8, 120, 14), 0.2, 2.8)
+    sc.add(lay, 0.4, veil=0.02, texture=0.6)
+    sc.lamp(480, 430, 220, CAVE_CRYSTAL[1], 70)
+    # near: the cave floor, a path down to the Waterfall, and great crystal clusters
+    lay = art.plane()
+    art.ridge(lay, rng, 450, 8, sc.col("stone", 0.2), scales=(120, 40, 14))
+    for _ in range(900):
+        x, y = rng.randrange(W), rng.randint(450, H - 1)
+        lay.set_at((x, y), mix(sc.col("stone", 0.2), (255, 255, 255), rng.uniform(0, 0.2)))
+    earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
+    art.path(lay, [(470, 470), (474, 510), (480, 560)], [40, 70, 110], earth, edge, rng=rng)
+    sc.add(lay, 0.2, texture=0.5)
+    lay = art.plane()
+    for cx, cy, n, c in ((110, 470, 5, 0), (230, 440, 3, 1), (720, 440, 4, 2), (850, 476, 6, 1), (640, 500, 3, 0)):
+        for j in range(n):
+            h = rng.randint(24, 70)
+            crystal(lay, cx + (j - n / 2) * 12 + rng.randint(-4, 4), cy, h, rng.randint(6, 12), CAVE_CRYSTAL[c],
+                    rng.uniform(-0.35, 0.35))
+        glows.append((cx, cy - 30, 90, CAVE_CRYSTAL[c], 70, rng.random() * 6))
+    sc.raw(lay)
+    sc.live(Pulses(glows, speed=0.6))
+    for x0, x1 in ((40, 260), (680, 920)):
+        sc.live(GlowThreads(rng, list(range(x0, x1, 7)), lambda x: 30 + (x * 7) % 40, (10, 70), CAVE_CRYSTAL[1]))
+    sc.live(Motes(rng, (0, 100, W, 380), 60, CAVE_CRYSTAL[0], rise=-6))
+
+    grounds = [(lambda x: 470 + 2 * math.sin(x / 40), (120, 330)), (lambda x: 506 + 3 * math.sin(x / 50), (560, 820)),
+               (lambda x: 496 + 2 * math.sin(x / 60), (300, 420))]
+    second_wave(sc, rng, (120, 120, 720, 200), grounds, fliers=("hum", "umbra"),
+                walkers=("geode", "drip", "lumi", "ferro", "shard", "pebble"), out=("geode", "lumi", "shard", "hum"),
+                far=[(lambda x: 318 + 2 * math.sin(x / 40), (40, 230)), (lambda x: 316 + 2 * math.sin(x / 45), (730, 930))])
+    sc.live(Slug(rng, Track([(560, 520), (660, 524), (780, 518)]), (170, 150, 230), size=1.4, speed=3, spots=CAVE_CRYSTAL[1]))
+    bugs = sc.live(Fireflies(rng, (0, 200, W, 260), 18, color=CAVE_CRYSTAL[1], reach=22))
+    sc.bugs.append(bugs)
+
+    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Waterfall", "waterfall", (476, 516), sign=(476, 504))]
+    sc.lower = dict(ground=0.12, props=["rocks", "crystals"], fly=CAVE_CRYSTAL[1], bushes=False,
+                    walkers=("geode", "drip", "lumi", "ferro", "shard", "pebble"), fliers=("hum", "umbra"),
+                    out=("geode", "shard", "hum"))
+    return sc.done()
+
+
+METEOR = (255, 190, 130)
+
+
+def build_meadow():
+    rng = make_rng(64)
+    p = pal(sky=[(6, 6, 30), (20, 18, 70), (50, 40, 120), (100, 80, 170)],
+            mist=(90, 80, 160), shade=(12, 10, 40), ambient=((240, 236, 255), (90, 84, 160)),
+            leaf=(110, 190, 150), leaf2=(150, 214, 160), leaf3=(60, 120, 120),
+            flowers=[(255, 236, 160), (255, 200, 230), (200, 180, 255), (255, 255, 255), (160, 240, 255)])
+    sc = Scene("meadow", "The Starfall Meadow", p, rng)
+    sc.live(Stars(rng, 420, 330))  # the sky is closest here: more stars than anywhere
+    sc.live(FallingStars(rng))
+    moon(sc, 150, 64, 22)
+    lay = art.plane()  # the milky way, a soft band across the sky
+    for i in range(1600):
+        f = rng.random()
+        x = int(f * W)
+        y = int(40 + f * 140 + rng.gauss(0, 18))
+        if 0 <= y < H:
+            lay.set_at((x, y), mix((200, 190, 255), (255, 255, 255), rng.random()))
+    sc.raw(lay)
+    lay = art.plane()
+    art.mountains(lay, rng, 330, 50, sc.col("lav", 0.9), scales=(180, 60, 20), side=p["moon_side"])
+    sc.add(lay, 0.9, veil=0.05)
+    # rolling hills of tall grass
+    for d, y0, amp in ((0.6, 360, 26), (0.4, 400, 20)):
+        lay = art.plane()
+        art.ridge(lay, rng, y0, amp, sc.col("leaf2", d), scales=(200, 60, 20))
+        art.grass_bed(lay, rng, (0, y0 - 10, W, 60), sc.col("leaf", d), 900, 5)
+        sc.add(lay, d, veil=0.04, low=0.08)
+    # fallen-star stones: dark rocks with a glow in their cracks, a crater ring round the big one
+    glows = []
+    lay = art.plane()
+    for x, y, w, h in ((700, 420, 70, 40), (250, 410, 40, 26), (560, 440, 30, 20)):
+        pygame.draw.ellipse(lay, sc.col("earth_edge", 0.3), (x - w, y + h // 2 - 6, w * 2, 14))
+        art.rock(lay, rng, x, y, w, h, (90, 70, 100))
+        for j in range(4):
+            a = rng.random() * math.tau
+            pygame.draw.line(lay, METEOR, (x, y), (x + math.cos(a) * w * 0.4, y + math.sin(a) * h * 0.4))
+        glows.append((x, y, w * 2, METEOR, 70, rng.random() * 6))
+    sc.add(lay, 0.3)
+    sc.live(Pulses(glows, speed=0.9))
+    # near: the meadow itself, flowers everywhere, the path back to the Waterfall
+    lay = art.plane()
+    art.ridge(lay, rng, 446, 8, sc.col("leaf2", 0.2), scales=(120, 40, 14))
+    art.grass_bed(lay, rng, (0, 446, W, 100), sc.col("leaf", 0.18), 1800, 7)
+    art.flowers(lay, rng, (0, 450, W, 90), p["flowers"], 160)
+    earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
+    art.path(lay, [(-24, 486), (120, 480), (260, 470), (380, 462)], [48, 44, 36, 22], earth, edge, rng=rng)
+    sc.add(lay, 0.2, texture=0.5)
+    sc.live(Blades(rng, (0, 420, W, 120), 380, [sc.col("leaf", 0.1), sc.col("leaf2", 0.1)], 14, 40, stiff=1.2))
+    sc.live(Fireflies(rng, (0, 300, W, 200), 40, color=(255, 236, 160), reach=24))
+    sc.live(Motes(rng, (0, 0, W, 480), 50, (255, 240, 200), rise=-8))
+
+    grounds = [(lambda x: 490 + 3 * math.sin(x / 50), (120, 360)), (lambda x: 506 + 3 * math.sin(x / 45), (460, 700)),
+               (lambda x: 480 + 2 * math.sin(x / 60), (720, 900))]
+    additions(sc, rng, [("ring", 830, 500), ("cairn", 600, 470)])
+    second_wave(sc, rng, (100, 60, 760, 220), grounds, fliers=("meteor", "zap", "dream", "wish"),
+                walkers=("twinkle", "tuft", "kick", "dust"), out=("twinkle", "tuft", "wish", "dream"),
+                far=[(lambda x: 404 + 2 * math.sin(x / 40), (60, 400)), (lambda x: 364 + 2 * math.sin(x / 50), (520, 900))])
+    squids(sc, rng, (120, 80, 700, 200), [GLOW["violet"], (255, 236, 160)])
+    front_frame(sc, rng, top=False)
+
+    sc.spots = [Spot("go", (0, 430, 96, 90), "Back to the Waterfall", "waterfall", (30, 476), sign=(116, 430))]
+    sc.lower = dict(ground=0.2, props=["mushrooms"], fly=(255, 236, 160),
+                    walkers=("twinkle", "tuft", "kick", "dust"), fliers=("meteor", "zap", "dream", "wish"),
+                    out=("twinkle", "wish"))
+    return sc.done()
+
+
 BUILDERS = {
     "glade": build_glade,
     "waterfall": build_waterfall,
@@ -1339,4 +1624,6 @@ BUILDERS = {
     "ridge": build_ridge,
     "springs": build_springs,
     "tower": build_tower,
+    "caverns": build_caverns,
+    "meadow": build_meadow,
 }

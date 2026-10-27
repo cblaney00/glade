@@ -345,10 +345,11 @@ class Minimap:
     Pointing at another place shows its name; clicking it goes there."""
 
     NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
-                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower")
+                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower",
+                 caverns="The Crystal Caverns", meadow="The Starfall Meadow")
     COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
                   forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110),
-                  tower=(255, 214, 236))
+                  tower=(255, 214, 236), caverns=(190, 140, 255), meadow=(255, 236, 160))
     CELL = 22  # canvas pixels between neighbouring places
 
     def __init__(self, font):
