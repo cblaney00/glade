@@ -967,9 +967,9 @@ MINE = (110, 255, 180)   # your animal: the paths' mint green
 THEIRS = (255, 150, 214)  # its opponent: blossom pink
 STEP = 0.95               # seconds each line of the log is shown before the next
 WALK = 1.6                # seconds to walk onto the field (and home again)
-# the field in the top screen's bottom-right corner: where each fighter stands (yours near,
+# the field in the middle of the top screen: where each fighter stands (yours near,
 # its opponent further back, as in the games) and the size of its mossy platform
-SPOTS = ((690, 498), (862, 452))
+SPOTS = ((400, 500), (570, 462))  # the middle of the screen, below the board
 PADS = ((112, 26), (86, 20))
 
 
@@ -1137,7 +1137,7 @@ class Arena:
     def fighters(self):
         return list(self.out.values()) + self.leavers
 
-    SPOTS = ((10, 324), (290, 8), (10, 8), (570, 8), (290, 150))  # where the board may sit, best first
+    SPOTS = ((290, 26), (10, 26), (570, 26), (290, 120))  # where the board may sit, best first (clear of the top bar)
 
     def place(self, content):
         """Put the board where it covers none of this place's signs or icons (the first
