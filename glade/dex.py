@@ -106,7 +106,8 @@ def paint(pic, thing, t):
         pygame.draw.rect(pic, mix(GLOW["violet"], EDGE, 0.5), pad, border_radius=3)
         pygame.draw.rect(pic, mix(GLOW["violet"], (255, 255, 255), 0.4), pad, 1, border_radius=3)
         if thing[1] == "owlet":
-            owlet(pic, x, y, 0.8, GLOW["violet"], t, 1.0, None, -10)
+            st = thing[2] if len(thing) > 2 else 1
+            owlet(pic, x, y + (3 if st > 1 else 0), 0.8 if st == 1 else 0.7, GLOW["violet"], t, 1.0, None, -10, st)
         else:
             from squids import TreeSquid
             sq = TreeSquid({"kind": "app", "id": "dex"}, x, y + (4 if len(thing) > 2 else 0), 0.8 if len(thing) < 3 else 0.7)

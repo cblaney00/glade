@@ -396,6 +396,109 @@ for _name, *_args in _LATER:
     SPECIES[_name] = _grown(*_args)
 
 
+def _spread(shape, total):
+    """Base stats in the proportions of `shape`, adding up to `total`."""
+    k = total / sum(shape)
+    out = [max(10, round(v * k)) for v in shape]
+    out[out.index(max(out))] += total - sum(out)
+    return tuple(out)
+
+
+# Forest Dex pages two and three (2026-10-27, his ask; names under his rules): page two's lines
+# get their later stages, and page three is sixteen new lines from two new places, the Crystal
+# Caverns and the Starfall Meadow (#097-#144). Each later stage: (name, from, num, types, shape,
+# ability, more moves); its base stats keep the shape, totalling 410 (middle) or 530 (final).
+_PAGE2 = [
+    ("Sporecrown", "Sporestride", 51, ("Grass", "Poison"), None, "Effect Spore", ["Sludge Bomb", "Spore", "Earthquake"]),
+    ("Frostslink", "Rimeslink", 53, ("Water", "Ice"), None, "Water Absorb", ["Ice Beam", "Surf", "Waterfall"]),
+    ("Hailmaw", "Frostslink", 54, ("Water", "Ice"), (95, 90, 80, 100, 80, 85), "Water Absorb", ["Hydro Pump", "Crunch", "Rest"]),
+    ("Copperclad", "Coppernib", 56, ("Steel", "Electric"), None, "Static", ["Metal Claw", "Thunderbolt", "Protect"]),
+    ("Voltbastion", "Copperclad", 57, ("Steel", "Electric"), (80, 100, 120, 95, 75, 60), "Static", ["Meteor Mash", "Earthquake", "Swords Dance"]),
+    ("Duskhoot", "Moonhoot", 59, ("Normal", "Flying"), None, "Keen Eye", ["Wing Attack", "Psybeam", "Faint Attack"]),
+    ("Lunarch", "Duskhoot", 60, ("Psychic", "Flying"), (90, 70, 75, 115, 100, 80), "Keen Eye", ["Psychic", "Calm Mind", "Shadow Ball", "Hypnosis"]),
+    ("Glimmerpaw", "Frostpaw", 62, ("Ice",), None, "Run Away", ["Ice Beam", "Crunch", "Icy Wind"]),
+    ("Auroracle", "Glimmerpaw", 63, ("Ice", "Psychic"), (75, 70, 70, 115, 95, 105), "Run Away", ["Psychic", "Calm Mind", "Confuse Ray"]),
+    ("Cragfluff", "Fluffhorn", 65, ("Rock", "Normal"), None, "Rock Head", ["Rock Slide", "Double-Edge", "Iron Defense"]),
+    ("Peakcloak", "Cragfluff", 66, ("Rock", "Fighting"), (100, 115, 115, 55, 80, 65), "Rock Head", ["Cross Chop", "Earthquake", "Bulk Up"]),
+    ("Shimmertrill", "Shimmerchirp", 68, ("Ice", "Flying"), None, "Keen Eye", ["Ice Beam", "Aerial Ace", "Air Cutter"]),
+    ("Boreallume", "Shimmertrill", 69, ("Ice", "Flying"), (75, 70, 70, 110, 90, 115), "Keen Eye", ["Aurora Beam", "Calm Mind", "Twister"]),
+    ("Steamsoak", "Steambara", 71, ("Water", "Fire"), None, "Oblivious", ["Surf", "Flamethrower", "Rest"]),
+    ("Geyserbelly", "Steamsoak", 72, ("Water", "Fire"), (125, 70, 95, 100, 95, 45), "Oblivious", ["Hydro Pump", "Heat Wave", "Calm Mind"]),
+    ("Cindercling", "Embercling", 74, ("Fire", "Ground"), None, "Flash Fire", ["Flamethrower", "Mud Shot", "Slash"]),
+    ("Magmascale", "Cindercling", 75, ("Fire", "Ground"), (80, 110, 80, 95, 70, 95), "Flash Fire", ["Earthquake", "Blaze Kick", "Dragon Dance"]),
+    ("Vaporbell", "Vaporwobble", 77, ("Water", "Electric"), None, "Static", ["Thunderbolt", "Surf", "Recover"]),
+    ("Stormbloom", "Vaporbell", 78, ("Water", "Electric"), (90, 50, 75, 120, 115, 80), "Static", ["Hydro Pump", "Calm Mind", "Thunder Wave"]),
+    ("Bramblesnare", "Bramblit", 80, ("Grass", "Dark"), None, "Poison Point", ["Giga Drain", "Crunch", "Leech Seed"]),
+    ("Thornregent", "Bramblesnare", 81, ("Grass", "Dark"), (90, 115, 95, 75, 75, 80), "Poison Point", ["Swords Dance", "Slash", "Sludge Bomb"]),
+    ("Thistlegaze", "Thistlume", 83, ("Psychic", "Flying"), None, "Keen Eye", ["Psychic", "Air Cutter", "Hypnosis"]),
+    ("Thistleseer", "Thistlegaze", 84, ("Psychic", "Flying"), (70, 50, 65, 125, 110, 110), "Keen Eye", ["Calm Mind", "Shadow Ball", "Silver Wind"]),
+    ("Runestand", "Runelet", 86, ("Rock", "Ghost"), None, "Sturdy", ["Shadow Ball", "Rock Slide", "Curse"]),
+    ("Runewarden", "Runestand", 87, ("Rock", "Ghost"), (90, 100, 130, 90, 90, 30), "Sturdy", ["Earthquake", "Pain Split", "Calm Mind"]),
+    ("Arcfly", "Sparkfly", 89, ("Electric", "Bug"), None, "Static", ["Thunderbolt", "Signal Beam", "Agility"]),
+    ("Thunderfly", "Arcfly", 90, ("Electric", "Bug"), (70, 70, 65, 110, 80, 135), "Static", ["Tail Glow", "Silver Wind", "Double Team"]),
+    ("Murkgloop", "Murkling", 92, ("Water", "Poison"), None, "Liquid Ooze", ["Sludge Bomb", "Surf", "Toxic"]),
+    ("Murkdredge", "Murkgloop", 93, ("Water", "Poison"), (120, 80, 90, 95, 105, 40), "Liquid Ooze", ["Hydro Pump", "Recover", "Shadow Ball"]),
+    ("Glintdome", "Glintshell", 95, ("Steel",), None, "Shell Armor", ["Iron Defense", "Metal Claw", "Rock Slide"]),
+    ("Glintcitadel", "Glintdome", 96, ("Steel", "Rock"), (90, 105, 140, 60, 90, 45), "Shell Armor", ["Meteor Mash", "Earthquake", "Rest"]),
+]
+
+# page three: (first, middle, final, types, final types, shape, ability, moves)
+_PAGE3 = [
+    # the Crystal Caverns (above the Waterfall)
+    ("Geodling", "Geodcrest", "Geodsage", ("Rock", "Psychic"), None, (70, 55, 95, 90, 85, 35), "Sturdy",
+     ["Rock Tomb", "Confusion", "Harden", "Ancient Power", "Psybeam", "Rock Slide", "Calm Mind", "Psychic", "Iron Defense"]),
+    ("Humlet", "Humchime", "Resonarch", ("Steel", "Psychic"), None, (60, 45, 85, 95, 85, 60), "Levitate",
+     ["Confusion", "Metal Claw", "Supersonic", "Psybeam", "Iron Defense", "Hypnosis", "Psychic", "Screech", "Calm Mind"]),
+    ("Dripling", "Dripspire", "Stalagdeep", ("Water", "Ground"), None, (85, 80, 85, 60, 70, 50), "Water Absorb",
+     ["Water Gun", "Mud-Slap", "Mud Shot", "Water Pulse", "Rock Tomb", "Surf", "Earthquake", "Amnesia", "Rest"]),
+    ("Lumicrawl", "Lumitrek", "Lumicaravan", ("Bug", "Rock"), None, (70, 90, 105, 50, 70, 45), "Shell Armor",
+     ["Leech Life", "Harden", "Rock Tomb", "Signal Beam", "Pin Missile", "Rock Slide", "Flash", "Ancient Power", "Iron Defense"]),
+    ("Umbrit", "Umbrage", "Umbravast", ("Dark", "Ghost"), None, (55, 85, 60, 85, 65, 95), "Levitate",
+     ["Astonish", "Faint Attack", "Night Shade", "Confuse Ray", "Bite", "Shadow Ball", "Crunch", "Double Team", "Curse"]),
+    ("Ferrodig", "Ferrodrill", "Ferrocore", ("Steel", "Ground"), None, (75, 105, 100, 45, 60, 65), "Rock Head",
+     ["Metal Claw", "Mud-Slap", "Sand-Attack", "Iron Tail", "Mud Shot", "Iron Defense", "Earthquake", "Swords Dance", "Slash"]),
+    ("Shardling", "Shardfang", "Shardsovereign", ("Dragon", "Ice"), None, (85, 115, 85, 90, 75, 80), "Sturdy",
+     ["Dragon Breath", "Powder Snow", "Bite", "Icy Wind", "Dragon Claw", "Ice Beam", "Crunch", "Dragon Dance", "Twister"]),
+    ("Pebblefist", "Cobblefist", "Quarryfist", ("Fighting", "Rock"), None, (85, 120, 100, 40, 75, 60), "Guts",
+     ["Karate Chop", "Rock Tomb", "Mach Punch", "Harden", "Brick Break", "Rock Slide", "Bulk Up", "Cross Chop", "Fire Punch"]),
+    # the Starfall Meadow (beside the Waterfall)
+    ("Twinklet", "Twinkstride", "Celestide", ("Normal",), ("Normal", "Psychic"), (90, 70, 75, 95, 95, 75), "Keen Eye",
+     ["Quick Attack", "Flash", "Confusion", "Return", "Psybeam", "Calm Mind", "Body Slam", "Psychic", "Morning Sun"]),
+    ("Tufflet", "Tuftrot", "Meadowmane", ("Grass", "Normal"), None, (95, 95, 80, 70, 80, 80), "Overgrow",
+     ["Absorb", "Quick Attack", "Magical Leaf", "Headbutt", "Leech Seed", "Body Slam", "Giga Drain", "Synthesis", "Double-Edge"]),
+    ("Meteorlet", "Meteorblaze", "Starforge", ("Fire", "Rock"), None, (80, 110, 90, 100, 70, 80), "Flash Fire",
+     ["Ember", "Rock Tomb", "Flamethrower", "Ancient Power", "Rock Slide", "Heat Wave", "Will-O-Wisp", "Meteor Mash", "Take Down"]),
+    ("Kickbud", "Kickbloom", "Kickgrove", ("Fighting", "Grass"), None, (85, 120, 85, 60, 75, 105), "Guts",
+     ["Karate Chop", "Absorb", "Mach Punch", "Magical Leaf", "Brick Break", "Blaze Kick", "Giga Drain", "Bulk Up", "Leech Seed"]),
+    ("Zaplet", "Zapstreak", "Zaptempest", ("Electric", "Flying"), None, (70, 75, 65, 105, 75, 140), "Static",
+     ["Spark", "Gust", "Thunder Wave", "Shock Wave", "Wing Attack", "Thunderbolt", "Agility", "Aerial Ace", "Air Cutter"]),
+    ("Dreamote", "Dreamwing", "Dreamloom", ("Bug", "Psychic"), None, (70, 50, 70, 115, 105, 120), "Shield Dust",
+     ["Confusion", "Silver Wind", "Sleep Powder", "Psybeam", "Signal Beam", "Hypnosis", "Psychic", "Calm Mind", "Morning Sun"]),
+    ("Dustlet", "Dustwhirl", "Dustcyclone", ("Ground",), ("Ground", "Flying"), (75, 100, 75, 70, 70, 140), "Run Away",
+     ["Sand-Attack", "Mud-Slap", "Quick Attack", "Mud Shot", "Gust", "Agility", "Earthquake", "Twister", "Double Team"]),
+    ("Wishlet", "Wishlantern", "Wishhaven", ("Ghost", "Psychic"), None, (90, 50, 80, 110, 120, 80), "Levitate",
+     ["Astonish", "Confusion", "Flash", "Night Shade", "Psybeam", "Morning Sun", "Shadow Ball", "Psychic", "Recover"]),
+]
+
+
+def _grown_shaped(name, first, num, types, shape, ability, more):
+    total = 410 if num % 3 == 2 else 530  # middle stages sit in the middle of their line's three numbers
+    d = _grown(first, num, types, _spread(shape or SPECIES[first]["base"], total), ability, more)
+    return d
+
+
+for _name, _first, _num, _types, _shape, _ability, _more in _PAGE2:
+    SPECIES[_name] = _grown_shaped(_name, _first, _num, _types, _shape, _ability, _more)
+for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE3):
+    _num = 97 + _i * 3
+    _first = list(_shape)
+    _first[1 if _shape[1] >= _shape[3] else 3] += 8  # a first stage leans on its best attack a little more
+    SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 312), ability=_ability, pool=_pool[:6])
+    SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
+    SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
+
+
+
 STATS = ("atk", "def", "spa", "spd", "spe")
 STAT_NAME = {"atk": "Attack", "def": "Defense", "spa": "Sp. Atk", "spd": "Sp. Def", "spe": "Speed",
              "acc": "accuracy", "eva": "evasiveness"}

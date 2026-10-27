@@ -264,7 +264,7 @@ def body(species, at=(480, 300)):
         if len(thing) > 2:  # Boughgrip, Canopolis
             from evolve import growth, species_at
             sq.stage = thing[2]
-            sq.size = min(1.6, growth(species_at("Canopod", thing[2])))
+            sq.size = min(1.6, growth(species_at("Moonhoot" if thing[1] == "owlet" else "Canopod", thing[2])))
         return Drawn(sq, perched=True)
     shift(thing, dx, dy)
     return Drawn(thing)

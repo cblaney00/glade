@@ -326,7 +326,7 @@ class TreeSquid:
         sz, x, y = self.size * self.fade, self.x, self.y
         how = self.moving()
         if getattr(self, "kind", "squid") == "owlet":  # a Moonhoot holds this one (beasts.py)
-            owlet(s, x, y, sz, self.color, t, self.phase, how, self.poked)
+            owlet(s, x, y, sz, self.color, t, self.phase, how, self.poked, getattr(self, "stage", 1))
             return
         breathe = math.sin(t * 1.1 + self.phase)
         k = swell(t - self.poked, 0.35, 1.2, wait=0.15)  # opening it: a gentle wiggle and glow

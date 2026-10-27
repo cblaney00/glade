@@ -63,6 +63,21 @@ HEIGHT = {
     "Moonhoot": 1.0, "Frostpaw": 1.3, "Fluffhorn": 1.8, "Shimmerchirp": 0.7, "Steambara": 2.0,
     "Embercling": 1.1, "Vaporwobble": 1.4, "Rimeslink": 1.0, "Coppernib": 0.6, "Bramblit": 1.1,
     "Thistlume": 0.9, "Runelet": 1.4, "Sparkfly": 0.4, "Murkling": 1.2, "Glintshell": 0.9,
+    # pages two and three (2026-10-27)
+    "Sporecrown": 4.6, "Frostslink": 2.6, "Hailmaw": 5.0, "Copperclad": 1.8, "Voltbastion": 3.9,
+    "Duskhoot": 2.2, "Lunarch": 4.4, "Glimmerpaw": 2.6, "Auroracle": 4.3, "Cragfluff": 3.0, "Peakcloak": 5.0,
+    "Shimmertrill": 1.9, "Boreallume": 4.6, "Steamsoak": 3.4, "Geyserbelly": 5.1, "Cindercling": 2.4,
+    "Magmascale": 4.8, "Vaporbell": 2.6, "Stormbloom": 4.4, "Bramblesnare": 2.4, "Thornregent": 4.5,
+    "Thistlegaze": 2.0, "Thistleseer": 3.8, "Runestand": 3.2, "Runewarden": 5.5, "Arcfly": 1.1, "Thunderfly": 3.0,
+    "Murkgloop": 2.5, "Murkdredge": 4.2, "Glintdome": 2.0, "Glintcitadel": 4.0,
+    "Geodling": 1.2, "Geodcrest": 2.6, "Geodsage": 4.3, "Humlet": 0.8, "Humchime": 2.1, "Resonarch": 4.4,
+    "Dripling": 1.0, "Dripspire": 2.5, "Stalagdeep": 4.7, "Lumicrawl": 1.0, "Lumitrek": 2.6, "Lumicaravan": 4.6,
+    "Umbrit": 0.9, "Umbrage": 2.4, "Umbravast": 5.2, "Ferrodig": 1.3, "Ferrodrill": 2.9, "Ferrocore": 4.9,
+    "Shardling": 1.5, "Shardfang": 3.4, "Shardsovereign": 6.6, "Pebblefist": 1.6, "Cobblefist": 3.3, "Quarryfist": 5.6,
+    "Twinklet": 0.9, "Twinkstride": 2.4, "Celestide": 4.5, "Tufflet": 1.2, "Tuftrot": 2.8, "Meadowmane": 4.9,
+    "Meteorlet": 0.7, "Meteorblaze": 2.2, "Starforge": 5.0, "Kickbud": 1.4, "Kickbloom": 3.1, "Kickgrove": 5.4,
+    "Zaplet": 0.8, "Zapstreak": 2.3, "Zaptempest": 4.8, "Dreamote": 0.6, "Dreamwing": 2.0, "Dreamloom": 4.1,
+    "Dustlet": 0.7, "Dustwhirl": 2.4, "Dustcyclone": 4.7, "Wishlet": 0.8, "Wishlantern": 2.3, "Wishhaven": 4.4,
 }
 
 
@@ -101,6 +116,20 @@ def stage_of(species):
     while species in EVOLVED_FROM:
         species, n = EVOLVED_FROM[species], n + 1
     return species, n
+# pages two and three of the Forest Dex (2026-10-27): every line from #049 to #144 has three stages
+EVOLVES.update({
+    "Sporestride": "Sporecrown", "Rimeslink": "Frostslink", "Frostslink": "Hailmaw",
+    "Coppernib": "Copperclad", "Copperclad": "Voltbastion", "Moonhoot": "Duskhoot", "Duskhoot": "Lunarch",
+    "Frostpaw": "Glimmerpaw", "Glimmerpaw": "Auroracle", "Fluffhorn": "Cragfluff", "Cragfluff": "Peakcloak",
+    "Shimmerchirp": "Shimmertrill", "Shimmertrill": "Boreallume", "Steambara": "Steamsoak", "Steamsoak": "Geyserbelly",
+    "Embercling": "Cindercling", "Cindercling": "Magmascale", "Vaporwobble": "Vaporbell", "Vaporbell": "Stormbloom",
+    "Bramblit": "Bramblesnare", "Bramblesnare": "Thornregent", "Thistlume": "Thistlegaze", "Thistlegaze": "Thistleseer",
+    "Runelet": "Runestand", "Runestand": "Runewarden", "Sparkfly": "Arcfly", "Arcfly": "Thunderfly",
+    "Murkling": "Murkgloop", "Murkgloop": "Murkdredge", "Glintshell": "Glintdome", "Glintdome": "Glintcitadel",
+})
+from battle import _PAGE3  # noqa: E402
+for _a, _b, _c, *_ in _PAGE3:
+    EVOLVES[_a], EVOLVES[_b] = _b, _c
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself
 BANNER = 2.6      # how long "… evolved into …!" stays up afterwards

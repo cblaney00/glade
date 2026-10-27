@@ -42,6 +42,7 @@ FLIERS = dict(
     spark=dict(species="Sparkfly", body=(84, 100, 190), color=(255, 246, 130), speed=95, turn=0.7),
 )
 AURORA = [(140, 255, 200), (120, 220, 255), (190, 150, 255), (255, 150, 220)]
+LIT = set()  # kinds added in grown.py / wave4.py that light up their surroundings
 PRISM = [(255, 130, 150), (255, 190, 110), (255, 240, 130), (140, 255, 170), (120, 210, 255), (180, 150, 255)]
 
 
@@ -115,6 +116,9 @@ class Flier(Clock):
     def draw(self, s, t):
         self.update(self.tick(t), t)
         getattr(self, "draw_" + self.kind)(s, t)
+        grow = getattr(self, "grow_" + self.kind, None)  # a later stage's extras (grown.py)
+        if grow and getattr(self, "stage", 1) > 1:
+            grow(s, t, self.stage)
 
     # the bat: a velvet body, pointed ears, wings that beat fast
     def draw_bat(self, s, t):
@@ -261,10 +265,16 @@ class Flier(Clock):
         s.set_at((round(x + f * 2.5 * z), round(y - z)), (255, 255, 255))
 
     def light(self, lm, t):
-        if self.kind in ("moth", "wisp", "drake", "jelly", "finch", "thistle", "spark"):
+        if self.kind in ("moth", "wisp", "drake", "jelly", "finch", "thistle", "spark") or self.kind in LIT:
             glow(lm, self.x, self.y, int(30 * self.size), self.color, q(60 + 20 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
+        self.shine_flier(s, t)
+        lit = getattr(self, "glow_" + self.kind, None)  # a later stage's own lights (grown.py)
+        if lit and getattr(self, "stage", 1) > 1:
+            lit(s, t, self.stage, swell(t - self.poked, 0.1, 0.6))
+
+    def shine_flier(self, s, t):
         z, x, y = self.size, self.x, self.y
         k = swell(t - self.poked, 0.1, 0.6)
         if self.kind == "bat":
@@ -536,6 +546,9 @@ class Walker(Clock):
         stage = getattr(self, "stage", 1)
         fn = getattr(self, f"draw_{self.kind}{stage}", None) if stage > 1 else None
         (fn or getattr(self, "draw_" + self.kind))(s, t)
+        grow = getattr(self, "grow_" + self.kind, None)  # a later stage's extras (grown.py)
+        if grow and stage > 1:
+            grow(s, t, stage)
 
     def eyes(self, s, x, y, gap, r=1):
         blink = (self.phase * 3 + getattr(self, "_t", 0.0)) % 5 < 0.12  # every few seconds
@@ -1031,7 +1044,7 @@ class Walker(Clock):
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 12 * math.sin(t * 2 + self.phase)))
         if self.kind in ("fox", "gecko", "capy"):
             glow(lm, self.x, self.y - 6 * self.size, int(20 * self.size), self.color, q(36 + 12 * math.sin(t * 2 + self.phase)))
-        if self.kind in ("sporeling", "beetle", "mole", "bramble", "rune", "murk", "glint"):
+        if self.kind in ("sporeling", "beetle", "mole", "bramble", "rune", "murk", "glint") or self.kind in LIT:
             glow(lm, self.x, self.y - 8 * self.size, int(22 * self.size), self.color, q(40 + 15 * math.sin(t * 2 + self.phase)))
 
     def shine(self, s, t):
@@ -1041,6 +1054,9 @@ class Walker(Clock):
             fn(s, t, swell(t - self.poked, 0.1, 0.8))
         else:
             self.shine_base(s, t)
+        lit = getattr(self, "glow_" + self.kind, None)
+        if lit and stage > 1:
+            lit(s, t, stage, swell(t - self.poked, 0.1, 0.8))
 
     def shine_base(self, s, t, _k=None):
         z, x, y, f = self.size, self.x, self.y, self.facing
@@ -1528,13 +1544,22 @@ class Walker(Clock):
 
 # --- the owlet: a tree dweller --------------------------------------------------------
 
-def owlet(s, x, y, sz, color, t, phase, how, poked):
+def owlet(s, x, y, sz, color, t, phase, how, poked, stage=1):
     """A Moonhoot perched where a tree squid would be, the app icon (drawn below it,
     at y + 19) gripped in its talons. It blinks slowly, turns its head now and then, and
     flaps when it is moving to another tree."""
     body = mix((200, 186, 230), color, 0.25)
+    if stage > 1:  # Duskhoot: dusk-violet plumage; Lunarch: the deep blue of the night sky
+        body = (150, 128, 200) if stage == 2 else (96, 104, 190)
     dark = mix(body, INK, 0.4)
     k = swell(t - poked, 0.35, 1.2, wait=0.15)
+    if stage > 2:  # Lunarch: a crescent moon behind its head, and long tail plumes
+        hx, hy = x, y - 14 * sz
+        glow(s, hx, hy, int(14 * sz), (255, 236, 180), q(60 + 60 * k))
+        pygame.draw.circle(s, (255, 240, 190), (round(hx), round(hy)), max(3, round(9 * sz)))
+        pygame.draw.circle(s, (40, 40, 90), (round(hx + 3 * sz), round(hy - 2 * sz)), max(3, round(8 * sz)))
+        for side in (-1, 0, 1):
+            pygame.draw.line(s, (130, 140, 230), (x + side * 2 * sz, y + 2 * sz), (x + side * 4 * sz, y + 14 * sz), max(1, round(sz)))
     glow(s, x, y - 8 * sz, int(15 * sz), color, q(40 + 50 * k))
     by = y - 6 * sz
     if how == "swim":  # flying to its new tree
@@ -1548,13 +1573,18 @@ def owlet(s, x, y, sz, color, t, phase, how, poked):
     for i in range(3):  # speckled chest
         s.set_at((round(x - 2 * sz + i * 2 * sz), round(by + 3 * sz + (i % 2) * sz)), dark)
     turn = math.sin(t * 0.4 + phase) * 1.5 * sz
+    tuft = 13 + 3 * (stage - 1)
     for side in (-1, 1):  # ear tufts
         pygame.draw.polygon(s, body, [(x + side * 3 * sz + turn, by - 8 * sz), (x + side * 7 * sz + turn, by - 8 * sz),
-                                      (x + side * 7 * sz + turn, by - 13 * sz)])
+                                      (x + side * (7 + stage - 1) * sz + turn, by - tuft * sz)])
+    if stage > 1:  # wings folded at its sides, edged pale
+        for side in (-1, 1):
+            pygame.draw.polygon(s, dark, [(x + side * 7 * sz, by - 4 * sz), (x + side * 9 * sz, by + 2 * sz), (x + side * 6 * sz, by + 9 * sz)])
+            pygame.draw.line(s, mix(body, (255, 255, 255), 0.5), (x + side * 9 * sz, by + 2 * sz), (x + side * 6 * sz, by + 9 * sz))
     blink = (t + phase * 2) % 6.1 < 0.2
     for side in (-1, 1):
         ex, ey = x + side * 3.5 * sz + turn, by - 4 * sz
-        pygame.draw.circle(s, (255, 236, 160), (round(ex), round(ey)), max(2, round(2.8 * sz)))
+        pygame.draw.circle(s, (255, 236, 160) if stage < 3 else (180, 240, 255), (round(ex), round(ey)), max(2, round(2.8 * sz)))
         if blink:
             pygame.draw.line(s, dark, (ex - 2 * sz, ey), (ex + 2 * sz, ey), max(1, round(sz)))
         else:
@@ -1565,3 +1595,6 @@ def owlet(s, x, y, sz, color, t, phase, how, poked):
         tx = x + side * 3 * sz
         pygame.draw.line(s, (240, 190, 110), (tx, by + 8 * sz), (tx, y + 8 * sz), max(1, round(sz)))
         pygame.draw.line(s, (240, 190, 110), (tx - sz, y + 8 * sz), (tx + sz, y + 8 * sz))
+
+
+import grown  # noqa: E402,F401  (later stages and page three's creatures; they add to the classes above)
