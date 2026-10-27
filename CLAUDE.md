@@ -129,6 +129,11 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
 - **Evolved animals in the wild** (2026-10-27, his odds): `evolve.wild_stage` — each animal that comes out is its middle stage 7% of the time, its final stage 1% (lines without one give the middle instead; `SET_STAGE_3` once final stages are drawn).
 - **Starters fully evolved** (2026-10-27, Dex #001-#009): Mossprance → Lichenmane → Eldermane (Grass/Ghost), Kindlet → Smoldershell → Pyreclad (Fire/Steel), Pippalotl → Frillotl → Leviolotl (Water/Dragon); totals 405 / 530. Stages are 1-3 now (`evolve.EVOLVES` chains, `species_at`, `stage_of`, `SIZE`); a Walker draws `draw_<kind><stage>` / `shine_<kind><stage>` when it has one.
 - **Your creatures evolve** (2026-10-27): each `Kept` has a `uid` and `wins`; a creature that fought in a won Tower battle gets a win (`Battle.fought`, `tower.Run.count_wins`); at 3, then 9, it evolves through `evolve_party.EvolveBoard`, which has a Stop button (his choice).
+- **Hiding for games** (`glade/hiding.py`, 2026-10-27, his picks): a screen a full-screen window (`fullscreen` >= 2 in
+  `hyprctl clients`) fills is not drawn (`Glade.covered`, set by `wayland.Keyboard.check_fullscreen`). After 30 s of it,
+  everyone out where he is hides (storm `Shelter`s); when he is back they come out one by one over ~30 s. Lower screen,
+  top-left, under the Dex button: **Keep animals out** (a switch, only stops this hiding; saved in
+  `~/.local/state/glade/settings.json`) and **Your party** (opens the boxes).
 - **Predator vision** (`glade/vision.py`, 2026-10-27): a golden button in the lower screen's top-left; for ~5 s everything turns grey except the animals, which keep their colour inside a golden outline.
 - **Twice as many animals out** (his ask): a second of each second-wave animal per place (`scenes.second_wave`, `lower.py`), and `storm.crowd` doubles who is out at the start.
 - **Natures and the summary** (2026-10-27): every creature has a Gen 3 nature (`team.NATURES`, `nature_of`; EVs are 84 each, `team.EVS`); stats via `battle.calc_stats`; the boxes' right panel is a full summary (base/IV/EV/stat table, moves, nature, IV web). Battles: your panel top-left, the foe's top-right, fighters face each other (`Fighter.face`).

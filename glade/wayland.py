@@ -10,6 +10,7 @@ The main monitor (the one at the top-left of the layout) shows the glade; the ne
 one shows the ground in front of it, exactly as under XFCE.
 """
 
+import json
 import os
 import re
 import socket
@@ -300,6 +301,8 @@ class Keyboard:
         self.window = None  # the focused window's address, if any
         self.used = time.monotonic()
         self.sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+        self.surfaces = []  # set by run(): the glade's surfaces, to know which a game covers
+        self.fs_pending = False
         runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
         self.pipe = os.path.join(runtime, "glade.ctl")
 
@@ -408,8 +411,39 @@ class Keyboard:
             if self.window:  # (and the Claude panel stops typing; what he typed stays in the box)
                 self.glade.panel.stop_typing()
                 self.glade.front_raised = False  # a window has the focus: it goes in front of the Dex
+        if name in FULLSCREEN_EVENTS and not self.fs_pending:
+            self.fs_pending = True  # a burst of events: look once, a moment later
+            GLib.timeout_add(250, self.check_fullscreen)
         return False
 
+    def check_fullscreen(self):
+        """Which monitors a full-screen window fills right now (hiding.py): those surfaces
+        are not drawn, and after a while the animals hide."""
+        self.fs_pending = False
+        try:
+            mons = json.loads(subprocess.run(["hyprctl", "monitors", "-j"], capture_output=True, timeout=3).stdout)
+            clients = json.loads(subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, timeout=3).stdout)
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return False
+        full = set()
+        for m in mons:
+            ws = m.get("activeWorkspace", {}).get("id")
+            if any(c.get("fullscreen", 0) >= 2 and c.get("workspace", {}).get("id") == ws and not c.get("hidden")
+                   for c in clients):
+                full.add((m.get("x"), m.get("y")))
+        covered = []
+        for s in self.surfaces:
+            g = s.monitor.get_geometry()
+            if (g.x, g.y) in full:
+                covered.append(s.view)
+        self.glade.set_covered(covered)
+        return False
+
+
+# what can make a window full screen, or take one away
+FULLSCREEN_EVENTS = {"fullscreen", "workspace", "workspacev2", "focusedmon", "focusedmonv2", "openwindow",
+                     "closewindow", "movewindow", "movewindowv2", "activespecial", "monitoradded",
+                     "monitorremoved"}
 
 KEYBOARD = Keyboard()
 
@@ -438,6 +472,9 @@ def run():
     surfaces = [Surface(glade, glade.top, mons[0])]
     if glade.bottom:
         surfaces.append(Surface(glade, glade.bottom, mons[1]))
+    KEYBOARD.surfaces = surfaces
+    if KEYBOARD.sig:
+        KEYBOARD.check_fullscreen()  # a game may already be full screen
     panel_surface = surfaces[-1]  # the Claude panel lives on the lower screen (or the only one)
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
@@ -452,7 +489,8 @@ def run():
         dt, last[0] = min(0.1, now - last[0]), now
         glade.render(dt)
         for s in surfaces:
-            s.area.queue_draw()
+            if s.view not in glade.covered:  # under a full-screen game: no need to show it
+                s.area.queue_draw()
         for front in fronts:
             front.update()
         return True
