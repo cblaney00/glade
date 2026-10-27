@@ -87,6 +87,8 @@ class Panel:
         self.sent = None          # (when, "Sent" / why not)
         self.on_typing = None     # set by wayland.py: lets the panel have the keyboard, or not
         self.was_open = False
+        self.seen = False         # Claude's terminal is on one of his screens (then the panel stays away)
+        self.looking = False
 
     # --- the state file ----------------------------------------------------------------
 
@@ -99,6 +101,15 @@ class Panel:
         self.state = d if alive else None
         if self.state is None and self.typing:
             self.stop_typing()
+        if self.state is not None and not self.looking:
+            self.looking = True
+            threading.Thread(target=self._look, args=(d["pid"],), daemon=True).start()
+
+    def _look(self, pid):
+        try:
+            self.seen = terminal_seen(pid)
+        finally:
+            self.looking = False
 
     # --- pointer and keys --------------------------------------------------------------
 
@@ -180,8 +191,14 @@ class Panel:
         self.poll(t)
         self.view = view
         st = self.state
-        if st is None:
+        # His rule (2026-10-27): only there while Claude's terminal is minimised or on no screen
+        # (it stays while he is typing a reply in it, so it never vanishes under his fingers).
+        if st is None or (self.seen and not self.typing and not self.draft):
             self.rect = self.box = None
+            if self.was_open:
+                self.was_open = False
+                if self.on_typing:
+                    self.on_typing(False)
             return
         m = view.mouse()
         is_open = self.is_open(m)
@@ -341,6 +358,34 @@ def focus_terminal(pid):
         except (OSError, subprocess.SubprocessError):
             pass
         return
+
+
+def terminal_seen(pid):
+    """Is the kitty window Claude (process `pid`) runs in on a screen just now: on a workspace a
+    monitor is showing, not minimised (the dock's special:minimized) or on a workspace out of sight?"""
+    kitties = set()
+    for p in _ancestors(pid):
+        try:
+            with open(f"/proc/{p}/comm") as f:
+                if "kitty" in f.read():
+                    kitties.add(p)
+        except OSError:
+            continue
+    if not kitties:
+        return False
+    try:
+        mons = json.loads(subprocess.run(["hyprctl", "monitors", "-j"], capture_output=True, timeout=3).stdout)
+        clients = json.loads(subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, timeout=3).stdout)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return False
+    shown = set()
+    for m in mons:
+        for key in ("activeWorkspace", "specialWorkspace"):
+            ws = m.get(key) or {}
+            if ws.get("id"):
+                shown.add(ws["id"])
+    return any(c.get("pid") in kitties and c.get("workspace", {}).get("id") in shown and not c.get("hidden")
+               for c in clients)
 
 
 def find_window(pid):

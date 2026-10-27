@@ -188,7 +188,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   `~/.local/state/glade/claude.json`, written by Claude Code hooks (`glade-status hook`; the
   config passes `share/glade/claude-hooks.json` with `--settings` from ccn, vibe, blaney-todo). Under
   Wayland the lower surface takes the keyboard (ON_DEMAND) only while the panel is pointed at or
-  typed in.
+  typed in. (2026-10-27, his rule) It only shows while Claude's kitty window is minimised or on a workspace
+  no monitor shows (`terminal_seen`), or while he is typing a reply. After typing, the keys go back to the
+  window he was in (`wayland.Surface.keyboard`, `Keyboard.last_window`).
 - **Naming rule (his, 2026-10-27):** a creature's name is one word with no real animal's name in
   it, even attached (only an attached "fly" is fine, e.g. Glimmerfly). Every older name was
   renamed to fit; `team.RENAMED` maps old saves' names to the new ones.
