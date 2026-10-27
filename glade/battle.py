@@ -1583,6 +1583,34 @@ class Arena:
             return pygame.Rect(self.rect.x, self.rect.bottom - 48, self.rect.w, 48)
         return self.rect
 
+    ZOOM = 1.8               # how close the top screen comes in on a battle (his ask, 2026-10-27)
+    FOCUS = (485, 440)       # between the two fighters, a little above their feet
+    ZOOM_TIME = 0.9          # seconds to glide in (and out)
+
+    def camera(self, s, t):
+        """The whole top screen glides in on the field for the battle and back out at its end;
+        the boards are drawn afterwards, so they stay their normal size."""
+        on = self.phase != "pick" and self.leaving is None
+        last = getattr(self, "zoom_t", t)
+        self.zoom_t = t
+        step = (t - last) / self.ZOOM_TIME
+        self.zoom = max(0.0, min(1.0, getattr(self, "zoom", 0.0) + (step if on else -step)))
+        z = ease(self.zoom)
+        if z <= 0.001:
+            return
+        k = 1 + (self.ZOOM - 1) * z
+        w, h = round(960 / k), round(540 / k)
+        cx = 480 + (self.FOCUS[0] - 480) * z
+        cy = 270 + (self.FOCUS[1] - 270) * z
+        view = pygame.Rect(0, 0, w, h)
+        view.center = (round(cx), round(cy))
+        view.clamp_ip(pygame.Rect(0, 0, 960, 540))
+        s.blit(pygame.transform.scale(s.subsurface(view), (960, 540)), (0, 0))
+
+    @property
+    def zoomed(self):
+        return getattr(self, "zoom", 0.0) > 0.0
+
     def paths(self, content):
         """The path signs the board would hide: they are drawn again on top of it."""
         cover = self.cover()
@@ -1828,6 +1856,8 @@ class Arena:
                     x, y = f.where(t, self.scene)
                     glow(s, x - ox, y - oy, 26, (255, 255, 255), q(140 * (1 - (t - h) / 0.6)))
         self.rings(s, low, t)
+        if not low:
+            self.camera(s, t)
         if low or self.leaving is not None:
             return
         self.buttons = []

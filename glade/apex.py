@@ -946,8 +946,9 @@ class Hunt:
         yield from self.wait(1.4)  # the moon goes dark first
         yield from self.arrive()
         a = self.apex
-        fish = [p for p in self.prey if p.kind == "fish"]
-        rest = [p for p in self.prey if p.kind != "fish"]
+        pond = getattr(self.lower, "pond", None) if self.lower is not None else None
+        fish = [p for p in self.prey if p.kind == "fish" and p.low and pond is not None]
+        rest = [p for p in self.prey if not any(p is f for f in fish)]
         did_fish = not fish
         while rest or not did_fish:
             if self.t - self.t0 > TIME_LIMIT:

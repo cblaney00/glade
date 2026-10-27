@@ -18,6 +18,7 @@ from beasts import FLIERS, Flier, Walker
 from orchard import Nibbler, Orchard
 from storm import newcomer
 from squids import Colony
+from pond import Shoal, Water
 from life import (Aurora, Blades, Critter, Fireflies, GlowThreads, Lantern, Millipede, Motes, Petals, Pulses, River,
                   Shafts, Slug, Snow, Squid, Stars, Steam, Track, Vines, Waterfall, make_rng)
 
@@ -116,6 +117,8 @@ class Scene(art.Lighting):
                 sp.direction = heading(self.key, sp.target)
         self.parts.append(("still", self.cur))
         self.cur = None
+        from spacing import gather
+        gather(self)
         parts = []
         for kind, p in self.parts:
             if kind == "still":
@@ -603,6 +606,8 @@ def build_waterfall():
     sc.live(Waterfall(rng, 428, 536, 88, 392, None, sc.col("water", 0.05), (236, 248, 255)))
     sc.live(River(rng, lambda x: 392, lambda x: 444, (248, 712), 110, mix(sc.col("water", 0.1), (255, 255, 255), 0.5),
                   (255, 255, 255), speed=10))
+    sc.pond = sc.live(Shoal(rng, [(Water(350, 420, 100, 22), 2), (Water(620, 420, 100, 22), 2)],
+                            sc.col("water", 0.2), size=0.75))
     sc.live(Motes(rng, (380, 300, 200, 120), 50, GLOW["cyan"], rise=-16))
 
     # banks, mossy rocks, the path down
@@ -730,6 +735,8 @@ def build_river():
     moss_glow(sc, stones_moss, strength=40)
     sc.live(Pulses(lilies, speed=0.9))
     sc.live(River(rng, top, bot, (0, W), 220, mix(sc.col("water", 0.3), (255, 255, 255), 0.4), (255, 255, 255)))
+    sc.pond = sc.live(Shoal(rng, [(Water(170, 368, 150, 24), 2), (Water(450, 362, 130, 22), 2), (Water(860, 370, 90, 20), 1)],
+                            sc.col("water", 0.35), size=0.7))
     lay = art.plane()  # the little boat, tied up at the bank, with a lantern on its bow
     wood, wood2 = sc.col("wood", 0.12), sc.col("wood2", 0.12)
     pygame.draw.ellipse(lay, mix(sc.col("water", 0.3), p["shade"], 0.3), (624, 398, 152, 16))  # its reflection
@@ -1198,6 +1205,7 @@ def build_springs():
                 steam)
     sc.add(lay, 0.36, texture=0.3)
     sc.live(Pulses(glows, speed=0.6))
+    sc.pond = sc.live(Shoal(rng, [(Water(420, 384, 80, 6), 1), (Water(560, 416, 90, 6), 1)], sc.col("water", 0.3), size=0.45))
     for x, y, r, c, st, ph in glows:
         sc.lamp(x, y, r, c, 40)
 
@@ -1515,6 +1523,7 @@ def build_caverns():
         pygame.draw.arc(lay, mix(pool, (230, 244, 255), 0.3), (360 + i * 14, 414 + (i % 3) * 8, 120, 14), 0.2, 2.8)
     sc.add(lay, 0.4, veil=0.02, texture=0.6)
     sc.lamp(480, 430, 220, CAVE_CRYSTAL[1], 70)
+    sc.pond = sc.live(Shoal(rng, [(Water(480, 430, 150, 18), 3)], pool, size=0.7))
     # near: the cave floor, a path down to the Waterfall, and great crystal clusters
     lay = art.plane()
     art.ridge(lay, rng, 450, 8, sc.col("stone", 0.2), scales=(120, 40, 14))

@@ -129,6 +129,15 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
 - **Evolved animals in the wild** (2026-10-27, his odds): `evolve.wild_stage` — each animal that comes out is its middle stage 7% of the time, its final stage 1% (lines without one give the middle instead; `SET_STAGE_3` once final stages are drawn).
 - **Starters fully evolved** (2026-10-27, Dex #001-#009): Mossprance → Lichenmane → Eldermane (Grass/Ghost), Kindlet → Smoldershell → Pyreclad (Fire/Steel), Pippalotl → Frillotl → Leviolotl (Water/Dragon); totals 405 / 530. Stages are 1-3 now (`evolve.EVOLVES` chains, `species_at`, `stage_of`, `SIZE`); a Walker draws `draw_<kind><stage>` / `shine_<kind><stage>` when it has one.
 - **Your creatures evolve** (2026-10-27): each `Kept` has a `uid` and `wins`; a creature that fought in a won Tower battle gets a win (`Battle.fought`, `tower.Run.count_wins`); at 3, then 9, it evolves through `evolve_party.EvolveBoard`, which has a Stop button (his choice).
+- **Room to stand** (`glade/spacing.py`, 2026-10-27, his ask: they were hard to click): walkers and ground slugs pick
+  spots nobody stands on or is walking to, one resting on another soon moves on, and a walker right behind another
+  going the same way pauses (`spacing.gather` gives each place's ground animals their `neighbours`).
+- **Lilyfin in every water** (2026-10-27, his pick; not the Ridge's frozen lake): `pond.Shoal` in the River, the
+  Waterfall's pool, the Caverns' pool and the Springs' two lower pools, set as the scene's `pond` so cards, battles,
+  glow jars, storms and hiding find them. The apex only fishes in the Glade's own pond; elsewhere fish are prey.
+- **Battle zoom** (2026-10-27, his ask; this undoes "the picture never zooms" for battles only): `Arena.camera`
+  glides the top screen 1.8x in on the field for the whole battle (not the picking) and out as they walk home;
+  the boards are drawn after, unzoomed. While zoomed the top screen shows and takes clicks only on path signs.
 - **Hiding for games** (`glade/hiding.py`, 2026-10-27, his picks): a screen a full-screen window (`fullscreen` >= 2 in
   `hyprctl clients`) fills is not drawn (`Glade.covered`, set by `wayland.Keyboard.check_fullscreen`). After 30 s of it,
   everyone out where he is hides (storm `Shelter`s); when he is back they come out one by one over ~30 s. Lower screen,

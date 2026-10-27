@@ -240,3 +240,37 @@ class Pond:
                 s.set_at((int(xx), int(yy)), scale(GLOW["cyan"], 0.4 + 0.6 * k))
                 if k > 0.8:
                     glow(s, xx, yy, 3, GLOW["cyan"], 60)
+
+
+class Shoal:
+    """Lilyfin in a place's own water (the river, the waterfall's pool, the cavern pool, the hot
+    springs; his ask, 2026-10-27): just the fish, each keeping to its own stretch of water. It is
+    the place's `pond` as far as everything else is concerned (`.fish`: stats cards, battles,
+    glow jars, storms, hiding)."""
+
+    def __init__(self, rng, waters, tint, size=1.0):
+        """`waters`: [(Water, how many fish)]; `size`: how big they look out there."""
+        self.rng, self.fish = rng, []
+        for water, n in waters:
+            for _ in range(n):
+                f = Fish(rng, water, KOI[len(self.fish) % len(KOI)], tint)
+                f.size *= size
+                self.fish.append(f)
+        self.water = waters[0][0]
+        self.last = None
+
+    def poke(self, x, y, t):
+        hit = False
+        for f in self.fish:
+            if f.water.inside(x, y):
+                f.lure(x, y)
+                hit = True
+        return hit
+
+    def draw(self, s, t):
+        dt = 0.0 if self.last is None else max(0.0, min(0.1, t - self.last))
+        self.last = t
+        for f in self.fish:
+            if not getattr(f, "gone", False):
+                f.update(dt)
+                f.draw(s, t)

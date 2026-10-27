@@ -803,6 +803,11 @@ class Glade:
                     return
                 if self.minimap.rect and self.minimap.rect.collidepoint(m):
                     return
+            if self.zoomed(view):  # zoomed in on a battle: only its path signs are there to click
+                sp = view.hovered([sp for sp in content.spots if sp.kind == "go"])
+                if sp is not None:
+                    self.activate(view, content, sp, t)
+                return
             sp = self.unless_animal(view, view.hovered(content.spots), m, t)
             moon = getattr(content, "moon", None)
             if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
@@ -840,6 +845,8 @@ class Glade:
         for view, content in self.views():
             m = view.mouse()
             if not m:
+                continue
+            if self.zoomed(view):  # (what is under the pointer is not where it looks)
                 continue
             colony = getattr(content, "colony", None)
             for sp in content.spots:
@@ -967,8 +974,14 @@ class Glade:
         elif cmd == "back" and self.history:
             self.go(self.history.pop(), remember=False)
 
+    def zoomed(self, view):
+        """The top screen is zoomed in on a battle (battle.Arena.camera)."""
+        return view is self.top and self.arena is not None and self.arena.zoomed
+
     def overlay(self, view, content, t):
         s = view.canvas
+        if self.zoomed(view):  # (its path signs are drawn after the battle, on top)
+            return
         for sp in content.spots:
             self.signs.prepare(sp, view.w, view.h)
         hot = None if self.fade_to or self.popup is not None else view.hovered(content.spots)
@@ -1086,7 +1099,8 @@ class Glade:
                 self.arena.draw(view.canvas, view is self.bottom, t)
                 if view is self.top:  # path signs stay on top of the battle board, and clickable
                     m = view.mouse()
-                    for sp in self.arena.paths(content):
+                    paths = [sp for sp in content.spots if sp.kind == "go"] if self.zoomed(view) else self.arena.paths(content)
+                    for sp in paths:
                         self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
             if self.card is not None and self.card.view is view:
                 self.card.draw(view.canvas, t)

@@ -969,8 +969,12 @@ class Slug(Clock):
         body_len = self.seg * self.n
         behind = [self.track.at(self.d - self.dir * k)[:2] for k in range(int(body_len) + 8, -1, -3)]
         hx, hy = behind[-1]
-        ground, xr = self.rng.choice(self.roam)
-        tx = self.rng.uniform(*xr)
+        from spacing import crowded
+        for _ in range(6):  # somewhere no other animal is (spacing.py)
+            ground, xr = self.rng.choice(self.roam)
+            tx = self.rng.uniform(*xr)
+            if not crowded(self, tx, ground(tx)):
+                break
         n = max(2, int(abs(tx - hx) / 8))
         ahead = []
         for i in range(1, n + 1):

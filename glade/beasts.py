@@ -471,6 +471,16 @@ class Walker(Clock):
         return True
 
     def retarget(self):
+        """Somewhere new to go, where no other animal is standing (spacing.py)."""
+        from spacing import crowded
+        for i in range(6):
+            was = self.ground, self.xr, self.blend
+            self._retarget()
+            if i == 5 or not crowded(self, self.target, self.ground(self.target)):
+                return
+            self.ground, self.xr, self.blend = was
+
+    def _retarget(self):
         """Somewhere new to go: along this stretch of ground, or now and then over to another
         anywhere in its place (walking across between them)."""
         self.target = self.rng.uniform(*self.xr)
@@ -501,6 +511,10 @@ class Walker(Clock):
     def update(self, dt, t):
         if self.wait > 0:
             self.wait -= dt
+            if self.wait > 0.5 and self.rng.random() < dt and self.blend is None:
+                from spacing import crowded
+                if crowded(self, self.x, self.ground(self.x)):  # resting on top of someone: move on soon
+                    self.wait = self.rng.uniform(0.1, 0.5)
             if self.wait <= 0:
                 self.retarget()
         else:
@@ -514,6 +528,10 @@ class Walker(Clock):
                         self.home = self.x
             else:
                 self.facing = 1 if d > 0 else -1
+                if self.rng.random() < dt * 3 and self.blend is None:
+                    from spacing import tailing
+                    if tailing(self):  # right behind another going the same way: let it get ahead
+                        self.wait = self.rng.uniform(0.8, 2.0)
                 if self.kind == "toad":  # it gets about in hops
                     if self.hop <= 0:
                         self.hop = 0.01

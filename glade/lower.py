@@ -256,6 +256,8 @@ class Lower(art.Lighting):
             self.parts.append(Snow(rng, (0, 0, w, h), 140))
         from storm import crowd
         crowd(self, more)  # twice as many out as there used to be
+        from spacing import gather
+        gather(self)
         self.creatures = [c for c in self.parts if hasattr(c, "poke")]
         if self.pond:
             self.creatures.append(self.pond)
