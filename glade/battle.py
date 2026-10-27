@@ -1474,18 +1474,21 @@ class Arena:
                     self.move_button(s, br, name, m, pp, not busy and pp > 0, t, i)
             x = r.right - 6
             for label, action, show in (("Give up" if self.mode == "tower" else "Run", self.run, not forced),
-                                        ("Glow jar", lambda t: self.act(("jar",), t), b.wild and not forced),
+                                        ("Glow jar", self.throw, b.wild and not forced),
                                         ("Switch", self.open_switch, len(b.teams[0]) > 1 and not forced)):
                 if show:
                     w = self.font.size(label)[0] + 12
                     x -= w
                     self.button(s, pygame.Rect(x, r.bottom - 17, w, 13), label, action, t, small=True,
-                                enabled=not busy, gold=label == "Glow jar")
+                                enabled=not busy and (label != "Glow jar" or self.may_catch()),
+                                gold=label == "Glow jar" and self.may_catch())
                     x -= 4
             if busy:
                 self.text(s, "...", r.x + 8, r.bottom - 16, DIM)
             elif forced:
                 self.text(s, "Choose who goes out next", r.x + 8, r.bottom - 16, DIM)
+            elif b.wild and not self.may_catch():
+                self.text(s, "Glow jars: after a Tower run", r.x + 8, r.bottom - 16, DIM)
             else:
                 self.text(s, f"Turn {b.number + 1}", r.x + 8, r.bottom - 16, DIM)
         elif not busy:
@@ -1499,6 +1502,17 @@ class Arena:
             for i, (label, action) in enumerate(choices):
                 w = (r.w - 12 - 6 * (len(choices) - 1)) // len(choices)
                 self.button(s, pygame.Rect(r.x + 6 + i * (w + 6), y0 + 10, w, 28), label, action, t)
+
+    def may_catch(self):
+        """Catching opens up once you have done a run at the Battle Tower."""
+        if not hasattr(self, "_may"):
+            from team import Collection
+            self._may = Collection().tried
+        return self._may
+
+    def throw(self, t):
+        if self.may_catch():
+            self.act(("jar",), t)
 
     def open_switch(self, t):
         self.menu = None if self.menu == "switch" else "switch"
@@ -1727,9 +1741,12 @@ class Card:
         img = self.font.render("Open in Forest Dex", False, (255, 255, 255) if hot else TEXT)
         s.blit(img, img.get_rect(center=self.button.center))
         if self.fight is not None:
-            hot = bool(m) and self.fight.collidepoint(m)
-            cloth(s, self.fight, (255, 150, 214) if hot else mix(THEIRS, EDGE, 0.25), hot=hot, alpha=round(220 * k))
-            img = self.font.render("Battle it!", False, (255, 255, 255) if hot else TEXT)
+            locked = getattr(self, "locked", False)  # no starter yet: it says where to get one
+            hot = bool(m) and self.fight.collidepoint(m) and not locked
+            cloth(s, self.fight, (255, 150, 214) if hot else mix(THEIRS, EDGE, 0.55 if locked else 0.25), hot=hot,
+                  alpha=round(220 * k))
+            label = self.fit("Get a starter at the Tower", self.W - 16) if locked else "Battle it!"
+            img = self.font.render(label, False, DIM if locked else (255, 255, 255) if hot else TEXT)
             s.blit(img, img.get_rect(center=self.fight.center))
         if self.evolve is not None:  # glowing gold: something special
             hot = bool(m) and self.evolve.collidepoint(m)

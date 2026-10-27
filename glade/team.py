@@ -82,6 +82,7 @@ class Collection:
             self.boxes.append(row + [None] * (PER_BOX - len(row)))
         self.names = (data.get("box_names") or [f"Box {i + 1}" for i in range(BOXES)])[:BOXES]
         self.best = data.get("tower_best", 0)
+        self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
 
     def members(self):
         return [k for k in self.party if k]
@@ -113,7 +114,7 @@ class Collection:
         os.makedirs(os.path.dirname(STATE), exist_ok=True)
         data = dict(party=[k.as_dict() if k else None for k in self.party],
                     boxes=[[k.as_dict() if k else None for k in row] for row in self.boxes],
-                    box_names=self.names, tower_best=self.best)
+                    box_names=self.names, tower_best=self.best, tower_tried=self.tried)
         tmp = STATE + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f, indent=1)

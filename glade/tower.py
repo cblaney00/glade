@@ -1,7 +1,9 @@
 """The Battle Tower — like Pokémon Emerald's, but Gen 3 OU: six against six, singles.
 
-Walk down past the Mossy Rocks to the Tower and click its door. Your party goes in as it
-is (arrange it in your boxes, team.py / storage.py, at the shrine beside the door), and
+Walk down past the Mossy Rocks to the Tower and click its door. The very first time, you
+choose your starter there (starter.py), and catching wild animals only opens up once you
+have done a run (`Collection.tried`). Trainers bring as many creatures as you do (up to
+six). Your party goes in as it is (arrange it in your boxes, team.py / storage.py, at the shrine beside the door), and
 takes on the tower's trainers one after another. Your team is healed before
 every battle. Each win adds to your streak, and the trainers' creatures grow stronger the
 further you get (better IVs); a loss ends the run. Your best streak is kept.
@@ -21,12 +23,13 @@ TRAINERS = ["Moss Warden Ivy", "Lantern Keeper Bram", "Tidepool Nell", "Starwatc
             "Glowworm Hermit Tam", "Mist Walker Ysolde", "Thunder Chaser Rook", "Slug Racer Fen", "Aurora Seer Lumi"]
 
 
-def trainer(streak, rng):
-    """The next challenger: a name, and six creatures, all different. The first few have
-    middling IVs; from about the tenth on they are near perfect."""
+def trainer(streak, rng, size=TEAM):
+    """The next challenger: a name, and as many creatures as you bring (six once your party
+    is full), all different. The first few have middling IVs; from about the tenth on they
+    are near perfect."""
     floor = min(28, 6 + streak * 3)
     team = []
-    for species in rng.sample(sorted(SPECIES), TEAM):
+    for species in rng.sample(sorted(SPECIES), max(1, min(TEAM, size))):
         team.append((species, tuple(rng.randint(floor, 31) for _ in range(6)), None))
     return rng.choice(TRAINERS), team
 
@@ -41,7 +44,7 @@ class Run:
         self.recorded = False
 
     def battle(self, t):
-        name, foes = trainer(self.streak, self.rng)
+        name, foes = trainer(self.streak, self.rng, len(self.team))
         intro = f"{name} wants to battle! (Battle {self.streak + 1})"
         return foes, intro
 
@@ -61,7 +64,13 @@ class Run:
             box.save()
 
     def after(self, arena, t):
-        """The buttons once a battle is over."""
+        """The buttons once a battle is over. The first one ever done opens up catching."""
+        if not getattr(self, "tried", False):
+            self.tried = True
+            box = Collection()
+            if not box.tried:
+                box.tried = True
+                box.save()
         if arena.battle.winner == 0:
             if not getattr(arena, "counted", False):
                 arena.counted = True

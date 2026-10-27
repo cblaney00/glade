@@ -645,7 +645,11 @@ class Glade:
             return
         if sp.kind == "tower":  # the Battle Tower's door
             if self.arena is None:
-                self.board = TowerBoard(self.signs.font, t)
+                if Collection().members():
+                    self.board = TowerBoard(self.signs.font, t)
+                else:  # the very first visit: choose your starter, then on to the tower's board
+                    self.board = StarterBoard(self.signs.font, t,
+                                              then=lambda t: setattr(self, "board", TowerBoard(self.signs.font, t)))
             return
         if sp.kind == "boxes":  # the shrine where your creatures are kept
             self.board = Storage(self.signs.font, t)
@@ -698,7 +702,8 @@ class Glade:
             m = card.view.mouse()
             if m and card.button.collidepoint(m):
                 self.dex = Dex(self.signs.font, card.species, t)
-            elif m and card.fight is not None and card.fight.collidepoint(m) and self.arena is None:
+            elif m and card.fight is not None and card.fight.collidepoint(m) and self.arena is None \
+                    and not getattr(card, "locked", False):
                 def fight(t, animal=card.animal, species=card.species, here=self.here):
                     if self.arena is not None or here is not self.here:
                         return
@@ -706,10 +711,7 @@ class Glade:
                     self.arena = Arena(self.here, low, self.signs.font, t, mode="wild",
                                        foe=(animal, species, self.here), mine=Collection().members())
                     self.arena.mouse = self.top.mouse
-                if Collection().members():
-                    fight(t)
-                else:  # nobody in your party yet: first, choose your starter
-                    self.board = StarterBoard(self.signs.font, t, then=fight)
+                fight(t)
             elif m and card.evolve is not None and card.evolve.collidepoint(m) and self.evolution is None:
                 self.evolution = Evolution(card.animal, card.species, t)
                 self.evolution.font, self.evolution.scene = self.signs.font, self.here
@@ -827,6 +829,7 @@ class Glade:
             at = body.center
         self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
                          fight=animal is not None and self.arena is None, avoid=body)
+        self.card.locked = not Collection().members()
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that

@@ -1,9 +1,9 @@
 """Choosing your starter.
 
-Your party starts empty. The first time you click "Battle it!" on a wild animal's stats
-card, this board opens first: three creatures, Grass, Fire and Water, each alive in its
-picture. Click one, say yes, and it joins your party (its own random IVs and moves); then
-the battle you asked for begins. Their final forms are already decided (battle.SPECIES).
+Your party starts empty. The first time you click the Battle Tower's door, this board
+opens first: three creatures, Grass, Fire and Water, each alive in its picture. Click one,
+say yes, and it joins your party (its own random IVs and moves); then the tower's board.
+Until you have a starter, an animal's card says to come here instead of "Battle it!". Their final forms are already decided (battle.SPECIES).
 """
 
 import random
