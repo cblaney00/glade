@@ -259,8 +259,8 @@ def build_glade():
     art.mountains(lay, rng, 300, 68, sc.col("lav", 0.9), scales=(180, 62, 22), side=p["moon_side"])
     sc.add(lay, 0.9, veil=0.05)
     lay = art.plane()
-    pygame.draw.polygon(lay, sc.col("stone", 0.78), [(392, 344), (408, 248), (440, 228), (472, 236), (524, 224),
-                                                       (568, 240), (596, 272), (612, 344)])
+    art.crag(lay, [(392, 344), (408, 248), (440, 228), (472, 236), (524, 224), (568, 240), (596, 272), (612, 344)],
+             sc.col("stone", 0.78), 78, side=p["moon_side"], strata=(6, 12))
     art.canopy(lay, rng, 0, 460, 320, sc.col("leaf3", 0.78), r=(10, 20))
     art.canopy(lay, rng, 560, 980, 316, sc.col("leaf3", 0.78), r=(10, 20))
     for x in (68, 140, 300, 660, 820, 904):  # tall distant trees, Rain World-ish verticals
@@ -268,7 +268,7 @@ def build_glade():
         art.foliage(lay, rng, x, 208, 18, 44, sc.col("leaf3", 0.8), p)
     sc.add(lay, 0.78, veil=0.04)
     lay = art.plane()
-    pygame.draw.rect(lay, sc.col("water", 0.6), (494, 228, 16, 112))
+    art.falls(lay, (494, 510, 228), (493, 511, 340), sc.col("water", 0.6), (200, 220, 255), 79)
     sc.raw(lay)
     sc.live(Waterfall(rng, 494, 510, 228, 336, None, sc.col("water", 0.35), (230, 240, 255)))
 
@@ -472,8 +472,16 @@ def build_waterfall():
                 ledges.append((x + ln // 2, y + h, ln))
             x += ln + rng.randint(20, 68)
         y += h
-    for x0, x1 in ((404, 428), (532, 556)):  # wet, darker rock beside the falling water
-        pygame.draw.rect(lay, mix(stone, p["shade"], 0.3), (x0, 80, x1 - x0, 320))
+    for x0, x1 in ((404, 428), (532, 556)):  # wet, darker rock beside the falling water, streaked
+        wet = mix(stone, p["shade"], 0.3)
+        pygame.draw.rect(lay, wet, (x0, 80, x1 - x0, 320))
+        for x in range(x0, x1, 2):
+            y = 80 + rng.randint(0, 40)
+            while y < 400:
+                ln = rng.randint(6, 30)
+                pygame.draw.line(lay, mix(wet, (230, 240, 255), 0.12) if x % 4 else mix(wet, p["shade"], 0.4), (x, y), (x, y + ln))
+                y += ln + rng.randint(4, 20)
+    art.crag(lay, outline, stone, 23, side=p["moon_side"], strata=None, fill=False)
     clip = pygame.Surface((W, H), pygame.SRCALPHA)
     pygame.draw.polygon(clip, (255, 255, 255, 255), outline)
     lay.blit(clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
@@ -492,9 +500,16 @@ def build_waterfall():
     sc.live(GlowThreads(rng, list(range(236, 396, 5)), lambda x: 104 + abs(x - 316) // 6, (12, 64), GLOW["cyan"]))
     sc.live(GlowThreads(rng, list(range(566, 700, 6)), lambda x: 92 + abs(x - 630) // 6, (12, 56), GLOW["cyan"]))
     lay = art.plane()
-    pygame.draw.polygon(lay, sc.col("water", 0.3), [(428, 88), (532, 88), (540, 388), (420, 388)])
+    art.falls(lay, (428, 532, 88), (420, 540, 388), sc.col("water", 0.3), (220, 236, 255), 24)
     pygame.draw.ellipse(lay, sc.col("water", 0.2), (200, 372, 560, 88))
     pygame.draw.ellipse(lay, mix(sc.col("water", 0.2), GLOW["cyan"], 0.3), (240, 380, 480, 60))
+    for i, k in enumerate((0.92, 0.78, 0.64, 0.5)):  # rings spreading out from the falls, broken up
+        rw, rh = int(560 * k), int(88 * k)
+        ring = mix(sc.col("water", 0.2), (230, 244, 255), 0.25 + 0.1 * i)
+        for a in range(0, 180, 9):
+            if (a // 9 + i) % 3:
+                pygame.draw.arc(lay, ring, (480 - rw // 2, 416 - rh // 2, rw, rh), math.radians(180 + a),
+                                math.radians(180 + a + 6))
     sc.raw(lay)
     sc.lamp(480, 410, 260, GLOW["cyan"], 70)  # the pool glows
     cliff_top = lambda x: 96 if 220 < x < 740 else 220  # noqa: E731
@@ -757,8 +772,8 @@ def build_rocks():
     sc.add(lay, 0.9, veil=0.04)
     lay = art.plane()  # distant stone spires, moss glowing on their tops
     for x, top, w in ((120, 140, 36), (220, 192, 24), (744, 120, 44), (840, 180, 28), (908, 220, 20)):
-        pygame.draw.polygon(lay, sc.col("stone", 0.72), [(x - w // 2, 360), (x - w // 3, top + 12), (x, top),
-                                                           (x + w // 3, top + 16), (x + w // 2, 360)])
+        art.crag(lay, [(x - w // 2, 360), (x - w // 3, top + 12), (x, top), (x + w // 3, top + 16), (x + w // 2, 360)],
+                 sc.col("stone", 0.72), x, side=p["moon_side"], strata=(8, 18))
         art.clump(lay, rng, x, top, w // 2 + 6, sc.col("moss", 0.72), n=5)
         sc.lamp(x, top, w + 20, GLOW["moss"], 34)
     art.canopy(lay, rng, -20, 980, 336, sc.col("leaf3", 0.72), r=(10, 20))

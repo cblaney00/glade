@@ -262,12 +262,139 @@ def wave(x, phase, scales):
     return sum(math.sin(x / s + phase * (i + 1)) / (i + 1) for i, s in enumerate(scales))
 
 
-def ridge(s, rng, y, amp, color, scales=(140, 46, 18), bottom=H):
+def ridge(s, rng, y, amp, color, scales=(140, 46, 18), bottom=H, texture=True):
     """A rolling silhouette edge to edge, filled down to `bottom`. Returns its height per x."""
     phase = rng.random() * 10
     tops = [int(y - amp * (0.5 + 0.35 * wave(x, phase, scales))) for x in range(W + 1)]
     pygame.draw.polygon(s, color, [(0, bottom)] + [(x, tops[x]) for x in range(0, W + 1, 2)] + [(W, bottom)])
+    if texture:
+        hill_texture(s, tops, color, int(y * 7919 + amp * 31), bottom)
     return tops
+
+
+def _dot(s, x, y, c):
+    if 0 <= x < s.get_width() and 0 <= y < s.get_height():
+        s.set_at((x, y), c)
+
+
+def hill_texture(s, tops, color, seed, bottom=H, side=-1):
+    """Rolling hills are not one flat colour: bushy tufts break the skyline, folds of
+    ground echo it further down (each with a lit lip and a dithered shadow under it), and
+    darker clumps of trees mottle the slopes. Its own dice, so the scene stays put."""
+    rng = random.Random(seed)
+    lit = mix(color, (255, 255, 255), 0.14)
+    dark = mix(color, (12, 10, 40), 0.2)
+    deep = mix(color, (12, 10, 40), 0.32)
+    # tufts along the skyline
+    x = rng.randint(0, 8)
+    while x < W:
+        r = rng.randint(2, 5)
+        pygame.draw.circle(s, color, (x, tops[x] + r - 2), r)
+        _dot(s, x + r // 2 * side, tops[x] - 1, lit)
+        x += rng.randint(r + 2, r * 3 + 6)
+    # folds: lines that follow the crest, spreading apart toward you
+    base = 0
+    for k in range(1, 9):
+        base += 4 + k * 3
+        ph, gap = rng.random() * 10, rng.random() * 10
+        for x in range(W):
+            yy = tops[x] + base + int(3 * wave(x, ph, (70, 23)))
+            if yy >= bottom - 1 or wave(x, gap, (41, 13)) < -0.35:
+                continue
+            _dot(s, x, yy, deep)
+            if x % 2 == 0:
+                _dot(s, x, yy + 1, dark)
+            if (x + k) % 2:
+                _dot(s, x, yy + 2, dark)
+            if (x * 3 + k) % 4 == 0:
+                _dot(s, x, yy - 1, lit)
+    # mottling: dithered clumps of shadow
+    for _ in range(int(W * max(4, min(90, bottom - min(tops))) / 1600)):
+        cx = rng.randrange(W)
+        cy = rng.randint(tops[cx] + 6, max(tops[cx] + 7, min(bottom - 2, tops[cx] + 90)))
+        rx, ry = rng.randint(5, 16), rng.randint(2, 5)
+        for yy in range(cy - ry, cy + ry + 1):
+            for xx in range(max(0, cx - rx), min(W, cx + rx + 1)):
+                if ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1 and (xx + yy) % 2 == 0 \
+                        and tops[xx] + 2 < yy < bottom:
+                    _dot(s, xx, yy, dark)
+
+
+def crag(s, poly, color, seed, side=-1, strata=(7, 15), fill=True):
+    """Rock that reads as rock: strata (a dark seam with a lit lip), vertical joints
+    between them, a few jagged cracks, and a dithered shadow over the half turned away
+    from the moon. With fill=False only the marks are laid over what is already there."""
+    rng = random.Random(seed)
+    tmp = plane()
+    if fill:
+        pygame.draw.polygon(tmp, color, poly)
+    deep, dark, lit = (12, 10, 40, 130), (12, 10, 40, 60), (255, 255, 255, 40)
+    xs, ys = [p[0] for p in poly], [p[1] for p in poly]
+    x0, x1, y0, y1 = int(min(xs)), int(max(xs)), int(min(ys)), int(max(ys))
+    cx = (x0 + x1) / 2
+    if strata:
+        y = y0 + rng.randint(2, 6)
+        while y < y1:
+            hh = rng.randint(*strata)
+            ph = rng.random() * 9
+            for x in range(x0, x1):
+                yy = y + int(2 * math.sin(x / 17 + ph) + math.sin(x / 5.3))
+                _dot(tmp, x, yy, deep)
+                if (x + yy) % 2:
+                    _dot(tmp, x, yy + 1, lit)
+            x = x0 + rng.randint(0, 40)
+            while x < x1:  # joints: a few, uneven, some only part way down
+                for yy in range(y + 2, y + rng.randint(hh // 2, hh - 1)):
+                    _dot(tmp, x + (yy // 4) % 2, yy, dark)
+                    _dot(tmp, x + (yy // 4) % 2 - side, yy, lit)
+                x += rng.randint(24, 70)
+            y += hh
+    for _ in range((x1 - x0) * (y1 - y0) // 900):
+        x, y = rng.randint(x0, x1), rng.randint(y0, y1)
+        for _ in range(rng.randint(5, 18)):
+            _dot(tmp, x, y, deep)
+            _dot(tmp, x - side, y, lit)
+            x += rng.choice((-1, 0, 0, 1))
+            y += 1
+    # the side away from the moon: dither thickening toward the edge
+    for x in range(x0, x1):
+        f = (x - cx) / max(1, (x1 - x0) / 2) * -side  # > 0: away from the moon
+        if f <= 0.15:
+            continue
+        for y in range(y0, y1):
+            if BAYER[y % 4][x % 4] < (f - 0.15) * 9:  # ordered dither: no visible grid
+                _dot(tmp, x, y, (12, 10, 40, 34))
+    clip = plane()
+    pygame.draw.polygon(clip, (255, 255, 255, 255), poly)
+    tmp.blit(clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    s.blit(tmp, (0, 0))
+
+
+def falls(s, top, bottom, color, foam, seed):
+    """The body of a waterfall from span `top` (x0, x1, y) down to span `bottom`: ribbons
+    of lighter and darker water, a bright lip where it pours over, darker edges, and a
+    dithered haze of spray at its foot."""
+    rng = random.Random(seed)
+    (tx0, tx1, ty), (bx0, bx1, by) = top, bottom
+    n = int(max(tx1 - tx0, bx1 - bx0))
+    ph = rng.random() * 10
+    for i in range(n + 1):
+        u = i / n
+        a = (tx0 + (tx1 - tx0) * u, ty)
+        b = (bx0 + (bx1 - bx0) * u, by)
+        k = 0.5 + 0.5 * wave(i, ph, (9, 3.7))
+        edge = min(u, 1 - u) * n
+        c = mix(color, foam, 0.06 + 0.22 * k) if edge >= 2 else mix(color, (12, 10, 40), 0.35)
+        pygame.draw.line(s, c, a, b)
+        x = int(a[0])
+        _dot(s, x, ty, foam)
+        if i % 2 == 0:
+            _dot(s, x, ty + 1, mix(foam, color, 0.4))
+        if (i * 7) % 5 == 0:
+            _dot(s, x, ty + 2 + i % 3, mix(foam, color, 0.5))
+        for yy in range(by - 14, by):  # spray at the foot
+            if rng.random() < (yy - by + 14) / 18:
+                _dot(s, int(b[0] + (a[0] - b[0]) * (by - yy) / max(1, by - ty)), yy, mix(foam, color, 0.35))
 
 
 def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
@@ -275,7 +402,7 @@ def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
     to the left) catch a little light and the others fall into shade; spurs run down
     from every peak, lit on the moon's side and shadowed on the other, and the rock is
     broken by ledges."""
-    tops = ridge(s, rng, y, amp, color, scales)
+    tops = ridge(s, rng, y, amp, color, scales, texture=False)
     rng = random.Random(y * 1000 + amp)  # its own dice, so the rest of the scene stays put
     lit, hi = mix(color, (255, 255, 255), 0.16), mix(color, (255, 255, 255), 0.26)
     shade, deep = mix(color, (12, 10, 40), 0.24), mix(color, (12, 10, 40), 0.42)
@@ -535,6 +662,39 @@ def path(s, pts, widths, color, edge, pebbles=None, rng=None):
     _TRODDEN.append([(x, y + 2) for x, y in poly])
     pygame.draw.polygon(s, edge, [(x, y + 2) for x, y in poly])
     pygame.draw.polygon(s, color, poly)
+    # trodden earth: specks, little stones and ruts, only inside the path (its own dice)
+    tex = random.Random(int(sum(x * 13 + y * 7 for x, y in pts)))
+    cut = plane()
+    pygame.draw.polygon(cut, (255, 255, 255, 255), poly)
+    inside = pygame.mask.from_surface(cut)
+    r = cut.get_bounding_rect()
+    if r.w and r.h:
+        dark, deep, light = mix(color, edge, 0.4), mix(color, edge, 0.75), mix(color, (255, 255, 255), 0.12)
+        ok = lambda x, y: 0 <= x < W and 0 <= y < H and inside.get_at((x, y))  # noqa: E731
+        for _ in range(inside.count() // 10):
+            x, y = r.x + tex.randrange(r.w), r.y + tex.randrange(r.h)
+            if not ok(x, y):
+                continue
+            roll = tex.random()
+            if roll < 0.55:
+                s.set_at((x, y), dark)
+                if ok(x + 1, y):
+                    s.set_at((x + 1, y), dark)
+            elif roll < 0.8:
+                s.set_at((x, y), light)
+            elif roll < 0.95:  # a pebble: dark, with a lit top
+                if ok(x + 1, y) and ok(x, y - 1):
+                    s.set_at((x, y), deep)
+                    s.set_at((x + 1, y), deep)
+                    s.set_at((x, y - 1), light)
+            else:  # a rut
+                for i in range(tex.randint(3, 8)):
+                    if ok(x + i, y):
+                        s.set_at((x + i, y), dark)
+        # the edges are worn down into a darker dithered rim
+        for i, (x, y) in enumerate(inside.outline(2)):
+            if i % 2 == 0 and ok(x, y + 1):
+                s.set_at((x, y + 1), dark)
     # a worn, lighter strip down the middle and scattered pebbles
     centre = mix(color, (255, 255, 255), 0.08)
     for i in range(len(pts) - 1):
