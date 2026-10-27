@@ -30,7 +30,7 @@ from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
 from lower import Lower
-from making import Making
+from claude_panel import Panel
 from scenes import BUILDERS, LINKS, MAP
 
 HOME = "glade"
@@ -568,7 +568,7 @@ class Glade:
         self.scenes, self.lowers = {}, {}
         self.signs = Signs()
         self.minimap = Minimap(self.signs.font)
-        self.making = Making()  # the progress board while new creatures are being made
+        self.panel = Panel()  # the Claude panel: a minimised way of talking to Claude (claude_panel.py)
         self.here = self.scene(HOME)
         self.fade, self.fade_to = 0.0, None
         self.flash = None
@@ -675,6 +675,9 @@ class Glade:
             self.on_launch()
 
     def click(self, t):
+        panel_view = self.bottom or self.top
+        if self.panel.click(panel_view, panel_view.mouse()):
+            return
         if self.fade_to:
             return
         view = self.map_view()  # the Predator vision button
@@ -1043,7 +1046,7 @@ class Glade:
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
             if view is (self.bottom or self.top):
-                self.making.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
+                self.panel.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
             if view is self.map_view() and self.board is None and self.dex is None:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
                 vision.draw_dex_button(view.canvas, view, self.signs.font)
@@ -1131,6 +1134,11 @@ def main():
                 return
             if e.type == pygame.KEYDOWN and e.key == pygame.K_q and e.mod & pygame.KMOD_CTRL:
                 return
+            if e.type == pygame.KEYDOWN and glade.panel.typing:  # a reply to Claude, being typed
+                names = {pygame.K_RETURN: "return", pygame.K_KP_ENTER: "return", pygame.K_ESCAPE: "escape",
+                         pygame.K_BACKSPACE: "backspace"}
+                glade.panel.key(names.get(e.key, ""), e.unicode)
+                continue
             if e.type == pygame.KEYDOWN and glade.listener.listening(time.monotonic() - glade.t0) \
                     and e.unicode.isalpha():
                 glade.typed(e.unicode, time.monotonic() - glade.t0)

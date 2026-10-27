@@ -72,6 +72,7 @@ class Surface:
         area.connect("button-press-event", self.press)
         area.connect("button-release-event", self.release)
         area.connect("size-allocate", self.resized)
+        win.connect("key-press-event", self.key)
         win.add(area)
         win.connect("realize", self.hide_cursor)
         win.show_all()
@@ -98,6 +99,25 @@ class Surface:
         v = self.view
         v.rect = main.fit(pygame.Rect(0, 0, alloc.width, alloc.height), v.w, v.h)
         self.set_cursor()
+
+    def key(self, win, event):
+        """Typing a reply in the Claude panel (the only time this surface takes the keyboard)."""
+        panel = self.glade.panel
+        if not panel.typing:
+            return False
+        name = {"Return": "return", "KP_Enter": "return", "Escape": "escape",
+                "BackSpace": "backspace"}.get(Gdk.keyval_name(event.keyval) or "", "")
+        ch = chr(Gdk.keyval_to_unicode(event.keyval)) if Gdk.keyval_to_unicode(event.keyval) else ""
+        panel.key(name, ch)
+        return True
+
+    def keyboard(self, wanted):
+        """Let this surface take the keyboard when clicked (while the Claude panel is pointed at
+        or being typed in), or never (the rest of the time, so it can't keep keys from windows)."""
+        mode = GtkLayerShell.KeyboardMode.ON_DEMAND if wanted else GtkLayerShell.KeyboardMode.NONE
+        GtkLayerShell.set_keyboard_mode(self.win, mode)
+        if wanted and self.glade.panel.typing:
+            self.win.present()
 
     def motion(self, area, event):
         self.view.pointer = (event.x, event.y)
@@ -290,6 +310,8 @@ def run():
     surfaces = [Surface(glade, glade.top, mons[0])]
     if glade.bottom:
         surfaces.append(Surface(glade, glade.bottom, mons[1]))
+    panel_surface = surfaces[-1]  # the Claude panel lives on the lower screen (or the only one)
+    glade.panel.on_typing = panel_surface.keyboard
 
     last = [time.monotonic()]
 

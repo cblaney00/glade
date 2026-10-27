@@ -167,14 +167,19 @@ around 10 ms for both screens.
 
 It is installed on his system from a copy in the config repo (`pkgs/glade`), which is
 started at login under Hyprland. Changing the installed copy is a config change → `ccn`.
-- **Progress board** (`glade/making.py`, 2026-10-27, his ask; it stays as a feature): while a Claude
-  session makes new creatures, it writes `~/.local/state/glade/making.json`
-  (`{"what": "Making new creatures", "done": N, "total": M, "names": [...]}`) as each one is
-  finished. The lower screen's top-right shows a mint board with a progress bar (under the
-  Thunderstorm button when that shows); at `done == total` it becomes a "M new creatures are
-  ready!" notice for 15 s. **Always use it when making creatures for him, and update it after EVERY
-  creature** (`python glade/making.py start N FIRST`, then `step DONE NEXT` each time): he once saw it sit
-  at 8/22 while 14 were made, and read that as frozen. Don't restart the glade between steps if avoidable.
+- **The Claude panel** (`glade/claude_panel.py` + `glade/claude_state.py`, 2026-10-27, his ask; it
+  replaced the creature progress board): a minimised way of talking to the Claude chat he has open,
+  in the lower screen's top-right. Shows the task title (`glade-status title`), working/waiting,
+  a progress bar with "Now: …" (`glade-status progress N FIRST`, then `step DONE NEXT` after EVERY
+  step: he once saw a bar sit at 8/22 and read it as frozen), and Claude's latest message. Pointing
+  at it opens it out: the whole message and a reply box that grows as he types; Enter sends the
+  reply into Claude's kitty window by kitty remote control (`find_window`: the window whose
+  processes include the `claude` pid). Glows gold when Claude needs him at the terminal
+  (AskUserQuestion/ExitPlanMode/permissions via hooks, or `glade-status attention WHY`). State:
+  `~/.local/state/glade/claude.json`, written by Claude Code hooks (`glade-status hook`; the
+  config passes `share/glade/claude-hooks.json` with `--settings` from ccn, vibe, blaney-todo). Under
+  Wayland the lower surface takes the keyboard (ON_DEMAND) only while the panel is pointed at or
+  typed in.
 - **Naming rule (his, 2026-10-27):** a creature's name is one word with no real animal's name in
   it, even attached (only an attached "fly" is fine, e.g. Glimmerfly). Every older name was
   renamed to fit; `team.RENAMED` maps old saves' names to the new ones.
