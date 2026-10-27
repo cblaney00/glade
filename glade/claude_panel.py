@@ -183,10 +183,6 @@ class Panel:
             return
         m = view.mouse()
         is_open = self.is_open(m)
-        if is_open != self.was_open:
-            self.was_open = is_open
-            if self.on_typing and not self.typing:  # pointing at it readies the keyboard for the box
-                self.on_typing(is_open)
         x0, y0 = view.w - W - 8, 34 if below_storm else 8
         inner = W - 20
         rows = []  # (kind, payload)
@@ -303,6 +299,13 @@ class Panel:
                     hint, c = "Your reply goes to Claude's terminal", DIM
                 s.blit(font.render(hint, False, c), (x, y + 1))
                 y += LINE
+        # The keyboard is the panel's only while the pointer is on the reply box or he is typing
+        # in it, so a click on any window (his terminal above all) gets the keys straight back.
+        want = self.typing or bool(self.box and m and self.box.collidepoint(m))
+        if want != self.was_open:
+            self.was_open = want
+            if self.on_typing and not self.typing:
+                self.on_typing(want)
         if not is_open and self.sent and time.monotonic() - self.sent[0] < 6:
             img = font.render(self.sent[1], False, MINT if self.sent[1] == "Sent" else GOLD)
             s.blit(img, (r.right - 10 - img.get_width(), r.bottom + 2))

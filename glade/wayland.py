@@ -283,6 +283,8 @@ class Keyboard:
             self.window = data if re.fullmatch(r"(0x)?[0-9a-f]+", data) else None
             if self.window and self.submap in ("glade", "glademoon"):
                 self.off()  # a window has the focus: the keys are its again
+            if self.window:  # (and the Claude panel stops typing; what he typed stays in the box)
+                self.glade.panel.stop_typing()
         return False
 
 
