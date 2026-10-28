@@ -209,6 +209,8 @@ class Dex:
         self.tab = "dex"
         self.view = "stats"  # the entry's switch: "stats" or "lore"
         self.sort, self.desc = "No.", False
+        self.cpage = 0  # Compare tab: which page of rows is showing
+        self._texts = {}  # rendered words, kept so a full table doesn't re-render every frame
         self.buttons = []  # (rect, action), rebuilt every frame
         self.closed = False
         self.live = None  # (species, specimen, picture): the one shown in the entry, moving
@@ -228,7 +230,12 @@ class Dex:
 
     # --- drawing helpers ---
     def text(self, s, words, x, y, color=TEXT, right=False, center=False):
-        img = self.font.render(words, False, color)
+        key = (words, color)
+        img = self._texts.get(key)
+        if img is None:
+            if len(self._texts) > 4000:
+                self._texts.clear()
+            img = self._texts[key] = self.font.render(words, False, color)
         if right:
             x -= img.get_width()
         elif center:
@@ -417,9 +424,16 @@ class Dex:
                     self.desc = not self.desc
                 else:  # stats start highest-first, the rest A-Z / lowest-first
                     self.sort, self.desc = label, label in STATS or label == "Total"
+                self.cpage = 0
             self.buttons.append((hr, sort))
             x += w
         pygame.draw.line(s, mix(CLOTH, EDGE, 0.3), (area.x, area.y + 20), (area.right, area.y + 20))
+        # only the rows that fit are drawn, a page at a time (drawing all 400+ every frame froze the Glade)
+        per = max(1, (area.h - 24 - 44) // 20)
+        pages = max(1, (len(rows) + per - 1) // per)
+        self.cpage = max(0, min(self.cpage, pages - 1))
+        found = len(rows)
+        rows = rows[self.cpage * per:(self.cpage + 1) * per]
         for n, row in enumerate(rows):
             y = area.y + 24 + n * 20
             rr = pygame.Rect(area.x, y - 2, area.w, 19)
@@ -441,7 +455,14 @@ class Dex:
                     self.text(s, str(v), x + w - 8, y, WHITE if label == "Total" else stat_color(v), right=True)
                 x += w
             self.buttons.append((rr, self.choose(row[0])))
-        self.text(s, f"{len(rows)} found so far. Click a column to sort; click an animal to see it.",
+        y = area.bottom - 40
+        if self.cpage > 0:
+            self.button(s, pygame.Rect(area.x, y, 70, 18), "< Prev", lambda: setattr(self, "cpage", self.cpage - 1), m)
+        if self.cpage < pages - 1:
+            self.button(s, pygame.Rect(area.right - 70, y, 70, 18), "Next >",
+                        lambda: setattr(self, "cpage", self.cpage + 1), m)
+        self.text(s, f"Page {self.cpage + 1} of {pages}", area.centerx, y + 3, DIM, center=True)
+        self.text(s, f"{found} found so far. Click a column to sort; click an animal to see it.",
                   area.x + 2, area.bottom - 16, DIM)
 
     def entry(self, s, area):
