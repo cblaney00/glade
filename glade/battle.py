@@ -12,8 +12,8 @@ its type, as in Gen 3), sleep/freeze/paralysis/poison/confusion, Protect, multi-
 recoil and drain all work the way they do in those games.
 
 Every animal here is the first of three evolutions (the later ones don't exist yet), so
-its base stats total 300-320, like Bulbasaur or Treecko; a fully evolved one would total
-500-600, about 530 on average.
+its base stats total 300-320, like Bulbasaur or Treecko; most fully evolved ones total
+420-520, below the starters' 530, and only a rare few go past them (see _retotal).
 """
 
 import math
@@ -610,25 +610,34 @@ SPECIES.update(LEGENDARY)
 
 
 def _retotal():
-    """His ask (2026-10-27): a wider spread of base stat totals. Pokémon's own finals run from the
-    470s to 600 (Beautifly 395, Dragonite 600); so do these now, each keeping the shape of its
-    stats. Middle stages spread 380-440. The starters stay at 530 (Pokémon keeps its starters
-    level); the two dragons that are nearly Dragonite's height are this Dex's pseudo-legendaries
-    at 600; the legendaries are 600-620 on their own."""
+    """His ask (2026-10-27): a wider spread of base stat totals, each line keeping the shape of its
+    stats. The starters stay at 530 (Pokémon keeps its starters level) and are among the strongest
+    on a team, so most finals sit below them, as in Pokémon: about seven in ten land at 420-495,
+    two in ten at 495-520, and only a rare one in ten is special, at 530-565. The two dragons
+    nearly Dragonite's height are this Dex's pseudo-legendaries at 600; the legendaries are
+    600-620 on their own. A middle stage sits about halfway between its first stage and its final."""
     import zlib
+    by_num = {d["num"]: d for d in SPECIES.values()}
+    finals = {}
     for name, d in SPECIES.items():
         num = d["num"]
-        if num <= 9 or name in LEGENDARY:
+        if num <= 9 or name in LEGENDARY or (num - 1) % 3 != 2:
             continue
-        stage = (num - 1) % 3 + 1
         roll = zlib.crc32(name.encode()) % 1000 / 1000
-        if stage == 3:
-            total = 600 if name in ("Prismwyrm", "Shardsovereign") else round(465 + roll * 115)
-        elif stage == 2:
-            total = round(380 + roll * 60)
+        if name in ("Prismwyrm", "Shardsovereign"):
+            total = 600
+        elif roll < 0.7:
+            total = round(420 + roll / 0.7 * 75)
+        elif roll < 0.9:
+            total = round(495 + (roll - 0.7) / 0.2 * 25)
         else:
-            continue
+            total = round(530 + (roll - 0.9) / 0.1 * 35)
+        finals[num] = total
         d["base"] = _spread(d["base"], total)
+    for num, total in finals.items():
+        first, middle = by_num.get(num - 2), by_num.get(num - 1)
+        if first and middle and middle["num"] not in finals:
+            middle["base"] = _spread(middle["base"], round((sum(first["base"]) + total) / 2) - 10)
 
 
 _retotal()
