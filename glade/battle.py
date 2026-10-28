@@ -631,7 +631,7 @@ _PAGE6 = [
      ["Sludge", "Ember", "Haze", "Toxic", "Acid Armor", "Poison Tail", "Sludge Bomb", "Recover", "Heat Wave"]),
     ("Bulblet", "Bulbflare", "Bulbbeacon", ("Electric", "Steel"), None, (75, 60, 100, 110, 90, 75), "Static",
      ["Spark", "Metal Claw", "Flash", "Thunder Wave", "Shock Wave", "Iron Defense", "Thunderbolt", "Meteor Mash", "Calm Mind"]),
-    ("Delvelet", "Delvecoil", "Delvewyrm", ("Dragon", "Ground"), None, (90, 110, 95, 70, 75, 80), "Rock Head",
+    ("Delvelet", "Delvedrill", "Delvecrag", ("Dragon", "Ground"), None, (90, 110, 95, 70, 75, 80), "Rock Head",
      ["Twister", "Mud-Slap", "Dragon Breath", "Mud Shot", "Bite", "Dragon Dance", "Earthquake", "Dragon Claw", "Crunch"]),
     ("Pomlet", "Pompom", "Pomparade", ("Normal",), None, (100, 75, 80, 70, 80, 90), "Run Away",
      ["Quick Attack", "Headbutt", "Double Team", "Fury Swipes", "Body Slam", "Protect", "Double-Edge", "Return", "Rest"]),

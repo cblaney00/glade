@@ -401,58 +401,84 @@ def glow_bulb(o, s, t, st, k):
 # ===================================== the Crystal Caverns ====================================
 
 def draw_delve(o, s, t):
-    """Delvelet: a small, stocky earth-dragon with digging claws and a blunt horn. Delvecoil: a
-    long dragon that ripples along the ground, half sunk in it, as if swimming through rock.
-    Delvewyrm: a great earth dragon, a ridge of crystals down its back, its long body arching
-    out of the ground and back into it."""
-    z, x, y, f, n = o.size, o.x, o.y, o.facing, stage(o)
-    if n == 1:
-        cy = y - 4 * z - hop(o, t, 1.0)
-        shaded(s, o.body, (x - 5 * z, cy - 3 * z, 10 * z, 6 * z))
-        pygame.draw.ellipse(s, lite(o.body, 0.2), (x - 3 * z, cy, 6 * z, 2.5 * z))  # its belly
-        hx = x + f * 5 * z
-        shaded(s, o.body, (hx - 3 * z, cy - 5 * z, 6 * z, 5 * z))
-        poly(s, (230, 220, 200), [(hx + f * z, cy - 5 * z), (hx + f * 3 * z, cy - 8 * z), (hx + f * 2.5 * z, cy - 4.5 * z)])
-        for side in (-1, 1):  # claws
-            px = x + side * 3 * z
-            pygame.draw.line(s, dark(o.body, 0.2), (px, cy + 2 * z), (px + f * z, y), max(1, round(1.2 * z)))
-        pygame.draw.line(s, o.body, (x - f * 5 * z, cy), (x - f * 8 * z, cy + 2 * z), max(1, round(1.5 * z)))  # tail
-        eyes(s, hx + f * 0.5 * z, cy - 3 * z, 1.8 * z, z, t, o.phase)
-        o._crest = [(hx, cy - 4 * z)]
-        return
-    seg = 9 if n == 2 else 11
-    amp = (3 if n == 2 else 6) * z
-    gap = (2.4 if n == 2 else 2.5) * z
-    pts = []
-    for i in range(seg):  # its body, rippling: the low parts are under ground
-        px = x + f * (seg / 2 - i) * gap
-        lift = math.sin(i * 0.55 - o.step * 0.8 * moving(o) - t * 0.4) * amp
-        pts.append((px, y - (2 + n) * z - max(-1.5 * z, lift + (amp if n == 3 and 1 < i < 9 else 0))))
+    """Delvelet: a small round dragon on four stubby legs, big shovel claws in front, a blunt
+    horn. Delvedrill: bigger, stubby wings folded on its back and a spiralled drill of a horn.
+    Delvecrag: a heavy earth dragon crouched low on thick legs, broad rock-caked wings, a row of
+    glowing crystal spikes down its back and a club of stone on its tail."""
+    z, x, f, n = o.size, o.x, o.facing, stage(o)
+    walk = o.step * 1.6 if moving(o) else 0
+    bw, bh = (4.5 + 1.6 * n) * z, (4 + 1.8 * n) * z
+    leg = (2 + 0.8 * n) * z
+    by = o.y - leg - bh * 0.5 + (0 if moving(o) else math.sin(t * 1.5 + o.phase) * 0.3 * z)
+    deep, rock = dark(o.body, 0.25), (110, 100, 110)
+    # the far legs, then the tail, behind the body
+    for j, side in enumerate((-0.55, 0.55)):
+        lx = x + side * bw * f
+        lift = max(0.0, math.sin(walk + j * math.pi + 0.8)) * 1.5 * z
+        pygame.draw.line(s, dark(o.body, 0.45), (lx, by), (lx + f * 0.5 * z, o.y - lift), max(2, round((1.4 + 0.3 * n) * z)))
+    tail = [(x - f * bw * (0.7 + i * 0.28), by + bh * 0.15 - i * 0.6 * z + math.sin(t * 2 + i + o.phase) * 0.3 * z * i) for i in range(4)]
+    pygame.draw.lines(s, o.body, False, tail, max(2, round((1.8 + 0.4 * n) * z)))
+    if n == 3:  # its stone tail-club
+        tx, ty = tail[-1]
+        pygame.draw.circle(s, rock, (round(tx), round(ty)), round(2.4 * z))
+        pygame.draw.circle(s, lite(rock, 0.2), (round(tx - 0.6 * z), round(ty - 0.6 * z)), round(1 * z))
+    if n >= 2:  # wings: folded stubs, then broad and caked with rock
+        span = (5.5 if n == 2 else 9) * z
+        flex = math.sin(t * 1.2 + o.phase) * 0.6 * z
+        root = (x + f * bw * 0.15, by - bh * 0.4)
+        tip = (root[0] - f * span * 0.35, root[1] - span - flex)
+        back = (root[0] - f * span * 1.05, root[1] - span * 0.15)
+        mid = (root[0] - f * span * 0.75, root[1] - span * 0.45)  # a scallop between its two fingers
+        poly(s, mix(o.body, rock, 0.5) if n == 3 else lite(o.body, 0.1), [root, tip, mid, back], rim=deep)
+        if n == 3:
+            for i in (0.35, 0.65):
+                pygame.draw.line(s, deep, root, (tip[0] + (back[0] - tip[0]) * i, tip[1] + (back[1] - tip[1]) * i))
+    shaded(s, o.body, (x - bw, by - bh * 0.5, 2 * bw, bh))
+    pygame.draw.ellipse(s, (214, 190, 150), (x - bw * 0.6 + f * bw * 0.15, by, bw * 1.2, bh * 0.45))  # its belly plates
     o._crest = []
-    for i in range(seg - 1, -1, -1):
-        px, py = pts[i]
-        r = (2.2 + n * 0.6) * z * (1 - i / seg * 0.5)
-        if py > y - r * 0.3:  # under the ground here: a mound of loose rubble
-            pygame.draw.ellipse(s, (110, 96, 100), (px - r, y - r * 0.6, 2 * r, r * 0.9))
-            continue
-        shaded(s, o.body if i % 2 else lite(o.body, 0.1), (px - r, py - r, 2 * r, 2 * r))
-        if n == 3 and i % 2 == 0 and 0 < i < seg - 2:
-            o._crest.append((px, py - r))
-            poly(s, (190, 230, 255), [(px - z, py - r * 0.8), (px, py - r - 3 * z), (px + z, py - r * 0.8)])
-    hx, hy = pts[0]
-    poly(s, (230, 220, 200), [(hx, hy - 2 * z), (hx + f * 4 * z, hy - 6 * z), (hx + f * 2 * z, hy - z)])  # its horn
-    pygame.draw.circle(s, o.body, (round(hx + f * 2 * z), round(hy)), round((2.4 + n * 0.5) * z))
-    eyes(s, hx + f * 2.5 * z, hy - 0.5 * z, 2 * z, z, t, o.phase)
-    o._crest.append((hx, hy))
+    if n == 3:  # crystal spikes down its back
+        for i in range(4):
+            sx = x + f * bw * (0.45 - i * 0.32)
+            sy = by - bh * (0.45 - abs(i - 1.2) * 0.04)
+            ln = (3.4 - abs(i - 1) * 0.5) * z
+            poly(s, (170, 220, 250), [(sx - z, sy), (sx - f * 0.6 * z, sy - ln), (sx + z, sy)])
+            o._crest.append((sx - f * 0.4 * z, sy - ln * 0.6))
+    # the near legs, the front pair with shovel claws
+    for j, side in enumerate((-0.45, 0.65)):
+        lx = x + side * bw * f
+        lift = max(0.0, math.sin(walk + j * math.pi)) * 1.6 * z
+        fx, fy = lx + f * 0.6 * z, o.y - lift
+        pygame.draw.line(s, o.body, (lx, by + bh * 0.2), (fx, fy), max(2, round((1.6 + 0.4 * n) * z)))
+        if side > 0:  # the shovel
+            poly(s, (226, 214, 190), [(fx - f * 0.6 * z, fy - 1.4 * z), (fx + f * (2.4 + 0.5 * n) * z, fy - 0.2 * z), (fx + f * 0.2 * z, fy + 0.5 * z)])
+    # neck and head
+    hx, hy = x + f * (bw * 0.95 + 0.8 * n * z), by - bh * 0.55
+    pygame.draw.line(s, o.body, (x + f * bw * 0.6, by - bh * 0.1), (hx, hy), max(2, round((2 + 0.5 * n) * z)))
+    hr = (2.6 + 0.6 * n) * z
+    shaded(s, o.body, (hx - hr, hy - hr * 0.8, 2 * hr, 1.6 * hr))
+    pygame.draw.ellipse(s, o.body, (hx + f * hr * 0.3 - hr * 0.6, hy - hr * 0.3, 1.8 * hr, hr))  # its snout
+    horn = [(hx + f * hr * 0.2, hy - hr * 0.7), (hx + f * hr * (0.55 + 0.15 * n), hy - hr * (0.95 + 0.25 * n)), (hx + f * hr * 0.8, hy - hr * 0.5)]
+    poly(s, (232, 222, 200), horn)
+    if n >= 2:  # a drill: spiral grooves
+        for i in (0.35, 0.6):
+            a, b = horn[0], horn[2]
+            px, py = a[0] + (horn[1][0] - a[0]) * i, a[1] + (horn[1][1] - a[1]) * i
+            pygame.draw.line(s, (170, 160, 140), (px - z * 0.6, py + z * 0.4), (px + f * z * 0.6, py - z * 0.2))
+    if n == 3:  # little back-swept horns too
+        pygame.draw.line(s, (232, 222, 200), (hx - f * hr * 0.5, hy - hr * 0.5), (hx - f * hr * 1.4, hy - hr * 1.0), max(1, round(z)))
+    eyes(s, hx + f * hr * 0.15, hy - hr * 0.15, 1.2 * z, z, t, o.phase)
+    o._crest.append((hx + f * hr * 0.15, hy - hr * 0.15))
 
 
 def glow_delve(o, s, t, st, k):
     z, n = o.size, stage(o)
-    for i, (cx, cy) in enumerate(getattr(o, "_crest", [])):
-        c = (170, 230, 255) if n == 3 and i < len(o._crest) - 1 else o.color
-        glow(s, cx, cy, int((3 + n) * z), c, q(50 + 30 * math.sin(t * 2 + i) + 50 * k))
-        if n == 3:
-            s.set_at((round(cx), round(cy - 2 * z)), WHITE)
+    crest = getattr(o, "_crest", [])
+    for i, (cx, cy) in enumerate(crest[:-1]):  # its crystals
+        glow(s, cx, cy, int(4 * z), (170, 230, 255), q(70 + 30 * math.sin(t * 2 + i) + 50 * k))
+        s.set_at((round(cx), round(cy - z)), WHITE)
+    if crest:  # a warm glow about its eyes
+        ex, ey = crest[-1]
+        glow(s, ex, ey, int((3 + n) * z), o.color, q(35 + 50 * k))
 
 
 # ===================================== the Starfall Meadow ====================================

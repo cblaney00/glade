@@ -129,7 +129,7 @@ WHERE = {
     "Fizzlet": ('ridge',), "Fizzcoil": ('ridge',),
     "Fumelet": ('springs',), "Fumepot": ('springs',),
     "Bulblet": ('tower',), "Bulbflare": ('tower',),
-    "Delvelet": ('caverns',), "Delvecoil": ('caverns',),
+    "Delvelet": ('caverns',), "Delvedrill": ('caverns',),
     "Pomlet": ('meadow',), "Pompom": ('meadow',),
 }
 LORE = {
@@ -422,9 +422,9 @@ LORE = {
     "Bulblet": "A little light bulb that hops on its metal screw. It flickers when it is nervous.",
     "Bulbflare": "Spars at the Battle Tower in a flash of light. Its opponents fight with their eyes shut.",
     "Bulbbeacon": "Shines from the top of the Battle Tower like a lighthouse, so no challenger ever gets lost.",
-    "Delvelet": "A small dragon that would rather dig than fly. It sleeps curled in its own tunnels.",
-    "Delvecoil": "Winds through the rock as easily as a fish through water. The caverns are full of its tunnels.",
-    "Delvewyrm": "A great earth dragon, seldom seen. When it moves deep below, the crystals sing.",
+    "Delvelet": "A small dragon that would rather dig than fly. Its front claws are shaped like little shovels.",
+    "Delvedrill": "Bores through solid rock with its drill of a horn. Its wings are too small to fly, and it does not mind.",
+    "Delvecrag": "A great earth dragon, seldom seen. When it digs deep below, the crystals on its back sing.",
     "Pomlet": "A fluffy ball that bounces everywhere. It cannot sit still, and it does not want to.",
     "Pompom": "Two pom-poms that bounce in turn. When they land together, they giggle.",
     "Pomparade": "A whole bouncing stack of pom-poms marching through the meadow. Everyone joins in.",
