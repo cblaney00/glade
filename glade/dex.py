@@ -26,7 +26,9 @@ TOTAL = DEX_SIZE
 LEGENDS_ = ("Elderglow", "Moonward")
 TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
               rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs",
-              tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow")  # the last two numbers: the legendaries
+              tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow",
+              hollow="The Mushroom Hollow", bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge",
+              shore="The Glow Shore")
 PER_PAGE = 48          # 8 x 6 slots
 STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
@@ -153,7 +155,7 @@ PARTS = ("ling", "let", "wing", "fly", "flit", "hop", "shell", "mane", "tail", "
          "rest", "lord", "back", "grand", "brute", "ink", "mask", "king", "ward", "hard", "blade", "claw",
          "strike", "master", "guard", "halo", "heart", "mmer", "streak", "tempest", "gaze", "seer", "pip",
          "delve", "burrow", "lotl", "shade", "prance", "cling", "clasp", "thorn", "swarm", "lamp", "stomp",
-         "coil", "dynamo", "pot", "cauldron", "flare", "parade", "geon")
+         "coil", "dynamo", "pot", "cauldron", "flare", "parade", "geon", "lash", "hold", "glass", "reef")
 
 
 def family_cut(name):

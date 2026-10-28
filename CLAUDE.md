@@ -283,3 +283,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   too) and pressing it, when not `busy` (no battle, Tower run or evolution), saves place/history/Dex page+pick+tab/boxes to `~/.local/state/glade/resume.json` and exits; the
   config's glade-desktop loop starts the installed glade, which restores it. **So after a rebuild, don't kill the
   glade by hand any more**: tell him to press Thunderstorm to load the new one.
+- **Five more places** (2026-10-27, his picks; `glade/faraway.py`, added to `scenes.BUILDERS` at the end of
+  scenes.py): **The Mushroom Hollow** (MAP (-1,1), down the Forest's lower screen), **The Misty Bog** ((1,1), down
+  the River's lower screen), **The Old Ruins** ((-1,-1), up a path through the Forest's trees), **The Cloud Bridge**
+  ((0,-3), up the steps to a crack of starlight in the Caverns) and **The Glow Shore** ((3,0), right of the Hot
+  Springs). Animals there moved in from elsewhere (lore.WHERE lists them), plus two new lines in `glade/wave7.py`:
+  Tanglet (#289-#291, Fighting/Flying, a living bit of rope) on the Bridge and Tumblet (#292-#294, Rock/Water,
+  sea glass) on the Shore. Next new line: #295.

@@ -38,10 +38,16 @@ MAP = {
     "tower": (0, 2),
     "caverns": (0, -2),
     "meadow": (1, -1),
+    "hollow": (-1, 1),
+    "bog": (1, 1),
+    "ruins": (-1, -1),
+    "bridge": (0, -3),
+    "shore": (3, 0),
 }
 LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
          ("forest", "ridge"), ("river", "springs"), ("rocks", "tower"),
-         ("waterfall", "caverns"), ("waterfall", "meadow")]
+         ("waterfall", "caverns"), ("waterfall", "meadow"),
+         ("forest", "hollow"), ("river", "bog"), ("forest", "ruins"), ("caverns", "bridge"), ("springs", "shore")]
 
 
 def heading(here, there):
@@ -790,7 +796,9 @@ def build_river():
         Spot("go", (872, 396, 88, 76), "The Hot Springs", "springs", (930, 434), sign=(852, 392)),
     ]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"], walkers=WALK + ("murk", "glint"),
-                    out=("murk", "glint"))
+                    out=("murk", "glint"), paths=[dict(
+                        pts=[(312, -4), (316, 80), (322, 200), (326, 320), (330, 460)], widths=[96, 104, 116, 128, 140],
+                        sign=(460, 240), spot=((240, 150, 170, 220), "The Misty Bog", "bog", (322, 300)))])
     return sc.done()
 
 
@@ -837,6 +845,8 @@ def build_forest():
     art.path(lay, [(984, 488), (800, 476), (600, 448), (500, 428), (460, 412)], [48, 44, 36, 20, 10], earth, edge, rng=rng)
     art.path(lay, [(486, 424), (380, 430), (240, 434), (100, 440), (-24, 444)], [16, 24, 28, 32, 34], earth, edge,
              rng=random.Random(45))  # on to the Snowy Ridge
+    art.path(lay, [(486, 426), (480, 406), (474, 388), (472, 376)], [16, 11, 7, 4], earth, edge,
+             rng=random.Random(46))  # up through the trees to the Old Ruins
     sc.add(lay, 0.2, texture=0.6)
 
     # a ring of glowing mushrooms, and more scattered about
@@ -874,9 +884,12 @@ def build_forest():
     sc.spots = [
         Spot("go", (872, 428, 88, 92), "Back to the Glade", "glade", (932, 480), sign=(864, 424)),
         Spot("go", (0, 400, 96, 76), "The Snowy Ridge", "ridge", (30, 442), sign=(112, 396)),
+        Spot("go", (424, 330, 100, 76), "The Old Ruins", "ruins", (474, 380), sign=(474, 340)),
     ]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"], walkers=WALK + ("bramble",),
-                    fliers=FLY + ("thistle",), out=("bramble", "thistle"))
+                    fliers=FLY + ("thistle",), out=("bramble", "thistle"), paths=[dict(
+                        pts=[(232, -4), (230, 80), (226, 200), (220, 320), (214, 460)], widths=[96, 104, 116, 128, 140],
+                        sign=(370, 240), spot=((150, 150, 160, 220), "The Mushroom Hollow", "hollow", (224, 300)))])
     return sc.done()
 
 
@@ -1219,7 +1232,9 @@ def build_springs():
     sc.add(lay, 0.2, texture=0.6)
     lay = art.plane()
     hot = []
-    for x, y, w, h in ((760, 482, 90, 40), (860, 500, 70, 32), (640, 508, 50, 22), (90, 520, 60, 24)):
+    art.path(sc.cur, [(984, 470), (900, 466), (820, 460), (790, 458)], [44, 36, 22, 12], earth, edge,
+             rng=random.Random(67))  # on to the Glow Shore
+    for x, y, w, h in ((690, 506, 90, 40), (900, 526, 70, 32), (600, 512, 50, 22), (90, 520, 60, 24)):
         art.rock(lay, rng, x, y, w, h, sc.col("stone", 0.16))
         for _ in range(3):  # cracks with heat glowing through
             cx_, cy_ = x + rng.randint(-w // 3, w // 3), y - rng.randint(4, h - 6)
@@ -1250,6 +1265,7 @@ def build_springs():
 
     sc.spots = [
         Spot("go", (0, 440, 88, 80), "Back to the River", "river", (30, 484), sign=(110, 436)),
+        Spot("go", (872, 420, 88, 80), "The Glow Shore", "shore", (930, 462), sign=(850, 420)),
     ]
     sc.lower = dict(ground=0.18, props=["rocks", "vents"], fly=GLOW["amber"],
                     walkers=("capy", "gecko", "beetle"), fliers=("jelly", "moth"), out=("gecko", "jelly"))
@@ -1523,6 +1539,20 @@ def build_caverns():
         pygame.draw.arc(lay, mix(pool, (230, 244, 255), 0.3), (360 + i * 14, 414 + (i % 3) * 8, 120, 14), 0.2, 2.8)
     sc.add(lay, 0.4, veil=0.02, texture=0.6)
     sc.lamp(480, 430, 220, CAVE_CRYSTAL[1], 70)
+    lay = art.plane()
+    up = random.Random(92)
+    crack = [(846, 110), (872, 96), (900, 120), (906, 200), (880, 260), (852, 240), (842, 170)]
+    pygame.draw.polygon(lay, (24, 22, 70), crack)
+    pygame.draw.polygon(lay, (60, 56, 130), crack, 2)
+    for _ in range(18):
+        sx, sy = up.randint(852, 898), up.randint(110, 236)
+        lay.set_at((sx, sy), (240, 240, 255))
+    for i in range(9):  # steps cut into the shelf, climbing to it
+        x, y = 760 + i * 13, 352 - i * 12
+        pygame.draw.rect(lay, mix(rock, (255, 255, 255), 0.12 + 0.04 * (i % 2)), (x - 14, y, 30, 6))
+        pygame.draw.rect(lay, mix(rock, p["shade"], 0.4), (x - 14, y + 6, 30, 4))
+    sc.raw(lay)
+    sc.lamp(876, 180, 120, (200, 200, 255), 60)
     sc.pond = sc.live(Shoal(rng, [(Water(480, 430, 150, 18), 3)], pool, size=0.7))
     # near: the cave floor, a path down to the Waterfall, and great crystal clusters
     lay = art.plane()
@@ -1555,7 +1585,8 @@ def build_caverns():
     bugs = sc.live(Fireflies(rng, (0, 200, W, 260), 18, color=CAVE_CRYSTAL[1], reach=22))
     sc.bugs.append(bugs)
 
-    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Waterfall", "waterfall", (476, 516), sign=(476, 504))]
+    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Waterfall", "waterfall", (476, 516), sign=(476, 504)),
+                Spot("go", (820, 150, 110, 200), "The Cloud Bridge", "bridge", (876, 200), sign=(800, 150))]
     sc.lower = dict(ground=0.12, props=["rocks", "crystals"], fly=CAVE_CRYSTAL[1], bushes=False,
                     walkers=("geode", "drip", "lumi", "ferro", "shard", "pebble"), fliers=("hum", "umbra"),
                     out=("geode", "shard", "hum"))
@@ -1644,3 +1675,7 @@ BUILDERS = {
     "caverns": build_caverns,
     "meadow": build_meadow,
 }
+
+# five more places (2026-10-27, his picks), painted in faraway.py
+from faraway import BUILD as _FARAWAY  # noqa: E402
+BUILDERS.update(_FARAWAY)

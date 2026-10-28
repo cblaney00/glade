@@ -644,6 +644,22 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
 
+# The five new places' own lines (2026-10-27, his ask; drawn in wave7.py): Tanglet on the Cloud
+# Bridge, Tumblet on the Glow Shore.
+_PAGE7 = [
+    ("Tanglet", "Tanglash", "Tanglehold", ("Fighting", "Flying"), None, (80, 115, 80, 50, 70, 105), "Inner Focus",
+     ["Karate Chop", "Gust", "Quick Attack", "Wing Attack", "Mach Punch", "Bulk Up", "Brick Break", "Aerial Ace", "Cross Chop"]),
+    ("Tumblet", "Tumbleglass", "Tumblereef", ("Rock", "Water"), None, (85, 70, 115, 90, 95, 45), "Shell Armor",
+     ["Water Gun", "Harden", "Rock Tomb", "Bubble Beam", "Iron Defense", "Water Pulse", "Rock Slide", "Ancient Power", "Surf"]),
+]
+for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE7):
+    _num = 289 + _i * 3
+    _first = list(_shape)
+    _first[1 if _shape[1] >= _shape[3] else 3] += 8
+    SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_i * 37 + 11) % 21), ability=_ability, pool=_pool[:6])
+    SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
+    SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
+
 
 def line_start(num):
     """The number of the first stage of the line `num` is in (a legendary is its own)."""

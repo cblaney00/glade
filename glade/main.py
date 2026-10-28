@@ -348,10 +348,12 @@ class Minimap:
 
     NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
                  rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower",
-                 caverns="The Crystal Caverns", meadow="The Starfall Meadow")
+                 caverns="The Crystal Caverns", meadow="The Starfall Meadow", hollow="The Mushroom Hollow",
+                 bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge", shore="The Glow Shore")
     COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
                   forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110),
-                  tower=(255, 214, 236), caverns=(190, 140, 255), meadow=(255, 236, 160))
+                  tower=(255, 214, 236), caverns=(190, 140, 255), meadow=(255, 236, 160), hollow=(200, 255, 170),
+                  bog=(190, 255, 210), ruins=(150, 230, 255), bridge=(220, 214, 255), shore=(90, 240, 230))
     CELL = 22  # canvas pixels between neighbouring places
 
     def __init__(self, font):
