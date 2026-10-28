@@ -812,6 +812,14 @@ def as_mon(x, rng, foe):
     return Mon(x.species, rng, foe, x.ivs, x.moves, nature=x.nature, evs=x.evs)
 
 
+def _known(x):
+    """Whether this glade knows the creature's species (see Battle)."""
+    if isinstance(x, Mon):
+        return True
+    name = x if isinstance(x, str) else x[0] if isinstance(x, tuple) else getattr(x, "species", None)
+    return name in SPECIES
+
+
 def NATURE_LIST():
     from team import NATURES
     return NATURES
@@ -830,6 +838,10 @@ class Battle:
         self.rng = rng or random.Random()
         mine = mine if isinstance(mine, list) else [mine]
         theirs = theirs if isinstance(theirs, list) else [theirs]
+        # A creature from a newer glade (after going back to an older one) has no species
+        # here: it sits the fight out rather than crashing the glade (2026-10-28).
+        mine = [x for x in mine if _known(x)] or mine
+        theirs = [x for x in theirs if _known(x)] or theirs
         self.teams = [[as_mon(x, self.rng, False) for x in mine][:6], [as_mon(x, self.rng, True) for x in theirs][:6]]
         self.active = [0, 0]
         self.fought = {0}  # which of yours have been out in this battle

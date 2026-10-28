@@ -602,7 +602,7 @@ class Glade:
         self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
         self.evolution = None  # an animal evolving (evolve.py), from its stats card
         self.hiding = None  # the animals hiding while he plays a game (hiding.py)
-        self.keep_out = hiding.load_keep_out()  # his "Keep animals out" switch
+        self.hide = hiding.load_hide()  # his "Hide animals" switch
         self.covered = set()  # the views a full-screen window is hiding: not drawn (set by wayland.py)
         self.game_since = None  # when a full-screen window last came up
         self.updater = resume.Updater()  # after a rebuild: switch to the new glade when nothing is going on
@@ -616,7 +616,8 @@ class Glade:
         self.covered = views
 
     def hide_for_games(self, t):
-        """A game full screen for half a minute: everyone hides; when he is back, out they come."""
+        """A game full screen for half a minute, or his "Hide animals" switch: everyone hides; when
+        he is back (and the switch is off), out they come."""
         h = self.hiding
         if h is not None:
             if h.scene is not self.here or self.storm is not None:
@@ -625,11 +626,11 @@ class Glade:
             elif h.done:
                 self.hiding = None
             else:
-                if not self.covered or self.keep_out:
+                if not self.covered and not self.hide:
                     h.come_back(t)
                 h.update(t)
-        elif self.covered and not self.keep_out and self.storm is None and not self.fade_to \
-                and self.game_since is not None and t - self.game_since >= hiding.WAIT:
+        elif self.storm is None and not self.fade_to and (self.hide or self.covered
+                and self.game_since is not None and t - self.game_since >= hiding.WAIT):
             self.lifespans.settle()
             self.hiding = hiding.Hiding(self, t, self.lifespans.keep(self))
 
@@ -729,8 +730,8 @@ class Glade:
             self.dex = Dex(self.signs.font, None, t)  # the quick way into the Forest Dex
             return
         if m and hiding.keep_rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            self.keep_out = not self.keep_out  # his switch: no hiding for games
-            hiding.save_keep_out(self.keep_out)
+            self.hide = not self.hide  # his switch: everyone hides until he shows them again
+            hiding.save_hide(self.hide)
             return
         if m and hiding.party_rect(view).collidepoint(m) and self.board is None and self.dex is None:
             self.popup, self.card = None, None
@@ -1130,7 +1131,7 @@ class Glade:
             if view is self.map_view() and self.board is None and self.dex is None:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
                 vision.draw_dex_button(view.canvas, view, self.signs.font)
-                hiding.draw_buttons(view.canvas, view, self.signs.font, self.keep_out)
+                hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)

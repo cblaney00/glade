@@ -6,8 +6,9 @@ out where he is goes into hiding (diggers sink into the ground, fliers fly off, 
 same way they shelter from a storm. When he comes back, they peek out again one by one over
 about half a minute (his picks, 2026-10-27).
 
-The "Keep animals out" board (lower screen, top-left) switches the hiding off; the animals
-still come and go over time as usual. It is remembered across restarts. "Your party" opens the
+The "Hide animals" board (lower screen, top-left) sends every animal where he is into hiding
+right away, and they stay hidden (wherever he goes) until he presses "Show animals" (his pick,
+2026-10-28, in place of the old "Keep animals out" switch). It is remembered across restarts. "Your party" opens the
 creature boxes (storage.py)."""
 
 import json
@@ -25,15 +26,15 @@ BACK = 28.0     # how long they take to all come back out
 SETTINGS = os.path.join(os.path.dirname(STATE), "settings.json")
 
 
-def load_keep_out():
+def load_hide():
     try:
         with open(SETTINGS) as f:
-            return bool(json.load(f).get("keep_out", False))
+            return bool(json.load(f).get("hide", False))
     except (OSError, ValueError, AttributeError):
         return False
 
 
-def save_keep_out(on):
+def save_hide(on):
     try:
         os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
         try:
@@ -41,7 +42,7 @@ def save_keep_out(on):
                 data = json.load(f)
         except (OSError, ValueError):
             data = {}
-        data["keep_out"] = bool(on)
+        data["hide"] = bool(on)
         tmp = SETTINGS + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f)
@@ -122,18 +123,18 @@ def party_rect(view):
     return pygame.Rect(8, 86, 150, 22)
 
 
-def draw_buttons(s, view, font, keep_out):
+def draw_buttons(s, view, font, hide):
     m = view.mouse()
-    # "Keep animals out": a switch, a little leaf that lights up while it is on
+    # "Hide animals": a switch, a little leaf that lights up while they are hidden
     r = keep_rect(view)
     hot = bool(m) and r.collidepoint(m)
-    cloth(s, r, KEEP, hot=hot or keep_out, alpha=230)
+    cloth(s, r, KEEP, hot=hot or hide, alpha=230)
     lx, ly = r.x + 13, r.centery
-    leaf = (250, 255, 200) if keep_out else (110, 140, 90)
+    leaf = (250, 255, 200) if hide else (110, 140, 90)
     pygame.draw.ellipse(s, leaf, (lx - 6, ly - 4, 12, 8))
     pygame.draw.line(s, (60, 80, 50), (lx - 5, ly), (lx + 5, ly))
-    label = "Animals stay out" if keep_out else "Keep animals out"
-    img = font.render(label, False, (255, 255, 255) if hot or keep_out else TEXT)
+    label = "Show animals" if hide else "Hide animals"
+    img = font.render(label, False, (255, 255, 255) if hot or hide else TEXT)
     s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
     # "Your party": six little orbs
     r = party_rect(view)
