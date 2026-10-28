@@ -43,11 +43,18 @@ MAP = {
     "ruins": (-1, -1),
     "bridge": (0, -3),
     "shore": (3, 0),
+    # fifteen more (2026-10-27, his picks; kit.py, faraway2-4.py)
+    "falls": (-2, -1), "peak": (-3, 0), "gully": (-2, 1), "orchard": (-1, 2), "temple": (1, 2),
+    "dunes": (2, 1), "lava": (2, -1), "grotto": (4, 0), "kelp": (3, 1), "lighthouse": (3, -1),
+    "comet": (1, -2), "garden": (-1, -2), "isles": (0, -4), "storm": (1, -3), "thorn": (-3, 1),
 }
 LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
          ("forest", "ridge"), ("river", "springs"), ("rocks", "tower"),
          ("waterfall", "caverns"), ("waterfall", "meadow"),
-         ("forest", "hollow"), ("river", "bog"), ("forest", "ruins"), ("caverns", "bridge"), ("springs", "shore")]
+         ("forest", "hollow"), ("river", "bog"), ("forest", "ruins"), ("caverns", "bridge"), ("springs", "shore"),
+         ("ridge", "falls"), ("ridge", "peak"), ("hollow", "gully"), ("hollow", "orchard"), ("bog", "temple"),
+         ("bog", "dunes"), ("springs", "lava"), ("shore", "grotto"), ("shore", "kelp"), ("shore", "lighthouse"),
+         ("meadow", "comet"), ("ruins", "garden"), ("bridge", "isles"), ("bridge", "storm"), ("gully", "thorn")]
 
 
 def heading(here, there):
@@ -1106,6 +1113,9 @@ def build_ridge():
         lay.set_at((x, y), SNOW if rng.random() < 0.3 else sc.col("leaf", 0.2))
     earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
     art.path(lay, [(984, 486), (840, 480), (700, 466), (580, 452), (500, 446)], [44, 42, 36, 26, 14], earth, edge, rng=rng)
+    from kit import exit_spot, trail
+    trail(sc, lay, "left", 446)
+    trail(sc, lay, "up", 446, 220)
     sc.add(lay, 0.2, texture=0.5)
     lay = art.plane()
     glows = []
@@ -1137,6 +1147,7 @@ def build_ridge():
 
     sc.spots = [
         Spot("go", (872, 440, 88, 80), "Back to the Forest", "forest", (930, 482), sign=(852, 436)),
+        exit_spot("left", "Aurora Peak", "peak", 446), exit_spot("up", "The Frozen Falls", "falls", 446, 220),
     ]
     sc.lower = dict(ground=0.2, props=["pines", "crystals"], fly=GLOW["cyan"], bushes=False,
                     walkers=("fox", "goat", "newt"), fliers=("finch", "wisp"), out=("fox", "finch"))
@@ -1229,6 +1240,8 @@ def build_springs():
     art.flowers(lay, rng, (0, 470, W, 70), p["flowers"], 40)
     earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
     art.path(lay, [(-24, 486), (120, 480), (280, 470), (400, 462), (460, 458)], [44, 42, 36, 26, 14], earth, edge, rng=rng)
+    from kit import exit_spot, trail
+    trail(sc, lay, "up", 452, 200)  # up to the Lava Lake
     sc.add(lay, 0.2, texture=0.6)
     lay = art.plane()
     hot = []
@@ -1266,6 +1279,7 @@ def build_springs():
     sc.spots = [
         Spot("go", (0, 440, 88, 80), "Back to the River", "river", (30, 484), sign=(110, 436)),
         Spot("go", (872, 420, 88, 80), "The Glow Shore", "shore", (930, 462), sign=(850, 420)),
+        exit_spot("up", "The Lava Lake", "lava", 452, 200),
     ]
     sc.lower = dict(ground=0.18, props=["rocks", "vents"], fly=GLOW["amber"],
                     walkers=("capy", "gecko", "beetle"), fliers=("jelly", "moth"), out=("gecko", "jelly"))
@@ -1642,6 +1656,8 @@ def build_meadow():
     art.flowers(lay, rng, (0, 450, W, 90), p["flowers"], 160)
     earth, edge = sc.col("earth", 0.18), sc.col("earth_edge", 0.18)
     art.path(lay, [(-24, 486), (120, 480), (260, 470), (380, 462)], [48, 44, 36, 22], earth, edge, rng=rng)
+    from kit import exit_spot, trail
+    trail(sc, lay, "up", 446, 600)  # up to the Comet Crater
     sc.add(lay, 0.2, texture=0.5)
     sc.live(Blades(rng, (0, 420, W, 120), 380, [sc.col("leaf", 0.1), sc.col("leaf2", 0.1)], 14, 40, stiff=1.2))
     sc.live(Fireflies(rng, (0, 300, W, 200), 40, color=(255, 236, 160), reach=24))
@@ -1656,7 +1672,8 @@ def build_meadow():
     squids(sc, rng, (120, 80, 700, 200), [GLOW["violet"], (255, 236, 160)])
     front_frame(sc, rng, top=False)
 
-    sc.spots = [Spot("go", (0, 430, 96, 90), "Back to the Waterfall", "waterfall", (30, 476), sign=(116, 430))]
+    sc.spots = [Spot("go", (0, 430, 96, 90), "Back to the Waterfall", "waterfall", (30, 476), sign=(116, 430)),
+                exit_spot("up", "The Comet Crater", "comet", 446, 600)]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=(255, 236, 160),
                     walkers=("twinkle", "tuft", "kick", "dust"), fliers=("meteor", "zap", "dream", "wish"),
                     out=("twinkle", "wish"))
@@ -1678,4 +1695,10 @@ BUILDERS = {
 
 # five more places (2026-10-27, his picks), painted in faraway.py
 from faraway import BUILD as _FARAWAY  # noqa: E402
+from faraway2 import BUILD as _ROUND1  # noqa: E402
 BUILDERS.update(_FARAWAY)
+BUILDERS.update(_ROUND1)
+from faraway3 import BUILD as _ROUND2  # noqa: E402
+BUILDERS.update(_ROUND2)
+from faraway4 import BUILD as _ROUND3  # noqa: E402
+BUILDERS.update(_ROUND3)

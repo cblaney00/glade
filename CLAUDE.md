@@ -290,3 +290,18 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Springs). Animals there moved in from elsewhere (lore.WHERE lists them), plus two new lines in `glade/wave7.py`:
   Tanglet (#289-#291, Fighting/Flying, a living bit of rope) on the Bridge and Tumblet (#292-#294, Rock/Water,
   sea glass) on the Shore. Next new line: #295.
+- **Fifteen far places** (2026-10-27, his picks, three rounds of five): built with `glade/kit.py` (`make`: a
+  spec plus painters; `trail`/`exit_spot`/`lower_path` add the paths out, also used in the places they branch
+  off). Round one `faraway2.py`: Frozen Falls (up from Ridge), Aurora Peak (left of Ridge), Fern Gully (left of
+  Hollow), Lantern Orchard (down the Hollow's lower screen), Sunken Temple (down the Bog's lower screen). Round
+  two `faraway3.py`: Moon Dunes (right of Bog), Lava Lake (up from Springs), Coral Grotto (right of Shore), Kelp
+  Deep (down the Shore's lower screen; under the sea), Lighthouse Point (up the Shore's headland). Round three
+  `faraway4.py`: Comet Crater (up from Meadow), Moonpetal Garden (through the Ruins' arch), Floating Isles
+  (stepping stones up from the Bridge), Storm Peaks (right of Bridge), Thornwood (left of Gully). All 30 places
+  are in `scenes.MAP`; the minimap's CELL went 22 → 18 to fit. All built, they take ~0.7 GB.
+- **Fifty more lines, Dex to 450** (2026-10-27, his ask: two per far place plus twenty spread over every place
+  by theme, "good type distribution"): data in `glade/lines8.py` (kind, names, types, stat shape, final height,
+  home; moves come from `pool()` by type), drawn in `glade/wave8.py` (the far places' 30) and `glade/wave9.py`
+  (the 20), stories in `glade/lore8.py`. #295-#444; legendaries moved to #449/#450 with DEX_SIZE. Types now 13-23
+  lines each (Dragon 13 is the least, Water 23 the most). Next new line: #445 (only #445-#448 left before the
+  legendaries; grow DEX_SIZE for more).

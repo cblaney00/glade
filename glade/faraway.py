@@ -15,6 +15,7 @@ import art
 from art import GLOW, H, W, glow, mix
 from life import Blades, Fireflies, Motes, Pulses, River, Slug, Stars, Steam, Track, Vines, make_rng
 from pond import Shoal, Water
+from kit import exit_spot, lower_path, trail
 from scenes import (Scene, Spot, additions, front_frame, glowmoss, moon, mushroom, pal, second_wave, squids)
 
 SPORE = (200, 255, 170)
@@ -89,6 +90,7 @@ def build_hollow():
     art.grass_bed(lay, rng, (0, 440, W, 100), sc.col("leaf", 0.18), 1500, 6)
     art.flowers(lay, rng, (0, 450, W, 90), p["flowers"], 70)
     back_path(sc, lay, rng, 470, 560, 400)
+    trail(sc, lay, "left", 440)
     sc.add(lay, 0.2, texture=0.6)
     lay = art.plane()
     caps = [(130, 140, 255), (255, 150, 220), (140, 236, 255), (200, 255, 150)]
@@ -114,10 +116,11 @@ def build_hollow():
     squids(sc, rng, (120, 60, 700, 200), [GLOW["lime"], GLOW["violet"]])
     front_frame(sc, rng)
 
-    sc.spots = [Spot("go", (420, 360, 110, 90), "Back to the Forest", "forest", (474, 404), sign=(474, 360))]
+    sc.spots = [Spot("go", (420, 360, 110, 90), "Back to the Forest", "forest", (474, 404), sign=(474, 360)),
+                exit_spot("left", "Fern Gully", "gully", 440)]
     sc.lower = dict(ground=0.2, props=["mushrooms"], fly=GLOW["lime"],
                     walkers=("sporeling", "myce", "toad", "bramble", "sap"), fliers=("moth", "thistle", "fern"),
-                    out=("sporeling", "moth"))
+                    out=("sporeling", "moth"), paths=[lower_path("The Lantern Orchard", "orchard", 400)])
     return sc.done()
 
 
@@ -204,6 +207,7 @@ def build_bog():
             for sx in (x - w // 2 - 2, x + w // 2 + 1):
                 pygame.draw.line(lay, mix(c, (0, 0, 0), 0.4), (sx, y - 16), (sx, y - 2), 2)
     art.forget_paths()
+    trail(sc, lay, "right", 456)  # on to the Moon Dunes
     sc.add(lay, 0.2, texture=0.6)
     lay = art.plane()
     for x, y in ((446, 500), (518, 470)):  # a lantern on a post either side of the boards
@@ -227,9 +231,10 @@ def build_bog():
     squids(sc, rng, (120, 80, 700, 200), [WISP, GLOW["cyan"]])
     front_frame(sc, rng, top=False)
 
-    sc.spots = [Spot("go", (420, 380, 120, 90), "Back to the River", "river", (490, 420), sign=(490, 372))]
+    sc.spots = [Spot("go", (420, 380, 120, 90), "Back to the River", "river", (490, 420), sign=(490, 372)),
+                exit_spot("right", "The Moon Dunes", "dunes", 456)]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=GLOW["firefly"], walkers=("murk", "newt", "reed", "smudge"),
-                    fliers=("mire", "wisp"), out=("murk", "mire"))
+                    fliers=("mire", "wisp"), out=("murk", "mire"), paths=[lower_path("The Sunken Temple", "temple", 300)])
     return sc.done()
 
 
@@ -329,7 +334,8 @@ def build_ruins():
     squids(sc, rng, (120, 60, 700, 180), [RUNE, GLOW["pink"]])
     front_frame(sc, rng, top=False)
 
-    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Forest", "forest", (470, 516), sign=(470, 504))]
+    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Forest", "forest", (470, 516), sign=(470, 504)),
+                Spot("go", (420, 230, 120, 110), "The Moonpetal Garden", "garden", (480, 290), sign=(480, 250))]  # through the arch
     sc.lower = dict(ground=0.18, props=["rocks"], fly=RUNE, walkers=("rune", "glint", "rubble", "slate"),
                     fliers=("sigil", "bat"), out=("rune", "sigil"))
     return sc.done()
@@ -405,6 +411,11 @@ def build_bridge():
     for i in range(5):  # stone steps going down out of the picture
         pygame.draw.rect(lay, mix(stone, (255, 255, 255), 0.06 * (i % 2)), (420 - i * 6, 480 + i * 12, 120 + i * 12, 10))
     art.forget_paths()
+    for i in range(7):  # stepping stones floating up into the sky, the way to the Floating Isles
+        x, y, w = 330 - i * 22, 440 - i * 34, 22 - i * 1.5
+        art.crag(lay, [(x - w, y), (x + w, y), (x, y + w * 0.8)], sc.col("stone", 0.25 + i * 0.05), 70 + i, side=1)
+        pygame.draw.ellipse(lay, sc.col("leaf2", 0.25 + i * 0.05), (x - w, y - 3, w * 2, 6))
+    trail(sc, lay, "right", 456)  # on to the Storm Peaks
     sc.add(lay, 0.18, texture=0.6)
     sc.live(Blades(rng, (0, 452, W, 88), 260, [sc.col("leaf", 0.1), sc.col("leaf2", 0.1)], 10, 28, stiff=1.4))
     sc.live(Motes(rng, (0, 260, W, 200), 50, (230, 230, 255), rise=-3))
@@ -418,7 +429,9 @@ def build_bridge():
     squids(sc, rng, (120, 60, 700, 200), [GLOW["violet"], GLOW["white"]])
     front_frame(sc, rng, top=False)
 
-    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Caverns", "caverns", (476, 516), sign=(476, 504))]
+    sc.spots = [Spot("go", (392, 480, 168, 60), "Back to the Caverns", "caverns", (476, 516), sign=(476, 504)),
+                Spot("go", (150, 160, 140, 120), "The Floating Isles", "isles", (196, 220), sign=(200, 168)),
+                exit_spot("right", "The Storm Peaks", "storm", 456)]
     sc.lower = dict(ground=0.18, props=["rocks"], fly=(255, 236, 200), walkers=("tuft", "pom", "goat"),
                     fliers=("breeze", "wish"), out=("tuft", "breeze"))
     return sc.done()
@@ -461,6 +474,10 @@ def build_shore():
         sc.emit.set_at((min(W - 1, x), int(y)), art.scale(SEA, 0.5))
     sc.add(lay, 0.3, texture=0)
     sc.live(Pulses(surf, speed=0.9))
+    lay = art.plane()  # the headland, the way up to Lighthouse Point
+    art.crag(lay, [(700, 444), (770, 360), (850, 320), (W, 300), (W, 450)], sc.col("stone", 0.3), 78, side=1)
+    pygame.draw.polygon(lay, sc.col("leaf", 0.3), [(770, 360), (850, 318), (W, 298), (W, 306), (850, 328)])
+    sc.add(lay, 0.3, texture=0.5)
     # near: pale sand, rocks with tide pools full of light, the path back to the Springs
     lay = art.plane()
     sand = sc.col("leaf2", 0.2)
@@ -471,10 +488,12 @@ def build_shore():
         lay.set_at((x, y), mix(sand, (255, 255, 255), rng.uniform(-0.1, 0.25)) if rng.random() < 0.7 else mix(sand, (60, 40, 80), 0.2))
     earth, edge = sc.col("earth", 0.16), sc.col("earth_edge", 0.16)
     art.path(lay, [(-24, 490), (120, 486), (260, 478), (340, 472)], [44, 40, 30, 16], earth, edge, rng=rng)
+    trail(sc, lay, "right", 444)
+    trail(sc, lay, "up", 440, 840)
     sc.add(lay, 0.18, texture=0.4)
     lay = art.plane()
     pools = []
-    for x, y, w, h in ((640, 500, 110, 40), (860, 480, 80, 50), (420, 520, 70, 26)):
+    for x, y, w, h in ((640, 500, 110, 40), (880, 528, 60, 30), (420, 520, 70, 26)):
         art.rock(lay, rng, x, y, w, h, sc.col("stone", 0.16), moss=sc.col("leaf", 0.12), mossiness=0.4)
     for x, y, w in ((560, 520, 60), (760, 506, 50), (300, 520, 40)):
         pygame.draw.ellipse(lay, mix(SEA, (20, 40, 70), 0.55), (x - w // 2, y - 6, w, 14))
@@ -499,8 +518,9 @@ def build_shore():
     squids(sc, rng, (120, 80, 700, 180), [SEA, GLOW["pink"]])
     front_frame(sc, rng, top=False, left=False)
 
-    sc.spots = [Spot("go", (0, 440, 88, 80), "Back to the Hot Springs", "springs", (30, 484), sign=(122, 436))]
-    sc.lower = dict(ground=0.16, props=["rocks"], fly=SEA, bushes=False,
+    sc.spots = [Spot("go", (0, 440, 88, 80), "Back to the Hot Springs", "springs", (30, 484), sign=(122, 436)),
+                exit_spot("right", "The Coral Grotto", "grotto", 444), exit_spot("up", "Lighthouse Point", "lighthouse", 440, 840)]
+    sc.lower = dict(ground=0.16, props=["rocks"], fly=SEA, bushes=False, paths=[lower_path("The Kelp Deep", "kelp", 300)],
                     walkers=("glint", "ripple", "splash", "murk"), fliers=("jelly", "foam"), out=("glint", "jelly"))
     return sc.done()
 

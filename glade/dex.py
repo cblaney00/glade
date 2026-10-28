@@ -29,6 +29,7 @@ TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", f
               tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow",
               hollow="The Mushroom Hollow", bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge",
               shore="The Glow Shore")
+TITLES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood"))
 PER_PAGE = 48          # 8 x 6 slots
 STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
@@ -155,7 +156,8 @@ PARTS = ("ling", "let", "wing", "fly", "flit", "hop", "shell", "mane", "tail", "
          "rest", "lord", "back", "grand", "brute", "ink", "mask", "king", "ward", "hard", "blade", "claw",
          "strike", "master", "guard", "halo", "heart", "mmer", "streak", "tempest", "gaze", "seer", "pip",
          "delve", "burrow", "lotl", "shade", "prance", "cling", "clasp", "thorn", "swarm", "lamp", "stomp",
-         "coil", "dynamo", "pot", "cauldron", "flare", "parade", "geon", "lash", "hold", "glass", "reef")
+         "coil", "dynamo", "pot", "cauldron", "flare", "parade", "geon", "lash", "hold", "glass", "reef",
+         "chime", "carillon", "shimmer", "crown", "wall", "rill", "rapid", "fruit", "bough", "fort", "oracle", "shrine", "jab", "maw", "night", "noir", "leviathan", "abyss", "gale", "hulk", "burst", "fount", "float", "continent", "strider", "cloud", "berry", "bramble", "web", "weaver", "brawl", "champ", "bash", "breaker", "blaze", "bark", "elder", "knock", "mound", "avalanche", "bake", "bag", "champion", "dream", "cluster", "colony", "work", "log", "castle", "bolt", "frost", "glacier", "jolt")
 
 
 def family_cut(name):

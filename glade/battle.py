@@ -194,7 +194,7 @@ MOVES = {
 # row; the three starters' lines come first (#001-#009); room for DEX_SIZE. His rule (2026-10-27):
 # the legendaries always take the very last numbers of the Dex (LEGENDARY below).
 
-DEX_SIZE = 400
+DEX_SIZE = 450
 SPECIES = {
     "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
@@ -659,6 +659,22 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_i * 37 + 11) % 21), ability=_ability, pool=_pool[:6])
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
+
+
+# Fifty more lines (2026-10-27, his ask), #295-#444: two for each of the fifteen far places and
+# twenty spread over every place, typed to even out the Dex (lines8.py; drawn in wave8/9.py).
+from lines8 import ABILITY as _AB8, LINES as _L8, pool as _pool8  # noqa: E402
+_PAGE8 = []
+for _i, (_k, (_a, _b, _c), _types, _shape, *_r) in enumerate(_L8):
+    _num = 295 + _i * 3
+    _pool = _pool8(_types, MOVES)
+    _PAGE8.append((_a, _b, _c, _types, None, _shape, _AB8[_types[0]], _pool))
+    _first = list(_shape)
+    _first[1 if _shape[1] >= _shape[3] else 3] += 8
+    SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_i * 37 + 5) % 21), ability=_AB8[_types[0]],
+                       pool=_pool[:6])
+    SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _AB8[_types[0]], _pool[6:8])
+    SPECIES[_c] = _grown(_b, _num + 2, _types, _spread(_shape, 530), _AB8[_types[0]], _pool[8:])
 
 
 def line_start(num):

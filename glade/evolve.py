@@ -107,6 +107,9 @@ _H6 = {
 from battle import _PAGE6 as _P6  # noqa: E402
 for _a, _b, _c, *_ in _P6:
     HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = _H6[_a]
+from lines8 import LINES as _L8  # noqa: E402
+for _k, (_a, _b, _c), _types, _shape, _final, *_r in _L8:
+    HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = round(_final * 0.2, 1), round(_final * 0.5, 1), _final
 HEIGHT.update(Tanglet=0.8, Tanglash=2.4, Tanglehold=4.6, Tumblet=0.4, Tumbleglass=1.5, Tumblereef=3.6)  # wave7.py
 
 
@@ -156,8 +159,8 @@ EVOLVES.update({
     "Runelet": "Runestand", "Runestand": "Runewarden", "Sparkfly": "Arcfly", "Arcfly": "Thunderfly",
     "Murkling": "Murkgloop", "Murkgloop": "Murkdredge", "Glintshell": "Glintdome", "Glintdome": "Glintcitadel",
 })
-from battle import _PAGE3, _PAGE4, _PAGE6, _PAGE7  # noqa: E402
-for _a, _b, _c, *_ in _PAGE3 + _PAGE4 + _PAGE6 + _PAGE7:
+from battle import _PAGE3, _PAGE4, _PAGE6, _PAGE7, _PAGE8  # noqa: E402
+for _a, _b, _c, *_ in _PAGE3 + _PAGE4 + _PAGE6 + _PAGE7 + _PAGE8:
     EVOLVES[_a], EVOLVES[_b] = _b, _c
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself
