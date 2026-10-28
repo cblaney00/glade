@@ -1,5 +1,5 @@
 """The Forest Dex's page six (2026-10-27, his ask): the Dex grows to 400 and ten new three-stage
-lines (#261-#290) come in, one for each place, mostly of the types there were fewest of
+lines (#259-#288) come in, one for each place, mostly of the types there were fewest of
 (Electric, Poison, Dark, Fighting). Dragon, Ghost and Steel stay rare, one line each.
 
 Same rules as wave5.py: no humanoids, no two lines sharing a body, each kind its own

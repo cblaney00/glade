@@ -17,12 +17,12 @@ import pygame
 import art
 from apex import ease
 from art import GLOW, glow
-from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, line_start, mix, stat_color
+from battle import CLOTH, DEX_SIZE, DIM, EDGE, LEGEND_NUMS, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, line_start, mix, stat_color
 from beasts import FLIERS, WALKERS, Flier, Walker, owlet
 from life import Critter, Millipede, Slug, Squid, Track
 from pond import KOI, Fish, Water
 
-TOTAL = 400
+TOTAL = DEX_SIZE
 LEGENDS_ = ("Elderglow", "Moonward")
 TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
               rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs",
@@ -446,7 +446,7 @@ class Dex:
         name = self.known.get(self.pick)
         first = line_start(self.pick)
         stage = self.pick - first + 1
-        legend = self.pick in (259, 260)  # #259 and #260 are legendaries, not a line
+        legend = self.pick in LEGEND_NUMS  # the last numbers are legendaries, not a line
         self.text(s, f"#{self.pick:03}", x, y, DIM)
         self.text(s, name or "???", x + 44, y, WHITE)
         if name is not None:

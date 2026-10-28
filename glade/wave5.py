@@ -1,6 +1,6 @@
 """The Forest Dex's pages four to six (2026-10-27, his ask): 38 three-stage lines (#145-#258)
-living in the ten older places, and the two legendaries, Elderglow (#259, the Glade) and
-Moonward (#260, the Starfall Meadow), which come out only rarely (storm.py).
+living in the ten older places, and the two legendaries, Elderglow (the Glade) and
+Moonward (the Starfall Meadow), the last two numbers in the Dex,, which come out only rarely (storm.py).
 
 Redrawn the same day, his rules: no humanoid creatures at all, and no two lines sharing a body,
 so each kind here has its own `draw_<kind>` (all three stages, `stage(o)`) and `glow_<kind>`
@@ -1755,4 +1755,4 @@ for _kind, (_sp, _flies, *_rest) in KINDS.items():
     setattr(cls, "glow_" + _kind, globals()["glow_" + _kind])
 
 
-import wave6  # noqa: E402,F401  (page six: lines #261-#290)
+import wave6  # noqa: E402,F401  (page six: lines #259-#288)

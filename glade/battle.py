@@ -191,9 +191,10 @@ MOVES = {
 # --- the animals ---------------------------------------------------------------------
 # base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed — first stages, totals 300-320
 # num: its Forest Dex number (dex.py). Each line of three evolutions takes three numbers in a
-# row; the three starters' lines come first (#001-#009); room for 400 (the two legendaries sit at
-# #259-#260, so the lines after them start at #261: line_start() knows).
+# row; the three starters' lines come first (#001-#009); room for DEX_SIZE. His rule (2026-10-27):
+# the legendaries always take the very last numbers of the Dex (LEGENDARY below).
 
+DEX_SIZE = 400
 SPECIES = {
     "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
@@ -500,7 +501,7 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
 
 
 # Forest Dex pages four to six (2026-10-27, his ask): 38 new three-stage lines (#145-#258), living
-# in the ten places he already has, and two legendaries at #259-#260 that come out only rarely.
+# in the ten places he already has, and two legendaries, last in the Dex, that come out only rarely.
 # (first, middle, final, types, final types, shape, ability, nine moves); drawn in wave5.py.
 _PAGE4 = [
     # the Glade
@@ -593,10 +594,10 @@ _PAGE4 = [
 LEGENDARY = {
     # his rules (2026-10-27): legendaries never evolve, and the stronger the rarer. The cover
     # legendaries, Elderglow and Moonward, total 700; any other legendary 570-615.
-    "Elderglow": dict(num=259, types=("Grass", "Psychic"), base=(120, 93, 120, 126, 132, 109), ability="Levitate",
+    "Elderglow": dict(num=DEX_SIZE - 1, types=("Grass", "Psychic"), base=(120, 93, 120, 126, 132, 109), ability="Levitate",
                       pool=["Giga Drain", "Psychic", "Calm Mind", "Synthesis", "Leech Seed", "Ancient Power",
                             "Magical Leaf", "Recover", "Shadow Ball", "Sleep Powder"]),
-    "Moonward": dict(num=260, types=("Psychic", "Dragon"), base=(110, 110, 105, 140, 125, 110), ability="Levitate",
+    "Moonward": dict(num=DEX_SIZE, types=("Psychic", "Dragon"), base=(110, 110, 105, 140, 125, 110), ability="Levitate",
                      pool=["Dragon Claw", "Psychic", "Dragon Dance", "Calm Mind", "Ice Beam", "Twister",
                            "Shadow Ball", "Recover", "Thunderbolt", "Aerial Ace"]),
 }
@@ -608,8 +609,9 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
 SPECIES.update(LEGENDARY)
+LEGEND_NUMS = {d["num"] for d in LEGENDARY.values()}
 
-# Forest Dex page six (2026-10-27, his ask): the Dex grows to 400, and ten new lines (#261-#290),
+# Forest Dex page six (2026-10-27, his ask): the Dex grows to 400, and ten new lines (#259-#288),
 # one for each place, mostly for the types there were fewest of (Electric, Poison, Dark,
 # Fighting); Dragon, Ghost and Steel stay rare, as in Pokémon, with one line each. Drawn in wave6.py.
 _PAGE6 = [
@@ -635,7 +637,7 @@ _PAGE6 = [
      ["Quick Attack", "Headbutt", "Double Team", "Fury Swipes", "Body Slam", "Protect", "Double-Edge", "Return", "Rest"]),
 ]
 for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE6):
-    _num = 261 + _i * 3
+    _num = 259 + _i * 3
     _first = list(_shape)
     _first[1 if _shape[1] >= _shape[3] else 3] += 8
     SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_i * 37) % 21), ability=_ability, pool=_pool[:6])
@@ -644,12 +646,9 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
 
 
 def line_start(num):
-    """The number of the first stage of the line `num` is in (the legendaries, #259-#260, are
-    their own; the lines after them start at #261)."""
-    if num in (259, 260):
+    """The number of the first stage of the line `num` is in (a legendary is its own)."""
+    if num in LEGEND_NUMS:
         return num
-    if num > 260:
-        return 261 + (num - 261) // 3 * 3
     return (num - 1) // 3 * 3 + 1
 
 
