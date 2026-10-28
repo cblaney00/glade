@@ -265,9 +265,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Twinklet lines redrawn (wave4.py), Sporestride's arms became spore tassels, Runewarden's floating
   hands orbiting stones, and Smoldershell/Pyreclad never rear up. **Think outside the box for new
   designs; never reuse one body for several lines.**
-- **Legendaries** (his rules): never evolve; base total 570-700; the stronger, the rarer
-  (`storm.rare`: 12% at 570 down to 1.5% at 700); **only two may ever be 700** ("main"/cover
-  legendaries) unless he asks for another. Moonward 700 (one of the two), Elderglow 640. Don't
+- **Legendaries** (his rules): never evolve; the stronger, the rarer (`storm.rare`: 12% at 570
+  down to 1.5% at 700). **The cover legendaries, Elderglow and Moonward, are 700; every other
+  legendary, including any added later, is 570-615.** Don't
   borrow from Pokémon's cover legendaries (no antlered deer, no dark bird, no sky-serpent).
   Elderglow is a drifting wreath of roots with a seed of light; Moonward a crescent of night-glass
   with one eye and seven moons in their phases. He counts 525+ as a strong total.

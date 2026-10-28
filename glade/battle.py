@@ -590,9 +590,9 @@ _PAGE4 = [
      ["Water Gun", "Absorb", "Bubble Beam", "Mega Drain", "Water Pulse", "Leech Seed", "Giga Drain", "Surf", "Recover"]),
 ]
 LEGENDARY = {
-    # his rules (2026-10-27): legendaries never evolve, total 570-700, the stronger the rarer; only
-    # two may ever be 700 (a "main"/cover legendary), unless he asks for another. Moonward is one.
-    "Elderglow": dict(num=259, types=("Grass", "Psychic"), base=(110, 85, 110, 115, 120, 100), ability="Levitate",
+    # his rules (2026-10-27): legendaries never evolve, and the stronger the rarer. The cover
+    # legendaries, Elderglow and Moonward, total 700; any other legendary 570-615.
+    "Elderglow": dict(num=259, types=("Grass", "Psychic"), base=(120, 93, 120, 126, 132, 109), ability="Levitate",
                       pool=["Giga Drain", "Psychic", "Calm Mind", "Synthesis", "Leech Seed", "Ancient Power",
                             "Magical Leaf", "Recover", "Shadow Ball", "Sleep Powder"]),
     "Moonward": dict(num=260, types=("Psychic", "Dragon"), base=(110, 110, 105, 140, 125, 110), ability="Levitate",
