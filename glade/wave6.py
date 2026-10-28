@@ -401,92 +401,24 @@ def glow_bulb(o, s, t, st, k):
 # ===================================== the Crystal Caverns ====================================
 
 def draw_delve(o, s, t):
-    """Delvelet: a small round dragon on four stubby legs, big shovel claws in front, a blunt
-    horn. Delvedrill: bigger, stubby wings folded on its back and a spiralled drill of a horn.
-    Delvecrag: a heavy earth dragon crouched low on thick legs, broad rock-caked wings, a row of
-    glowing crystal spikes down its back and a club of stone on its tail."""
-    z, x, f, n = o.size, o.x, o.facing, stage(o)
-    if n == 2:
-        return draw_delve2(o, s, t)
-    walk = o.step * 1.6 if moving(o) else 0
-    bw, bh = (4.5 + 1.6 * n) * z, (4 + 1.8 * n) * z
-    leg = (2 + 0.8 * n) * z
-    by = o.y - leg - bh * 0.5 + (0 if moving(o) else math.sin(t * 1.5 + o.phase) * 0.3 * z)
-    deep, rock = dark(o.body, 0.25), (110, 100, 110)
-    # the far legs, then the tail, behind the body
-    for j, side in enumerate((-0.55, 0.55)):
-        lx = x + side * bw * f
-        lift = max(0.0, math.sin(walk + j * math.pi + 0.8)) * 1.5 * z
-        pygame.draw.line(s, dark(o.body, 0.45), (lx, by), (lx + f * 0.5 * z, o.y - lift), max(2, round((1.4 + 0.3 * n) * z)))
-    tail = [(x - f * bw * (0.7 + i * 0.28), by + bh * 0.15 - i * 0.6 * z + math.sin(t * 2 + i + o.phase) * 0.3 * z * i) for i in range(4)]
-    pygame.draw.lines(s, o.body, False, tail, max(2, round((1.8 + 0.4 * n) * z)))
-    if n == 3:  # its stone tail-club
-        tx, ty = tail[-1]
-        pygame.draw.circle(s, rock, (round(tx), round(ty)), round(2.4 * z))
-        pygame.draw.circle(s, lite(rock, 0.2), (round(tx - 0.6 * z), round(ty - 0.6 * z)), round(1 * z))
-    if n >= 2:  # wings: folded stubs, then broad and caked with rock
-        span = (5.5 if n == 2 else 9) * z
-        flex = math.sin(t * 1.2 + o.phase) * 0.6 * z
-        root = (x + f * bw * 0.15, by - bh * 0.4)
-        tip = (root[0] - f * span * 0.35, root[1] - span - flex)
-        back = (root[0] - f * span * 1.05, root[1] - span * 0.15)
-        mid = (root[0] - f * span * 0.75, root[1] - span * 0.45)  # a scallop between its two fingers
-        poly(s, mix(o.body, rock, 0.5) if n == 3 else lite(o.body, 0.1), [root, tip, mid, back], rim=deep)
-        if n == 3:
-            for i in (0.35, 0.65):
-                pygame.draw.line(s, deep, root, (tip[0] + (back[0] - tip[0]) * i, tip[1] + (back[1] - tip[1]) * i))
-    shaded(s, o.body, (x - bw, by - bh * 0.5, 2 * bw, bh))
-    pygame.draw.ellipse(s, (214, 190, 150), (x - bw * 0.6 + f * bw * 0.15, by, bw * 1.2, bh * 0.45))  # its belly plates
-    o._crest = []
-    if n == 3:  # crystal spikes down its back
-        for i in range(4):
-            sx = x + f * bw * (0.45 - i * 0.32)
-            sy = by - bh * (0.45 - abs(i - 1.2) * 0.04)
-            ln = (3.4 - abs(i - 1) * 0.5) * z
-            poly(s, (170, 220, 250), [(sx - z, sy), (sx - f * 0.6 * z, sy - ln), (sx + z, sy)])
-            o._crest.append((sx - f * 0.4 * z, sy - ln * 0.6))
-    # the near legs, the front pair with shovel claws
-    for j, side in enumerate((-0.45, 0.65)):
-        lx = x + side * bw * f
-        lift = max(0.0, math.sin(walk + j * math.pi)) * 1.6 * z
-        fx, fy = lx + f * 0.6 * z, o.y - lift
-        pygame.draw.line(s, o.body, (lx, by + bh * 0.2), (fx, fy), max(2, round((1.6 + 0.4 * n) * z)))
-        if side > 0:  # the shovel
-            poly(s, (226, 214, 190), [(fx - f * 0.6 * z, fy - 1.4 * z), (fx + f * (2.4 + 0.5 * n) * z, fy - 0.2 * z), (fx + f * 0.2 * z, fy + 0.5 * z)])
-    # neck and head
-    hx, hy = x + f * (bw * 0.95 + 0.8 * n * z), by - bh * 0.55
-    pygame.draw.line(s, o.body, (x + f * bw * 0.6, by - bh * 0.1), (hx, hy), max(2, round((2 + 0.5 * n) * z)))
-    hr = (2.6 + 0.6 * n) * z
-    shaded(s, o.body, (hx - hr, hy - hr * 0.8, 2 * hr, 1.6 * hr))
-    pygame.draw.ellipse(s, o.body, (hx + f * hr * 0.3 - hr * 0.6, hy - hr * 0.3, 1.8 * hr, hr))  # its snout
-    horn = [(hx + f * hr * 0.2, hy - hr * 0.7), (hx + f * hr * (0.55 + 0.15 * n), hy - hr * (0.95 + 0.25 * n)), (hx + f * hr * 0.8, hy - hr * 0.5)]
-    poly(s, (232, 222, 200), horn)
-    if n >= 2:  # a drill: spiral grooves
-        for i in (0.35, 0.6):
-            a, b = horn[0], horn[2]
-            px, py = a[0] + (horn[1][0] - a[0]) * i, a[1] + (horn[1][1] - a[1]) * i
-            pygame.draw.line(s, (170, 160, 140), (px - z * 0.6, py + z * 0.4), (px + f * z * 0.6, py - z * 0.2))
-    if n == 3:  # little back-swept horns too
-        pygame.draw.line(s, (232, 222, 200), (hx - f * hr * 0.5, hy - hr * 0.5), (hx - f * hr * 1.4, hy - hr * 1.0), max(1, round(z)))
-    eyes(s, hx + f * hr * 0.15, hy - hr * 0.15, 1.2 * z, z, t, o.phase)
-    o._crest.append((hx + f * hr * 0.15, hy - hr * 0.15))
-
-
-def draw_delve2(o, s, t):
-    """Delvedrill (redrawn, his ask): crouched low and leaning forward, ready to dig. A wedge of a
-    head held low with one smooth horn swept back from its brow, a row of rounded rock plates
-    down its back instead of wings, great three-clawed front hands, and a tail ending in a spade."""
-    z, x, f, y = o.size, o.x, o.facing, o.y
+    """The Delve line (redrawn, his ask), an earth dragon crouched low and leaning forward,
+    ready to dig: a wedge of a head held low with a horn swept back from its brow, rock plates
+    down its back, great three-clawed front hands. Delvelet: small and round, a big head, a nub
+    of a horn and three pebbles on its back. Delvedrill: a spade on its tail. Delvecrag: glowing
+    crystals for plates, a second horn and a club of stone for a tail."""
+    z, x, f, y, n = o.size, o.x, o.facing, o.y, stage(o)
     walk = o.step * 1.6 if moving(o) else 0
     breathe = 0 if moving(o) else math.sin(t * 1.5 + o.phase) * 0.3 * z
     deep, rock, belly = dark(o.body, 0.3), (122, 108, 112), (214, 190, 150)
-    hip = (x - f * 3 * z, y - 7 * z + breathe)
-    chest = (x + f * 2.5 * z, y - 6 * z + breathe)
+    hs = (1.25, 1.0, 1.05)[n - 1]  # the young one's head is big for its body
+    low = (1.5, 0, -0.5)[n - 1] * z  # and it stands lower
+    hip = (x - f * 3 * z, y - 7 * z + breathe + low)
+    chest = (x + f * 2.5 * z, y - 6 * z + breathe + low)
 
     def leg(px, py, j, near, front):
         lift = max(0.0, math.sin(walk + j * math.pi)) * 1.4 * z
         fx, fy = px + f * (1.2 if front else -0.4) * z, y - lift
-        pygame.draw.line(s, o.body if near else dark(o.body, 0.4), (px, py), (fx, fy), max(2, round(2.2 * z)))
+        pygame.draw.line(s, o.body if near else dark(o.body, 0.4), (px, py), (fx, fy), max(2, round((2.2 + 0.4 * (n == 3)) * z)))
         if front and near:  # three big digging claws
             for c in (-1, 0, 1):
                 pygame.draw.line(s, (232, 222, 200), (fx, fy), (fx + f * (1.6 + 0.3 * (1 - abs(c))) * z, fy + c * 0.7 * z), max(1, round(0.8 * z)))
@@ -495,44 +427,68 @@ def draw_delve2(o, s, t):
 
     leg(hip[0] + f * z, hip[1], 1, False, False)  # the far legs
     leg(chest[0] - f * 0.5 * z, chest[1], 0, False, True)
-    # its tail, thick at the root and tapering to a spade
+    # its tail, thick at the root and tapering
+    tl = (5, 9, 10)[n - 1]
     tail = []
     for i in range(6):
         k = i / 5
-        tail.append((hip[0] - f * (3 + 9 * k) * z, hip[1] - 0.5 * z + k * k * 5 * z + math.sin(t * 1.8 + o.phase + k * 3) * k * 0.8 * z))
+        tail.append((hip[0] - f * (3 + tl * k) * z, hip[1] - 0.5 * z + k * k * (tl * 0.55) * z + math.sin(t * 1.8 + o.phase + k * 3) * k * 0.8 * z))
     for i in range(5):
         pygame.draw.line(s, o.body, tail[i], tail[i + 1], max(1, round((3.2 - i * 0.55) * z)))
     tx, ty = tail[-1]
-    poly(s, rock, [(tx + f * 0.5 * z, ty - 1.2 * z), (tx - f * 2.6 * z, ty), (tx + f * 0.5 * z, ty + 1.2 * z)], rim=dark(rock, 0.3))
+    if n == 2:  # a spade
+        poly(s, rock, [(tx + f * 0.5 * z, ty - 1.2 * z), (tx - f * 2.6 * z, ty), (tx + f * 0.5 * z, ty + 1.2 * z)], rim=dark(rock, 0.3))
+    elif n == 3:  # a club of stone
+        pygame.draw.circle(s, dark(rock, 0.3), (round(tx - f * 0.8 * z), round(ty + 0.5 * z)), round(2.4 * z))
+        pygame.draw.circle(s, rock, (round(tx - f * 0.8 * z), round(ty)), round(2.4 * z))
+        pygame.draw.arc(s, lite(rock, 0.35), (tx - f * 0.8 * z - 2.4 * z, ty - 2.4 * z, 4.8 * z, 4.8 * z), 0.6, 2.5)
     # body: haunch and chest
     shaded(s, o.body, (hip[0] - 4.5 * z, hip[1] - 3.5 * z, 9 * z, 7 * z))
     shaded(s, o.body, (chest[0] - 4.5 * z, chest[1] - 3.2 * z, 9 * z, 6.4 * z))
-    pygame.draw.ellipse(s, belly, (x - 5 * z, y - 5.6 * z + breathe, 10 * z, 2.6 * z))
-    # rounded rock plates down its back
-    for i in range(4):
-        k = i / 3
+    pygame.draw.ellipse(s, belly, (x - 5 * z, y - 5.6 * z + breathe + low, 10 * z, 2.6 * z))
+    # down its back: pebbles, rock plates, then crystals
+    o._crest = []
+    count = (3, 4, 5)[n - 1]
+    for i in range(count):
+        k = i / (count - 1)
         px = hip[0] - f * 2 * z + f * k * 8.5 * z
         py = hip[1] - 3.6 * z - math.sin(k * math.pi) * 0.5 * z + k * 0.6 * z
-        r = (0.9 + math.sin(k * math.pi) * 0.5) * z
+        if n == 3:
+            ln = (2.6 + math.sin(k * math.pi) * 1.6) * z
+            poly(s, (170, 220, 250), [(px - 1.1 * z, py + 0.6 * z), (px - f * 0.7 * z, py - ln), (px + 1.1 * z, py + 0.6 * z)],
+                 rim=(120, 170, 210))
+            pygame.draw.line(s, (230, 248, 255), (px - f * 0.2 * z, py), (px - f * 0.6 * z, py - ln * 0.7))
+            o._crest.append((px - f * 0.4 * z, py - ln * 0.5))
+            continue
+        r = (0.9 + math.sin(k * math.pi) * 0.5) * z * (0.8 if n == 1 else 1)
         pygame.draw.circle(s, dark(rock, 0.25), (round(px), round(py + 0.5 * z)), round(r))
         pygame.draw.circle(s, rock, (round(px), round(py)), round(r))
         pygame.draw.arc(s, lite(rock, 0.35), (px - r, py - r, 2 * r, 2 * r), 0.6, 2.5)
     leg(hip[0] - f * 0.5 * z, hip[1] + 1.5 * z, 0, True, False)  # the near legs
     leg(chest[0] + f * 1 * z, chest[1] + 1.5 * z, 1, True, True)
     # head: a low wedge, snout forward
-    hx, hy = chest[0] + f * 5 * z, chest[1] - 0.5 * z
-    head = [(hx - f * 2.6 * z, hy - 2.2 * z), (hx + f * 1 * z, hy - 2 * z), (hx + f * 3.6 * z, hy - 0.2 * z),
-            (hx + f * 3.4 * z, hy + 1 * z), (hx - f * 0.5 * z, hy + 1.8 * z), (hx - f * 2.8 * z, hy + 1 * z)]
+    hx, hy = chest[0] + f * (5 - (hs - 1) * 2) * z, chest[1] - 0.5 * z
+
+    def at(dx, dy):
+        return (hx + f * dx * hs * z, hy + dy * hs * z)
+
+    head = [at(-2.6, -2.2), at(1, -2), at(3.6, -0.2), at(3.4, 1), at(-0.5, 1.8), at(-2.8, 1)]
+    if n == 1:  # rounder, a shorter snout
+        head = [at(-2.6, -2.4), at(0.6, -2.4), at(2.8, -0.6), at(2.8, 0.9), at(-0.5, 1.8), at(-2.8, 1)]
     poly(s, o.body, head, rim=deep)
-    pygame.draw.line(s, deep, (hx + f * 3.2 * z, hy + 0.5 * z), (hx + f * 0.6 * z, hy + 0.9 * z))  # its mouth
-    s.set_at((round(hx + f * 3 * z), round(hy - 0.4 * z)), deep)  # a nostril
-    # one smooth horn, swept back from its brow
-    horn = [(hx - f * 0.2 * z, hy - 2 * z), (hx - f * 1.5 * z, hy - 5 * z), (hx - f * 3.8 * z, hy - 6 * z),
-            (hx - f * 2.2 * z, hy - 4.2 * z), (hx - f * 1.6 * z, hy - 2.1 * z)]
-    poly(s, (232, 222, 200), horn, rim=(180, 168, 146))
-    eyes(s, hx + f * 0.6 * z, hy - 0.8 * z, 0.1, z, t, o.phase)
-    pygame.draw.line(s, deep, (hx - f * 0.4 * z, hy - 2 * z), (hx + f * 1.6 * z, hy - 1.6 * z))  # a heavy brow
-    o._crest = [(hx + f * 0.6 * z, hy - 0.8 * z)]
+    pygame.draw.line(s, deep, at(3 if n > 1 else 2.4, 0.5), at(0.6, 0.9))  # its mouth
+    s.set_at(tuple(map(round, at(3 if n > 1 else 2.4, -0.4))), deep)  # a nostril
+    # its horn, swept back from its brow (a nub at first; Delvecrag has a second, smaller one)
+    hl = (0.45, 1.0, 1.3)[n - 1]
+    horns = [(0, hl)] + ([(1.2, hl * 0.6)] if n == 3 else [])
+    for dx, ln in reversed(horns):
+        horn = [at(-0.2 + dx, -2), at(-1.5 * ln + dx, -2 - 3 * ln), at(-3.8 * ln + dx, -2 - 4 * ln),
+                at(-2.2 * ln + dx, -2 - 2.2 * ln), at(-1.6 * ln + dx, -2.1)]
+        poly(s, (232, 222, 200) if dx == 0 else (206, 196, 176), horn, rim=(180, 168, 146))
+    eyes(s, *at(0.6, -0.8), 0.1, z, t, o.phase)
+    if n > 1:
+        pygame.draw.line(s, deep, at(-0.4, -2), at(1.6, -1.6))  # a heavy brow
+    o._crest.append(at(0.6, -0.8))
 
 
 def glow_delve(o, s, t, st, k):
