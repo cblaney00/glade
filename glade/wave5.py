@@ -1753,3 +1753,6 @@ for _kind, (_sp, _flies, *_rest) in KINDS.items():
     cls = Flier if _flies else Walker
     setattr(cls, "draw_" + _kind, globals()["draw_" + _kind])
     setattr(cls, "glow_" + _kind, globals()["glow_" + _kind])
+
+
+import wave6  # noqa: E402,F401  (page six: lines #261-#290)

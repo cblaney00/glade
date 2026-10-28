@@ -191,7 +191,8 @@ MOVES = {
 # --- the animals ---------------------------------------------------------------------
 # base stats: HP, Attack, Defense, Sp. Atk, Sp. Def, Speed — first stages, totals 300-320
 # num: its Forest Dex number (dex.py). Each line of three evolutions takes three numbers in a
-# row; the three starters' lines come first (#001-#009); room for 260.
+# row; the three starters' lines come first (#001-#009); room for 400 (the two legendaries sit at
+# #259-#260, so the lines after them start at #261: line_start() knows).
 
 SPECIES = {
     "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
@@ -608,6 +609,49 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
 SPECIES.update(LEGENDARY)
 
+# Forest Dex page six (2026-10-27, his ask): the Dex grows to 400, and ten new lines (#261-#290),
+# one for each place, mostly for the types there were fewest of (Electric, Poison, Dark,
+# Fighting); Dragon, Ghost and Steel stay rare, as in Pokémon, with one line each. Drawn in wave6.py.
+_PAGE6 = [
+    ("Burrlet", "Burrclasp", "Burrthorn", ("Bug", "Dark"), None, (75, 105, 95, 55, 70, 90), "Shield Dust",
+     ["Leech Life", "Bite", "Harden", "Pin Missile", "Faint Attack", "Fury Swipes", "Signal Beam", "Crunch", "Swords Dance"]),
+    ("Zingle", "Zingwing", "Zingswarm", ("Electric", "Bug"), None, (65, 60, 60, 110, 75, 130), "Static",
+     ["Spark", "Leech Life", "Thunder Wave", "Silver Wind", "Shock Wave", "Agility", "Thunderbolt", "Signal Beam", "Double Team"]),
+    ("Mirelet", "Mirelamp", "Mirelantern", ("Poison", "Ghost"), None, (75, 55, 70, 110, 95, 95), "Levitate",
+     ["Astonish", "Sludge", "Confuse Ray", "Night Shade", "Poison Powder", "Will-O-Wisp", "Shadow Ball", "Sludge Bomb", "Pain Split"]),
+    ("Smudgit", "Smudgeon", "Smudgemire", ("Dark",), ("Dark", "Normal"), (105, 90, 80, 85, 80, 60), "Suction Cups",
+     ["Bite", "Headbutt", "Screech", "Faint Attack", "Octazooka", "Double Team", "Crunch", "Body Slam", "Return"]),
+    ("Stumplet", "Stumpstomp", "Stumpquake", ("Fighting", "Ground"), None, (105, 120, 100, 45, 70, 60), "Guts",
+     ["Karate Chop", "Mud-Slap", "Harden", "Mach Punch", "Mud Shot", "Bulk Up", "Earthquake", "Cross Chop", "Brick Break"]),
+    ("Fizzlet", "Fizzcoil", "Fizzdynamo", ("Electric",), None, (70, 65, 75, 115, 85, 105), "Static",
+     ["Spark", "Quick Attack", "Thunder Wave", "Shock Wave", "Flash", "Agility", "Thunderbolt", "Calm Mind", "Double Team"]),
+    ("Fumelet", "Fumepot", "Fumecauldron", ("Poison",), None, (95, 70, 90, 105, 95, 50), "Liquid Ooze",
+     ["Sludge", "Ember", "Haze", "Toxic", "Acid Armor", "Poison Tail", "Sludge Bomb", "Recover", "Heat Wave"]),
+    ("Bulblet", "Bulbflare", "Bulbbeacon", ("Electric", "Steel"), None, (75, 60, 100, 110, 90, 75), "Static",
+     ["Spark", "Metal Claw", "Flash", "Thunder Wave", "Shock Wave", "Iron Defense", "Thunderbolt", "Meteor Mash", "Calm Mind"]),
+    ("Delvelet", "Delvecoil", "Delvewyrm", ("Dragon", "Ground"), None, (90, 110, 95, 70, 75, 80), "Rock Head",
+     ["Twister", "Mud-Slap", "Dragon Breath", "Mud Shot", "Bite", "Dragon Dance", "Earthquake", "Dragon Claw", "Crunch"]),
+    ("Pomlet", "Pompom", "Pomparade", ("Normal",), None, (100, 75, 80, 70, 80, 90), "Run Away",
+     ["Quick Attack", "Headbutt", "Double Team", "Fury Swipes", "Body Slam", "Protect", "Double-Edge", "Return", "Rest"]),
+]
+for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE6):
+    _num = 261 + _i * 3
+    _first = list(_shape)
+    _first[1 if _shape[1] >= _shape[3] else 3] += 8
+    SPECIES[_a] = dict(num=_num, types=_types, base=_spread(_first, 300 + (_i * 37) % 21), ability=_ability, pool=_pool[:6])
+    SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
+    SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
+
+
+def line_start(num):
+    """The number of the first stage of the line `num` is in (the legendaries, #259-#260, are
+    their own; the lines after them start at #261)."""
+    if num in (259, 260):
+        return num
+    if num > 260:
+        return 261 + (num - 261) // 3 * 3
+    return (num - 1) // 3 * 3 + 1
+
 
 def _retotal():
     """His ask (2026-10-27): a wider spread of base stat totals, each line keeping the shape of its
@@ -621,7 +665,7 @@ def _retotal():
     finals = {}
     for name, d in SPECIES.items():
         num = d["num"]
-        if num <= 9 or name in LEGENDARY or (num - 1) % 3 != 2:
+        if num <= 9 or name in LEGENDARY or line_start(num) + 2 != num:
             continue
         roll = zlib.crc32(name.encode()) % 1000 / 1000
         if name in ("Prismwyrm", "Shardsovereign"):

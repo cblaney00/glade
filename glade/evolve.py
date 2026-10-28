@@ -98,6 +98,15 @@ from battle import _PAGE4 as _P4  # noqa: E402
 for _a, _b, _c, *_ in _P4:
     HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = _H4[_a]
 HEIGHT.update(Elderglow=5.8, Moonward=6.3)
+# page six (2026-10-27): (first, middle, final) heights in feet
+_H6 = {
+    "Burrlet": (0.5, 1.6, 3.4), "Zingle": (0.4, 1.3, 3.2), "Mirelet": (0.8, 2.2, 4.3), "Smudgit": (0.7, 2.0, 4.0),
+    "Stumplet": (1.2, 2.9, 5.2), "Fizzlet": (0.7, 2.1, 4.6), "Fumelet": (0.9, 2.3, 4.4), "Bulblet": (0.6, 1.8, 3.9),
+    "Delvelet": (1.1, 3.0, 5.9), "Pomlet": (0.6, 1.7, 3.8),
+}
+from battle import _PAGE6 as _P6  # noqa: E402
+for _a, _b, _c, *_ in _P6:
+    HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = _H6[_a]
 
 
 def feet(species):
@@ -146,8 +155,8 @@ EVOLVES.update({
     "Runelet": "Runestand", "Runestand": "Runewarden", "Sparkfly": "Arcfly", "Arcfly": "Thunderfly",
     "Murkling": "Murkgloop", "Murkgloop": "Murkdredge", "Glintshell": "Glintdome", "Glintdome": "Glintcitadel",
 })
-from battle import _PAGE3, _PAGE4  # noqa: E402
-for _a, _b, _c, *_ in _PAGE3 + _PAGE4:
+from battle import _PAGE3, _PAGE4, _PAGE6  # noqa: E402
+for _a, _b, _c, *_ in _PAGE3 + _PAGE4 + _PAGE6:
     EVOLVES[_a], EVOLVES[_b] = _b, _c
 EVOLVED_FROM = {v: k for k, v in EVOLVES.items()}
 LENGTH = 4.0      # the evolution itself

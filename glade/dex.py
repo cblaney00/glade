@@ -1,7 +1,7 @@
 """The Forest Dex — like a Pokédex, for the glade's animals.
 
 Opened from an animal's right-click stats card ("Open in Forest Dex"), at that animal.
-It has room for 260 animals. Each animal here is the first of three evolutions, so its
+It has room for 400 animals. Each animal here is the first of three evolutions, so its
 line takes three numbers in a row (SPECIES[...]["num"] in battle.py): the later two are
 "?" until they are made. Two tabs: the Dex (every slot, in pages) and Compare (every
 animal found so far in one table, sorted by whichever stat you click). The panel on the
@@ -17,13 +17,12 @@ import pygame
 import art
 from apex import ease
 from art import GLOW, glow
-from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, mix, stat_color
+from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, line_start, mix, stat_color
 from beasts import FLIERS, WALKERS, Flier, Walker, owlet
 from life import Critter, Millipede, Slug, Squid, Track
 from pond import KOI, Fish, Water
 
-TOTAL = 260
-LEGEND_FROM = 259
+TOTAL = 400
 LEGENDS_ = ("Elderglow", "Moonward")
 TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
               rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs",
@@ -153,7 +152,8 @@ PARTS = ("ling", "let", "wing", "fly", "flit", "hop", "shell", "mane", "tail", "
          "fist", "loom", "whirl", "cyclone", "haven", "prim", "torch", "wick", "kin", "tide", "bound", "cliff",
          "rest", "lord", "back", "grand", "brute", "ink", "mask", "king", "ward", "hard", "blade", "claw",
          "strike", "master", "guard", "halo", "heart", "mmer", "streak", "tempest", "gaze", "seer", "pip",
-         "delve", "burrow", "lotl", "shade", "prance", "cling")
+         "delve", "burrow", "lotl", "shade", "prance", "cling", "clasp", "thorn", "swarm", "lamp", "stomp",
+         "coil", "dynamo", "pot", "cauldron", "flare", "parade", "geon")
 
 
 def family_cut(name):
@@ -161,7 +161,7 @@ def family_cut(name):
     num = SPECIES.get(name, {}).get("num")
     if num is None:
         return None
-    first = (num - 1) // 3 * 3 + 1
+    first = line_start(num)
     kin = [n for n, d in SPECIES.items() if first <= d["num"] < first + 3 and n != name]
     best = 0
     for other in kin:
@@ -444,9 +444,9 @@ class Dex:
         cloth(s, area, mix(CLOTH, EDGE, 0.25), alpha=200)
         x, y = area.x + 12, area.y + 10
         name = self.known.get(self.pick)
-        line_start = (self.pick - 1) // 3 * 3 + 1
-        stage = self.pick - line_start + 1
-        legend = self.pick >= LEGEND_FROM  # #259 and #260 are legendaries, not a line
+        first = line_start(self.pick)
+        stage = self.pick - first + 1
+        legend = self.pick in (259, 260)  # #259 and #260 are legendaries, not a line
         self.text(s, f"#{self.pick:03}", x, y, DIM)
         self.text(s, name or "???", x + 44, y, WHITE)
         if name is not None:
@@ -457,7 +457,7 @@ class Dex:
         if name is None:
             self.text(s, "?", area.centerx, area.centery - 30, DIM, center=True)
             self.text(s, "Not discovered yet.", area.centerx, area.centery, DIM, center=True)
-            base = self.known.get(line_start)
+            base = self.known.get(first)
             if legend:
                 self.text(s, "A legendary creature, seldom seen.", area.centerx, area.centery + 16, DIM, center=True)
             elif base and stage > 1:
