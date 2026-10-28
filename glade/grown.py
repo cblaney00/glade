@@ -59,11 +59,13 @@ def grow_newt(self, s, t, st):
     z, f, pts = self.size, self.facing, self.tail
     for i in range(1, 8):
         px, py = pts[i]
+        py -= self.newt_lift(i) - 2 * z  # riding on the lifted body
         h = (3 + (i % 2) * 1.5) * z * (1.4 if st > 2 else 1.0)
         pygame.draw.polygon(s, ICE, [(px - z, py - 4 * z), (px + z, py - 4 * z), (px, py - 4 * z - h)])
         pygame.draw.line(s, WHITE, (px, py - 4 * z), (px, py - 4 * z - h * 0.6))
     hx, hy = pts[0]
     hx += f * 2.5 * z
+    hy -= self.newt_lift(0) - 2 * z  # the head is held up off the ground
     if st > 2:
         for j in range(3):  # a crown of crystals
             cx = hx - f * (j - 0.5) * 2 * z
@@ -72,6 +74,7 @@ def grow_newt(self, s, t, st):
             tx = hx + f * (1 + j) * z
             pygame.draw.line(s, WHITE, (tx, hy - 1.5 * z), (tx, hy + 0.5 * z))
         tx, ty = pts[-1]  # a fin of ice on the tail's end
+        ty -= self.newt_lift(len(pts) - 1) - 2 * z
         pygame.draw.polygon(s, ICE, [(tx, ty - 2 * z), (tx - f * 4 * z, ty - 5 * z), (tx - f * 3 * z, ty + z)])
 
 
@@ -79,7 +82,7 @@ def glow_newt(self, s, t, st, k):
     if st > 2:
         hx, hy = self.tail[0]
         hx += self.facing * 2.5 * self.size
-        glow(s, hx, hy - 8 * self.size, int(8 * self.size), self.color, q(70 + 70 * k))
+        glow(s, hx, hy - 10 * self.size, int(8 * self.size), self.color, q(70 + 70 * k))
 
 
 def grow_beetle(self, s, t, st):

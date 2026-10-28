@@ -566,7 +566,7 @@ class Walker(Clock):
             dx, dy = x - px, y - py
             d = math.hypot(dx, dy) or 1
             x, y = px + dx / d * seg, py + dy / d * seg
-            self.tail[i] = (x, min(y, self.ground(x)))
+            self.tail[i] = (x, min(y, self.ground(x) + self.lane))  # on its own lane, so it never tips nose-down
 
     def draw(self, s, t):
         self.update(self.tick(t), t)
@@ -712,33 +712,41 @@ class Walker(Clock):
 
     # the newt: an icy-blue body and long tail, a pale belly, frost spikes down its back,
     # four little legs and a round head with a bright eye
+    def newt_lift(self, i):
+        """How high segment i of the newt's body rides: up on its legs at the head, the tail settling to the ground."""
+        return (6.0 - 4.2 * i / (len(self.tail) - 1)) * self.size
+
     def draw_newt(self, s, t):
         z, f, pts = self.size, self.facing, self.tail
         dark = mix(self.body, INK, 0.4)
         belly = mix(self.body, (255, 255, 255), 0.5)
         radii = [3.0, 3.4, 3.3, 3.0, 2.6, 2.1, 1.7, 1.3, 1.0, 0.8]
         w = max(1, round(z))
-        for i in (1, 4):  # legs, bent at the knee
+        lift = self.newt_lift
+        for i in (1, 4):  # legs, bent at the knee, holding it up off the ground
             px, py = pts[i]
             step = math.sin(self.step + i * 1.7) * 2 * z if self.wait <= 0 else 0
-            knee = (px + f * z + step, py - z)
-            pygame.draw.line(s, dark, (px, py - 2 * z), knee, w)
-            pygame.draw.line(s, dark, knee, (knee[0] + f * 1.5 * z, py + 0.5 * z), w)
+            hip = py - lift(i)
+            knee = (px + f * z + step, (hip + py) / 2 - 0.5 * z)
+            pygame.draw.line(s, dark, (px, hip), knee, w)
+            pygame.draw.line(s, dark, knee, (knee[0] + f * 1.5 * z, py), w)
         for i, (px, py) in reversed(list(enumerate(pts))):
             r = max(1, radii[i] * z)
-            pygame.draw.circle(s, dark, (round(px), round(py - 2 * z + 1)), round(r))
+            pygame.draw.circle(s, dark, (round(px), round(py - lift(i) + 1)), round(r))
         for i, (px, py) in reversed(list(enumerate(pts))):
             r = max(1, radii[i] * z)
-            pygame.draw.circle(s, self.body, (round(px), round(py - 2 * z)), round(r))
-            pygame.draw.circle(s, belly, (round(px), round(py - 2 * z + r * 0.5)), max(1, round(r * 0.45)))
+            cy = py - lift(i)
+            pygame.draw.circle(s, self.body, (round(px), round(cy)), round(r))
+            pygame.draw.circle(s, belly, (round(px), round(cy + r * 0.5)), max(1, round(r * 0.45)))
             if i in (2, 5, 7):
-                s.set_at((round(px), round(py - 2 * z - r * 0.3)), dark)
+                s.set_at((round(px), round(cy - r * 0.3)), dark)
         for i in range(1, 7):  # frost spikes down the back
             px, py = pts[i]
-            top = py - 2 * z - radii[i] * z
+            top = py - lift(i) - radii[i] * z
             pygame.draw.line(s, (236, 250, 255), (round(px), round(top)), (round(px), round(top - (2 if i % 2 else 1) * z)))
         hx, hy = pts[0]
         hx += f * 2.5 * z
+        hy -= self.newt_lift(0) - 2 * z  # the head held up, chin clear of the ground
         pygame.draw.ellipse(s, dark, (hx - 4 * z, hy - 6 * z + 1, 8 * z, 6 * z))
         pygame.draw.ellipse(s, self.body, (hx - 4 * z, hy - 6 * z, 8 * z, 6 * z))
         ex, ey = round(hx + f * 1.5 * z), round(hy - 4.5 * z)
@@ -1124,9 +1132,9 @@ class Walker(Clock):
             for i in range(1, 7, 2):
                 px, py = self.tail[i]
                 if math.sin(t * 1.5 + i + self.phase) > -0.2:
-                    s.set_at((round(px), round(py - 4 * z)), (240, 252, 255))
+                    s.set_at((round(px), round(py - self.newt_lift(i) - 2 * z)), (240, 252, 255))
             if k > 0:
-                glow(s, x, y - 3 * z, int(12 * z), self.color, q(120 * k))
+                glow(s, x, y - 6 * z, int(12 * z), self.color, q(120 * k))
         elif self.kind == "fox":
             sway = math.sin(t * 2 + self.phase) * 1.5 * z
             tx, ty = x - f * 12 * z, y - 15 * z + sway
