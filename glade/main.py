@@ -1248,7 +1248,8 @@ class Glade:
                 if view is self.top:  # path signs stay on top of the battle board, and clickable
                     m = view.mouse()
                     paths = [sp for sp in content.spots if sp.kind == "go"] if self.zoomed(view) else self.arena.paths(content)
-                    for sp in paths:
+                    for sp in paths:  # (a place first walked into mid-battle has no boards yet)
+                        self.signs.prepare(sp, view.w, view.h)
                         self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
             if self.card is not None and self.card.view is view:
                 self.card.draw(view.canvas, t)
