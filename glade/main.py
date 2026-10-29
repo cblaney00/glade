@@ -12,6 +12,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
 
 import pygame
@@ -576,6 +577,8 @@ class Glade:
             pw, ph = min(W, lower.w // scale), min(H, lower.h // scale)
             self.bottom = View(fit(lower, pw, ph), pw, ph)
         self.scenes, self.lowers = {}, {}
+        # the far places, built on the side while he plays, so the game never freezes (warm)
+        self.ready, self.ready_lock, self.warmer, self.gen = {}, threading.Lock(), None, 0
         self.signs = Signs()
         self.minimap = Minimap(self.signs.font)
         self.panel = Panel()  # the Claude panel: a minimised way of talking to Claude (claude_panel.py)
@@ -641,6 +644,9 @@ class Glade:
         self.lifespans.settle()
         self.listener = Listener()
         self.desktop = True
+        with self.ready_lock:  # the side thread stops, and what it built is let go
+            self.gen += 1
+            self.ready = {}
         self.here = self.scene(HOME)
         self.history = []
         self.scenes = {HOME: self.here}
@@ -680,6 +686,7 @@ class Glade:
         return time.monotonic() - self.t0
 
     def scene(self, key):
+        self.take_ready(key)
         if key not in self.scenes:
             self.scenes[key] = self.home_only(BUILDERS[key]())
         return self.scenes[key]
@@ -707,17 +714,42 @@ class Glade:
             yield self.bottom, self.lower()
 
     def warm(self):
-        """Build the next place nobody has visited yet, so going there is instant."""
+        """Build the places nobody has visited yet, so going there is instant. Each takes about a
+        second, so they are built one by one on the side (a thread), and the picture keeps moving."""
         if self.desktop:
             return False
-        for key in BUILDERS:
-            if key not in self.scenes:
-                self.scene(key)
-                return True
-            if self.bottom and key not in self.lowers:
-                self.lowers[key] = Lower(self.scenes[key], self.bottom.w, self.bottom.h)
-                return True
-        return False
+        for key in list(self.ready):
+            self.take_ready(key)
+        if self.warmer is not None and self.warmer.is_alive():
+            return True
+        todo = [k for k in BUILDERS if k not in self.scenes]
+        if not todo:
+            return False
+        gen, size = self.gen, (self.bottom.w, self.bottom.h) if self.bottom else None
+
+        def build():
+            for key in todo:
+                if self.gen != gen:  # he went back to the desktop: stop
+                    return
+                sc = BUILDERS[key]()
+                low = Lower(sc, *size) if size else None
+                time.sleep(0.05)  # a breath between places
+                with self.ready_lock:
+                    if self.gen == gen:
+                        self.ready[key] = (sc, low)
+
+        self.warmer = threading.Thread(target=build, daemon=True)
+        self.warmer.start()
+        return True
+
+    def take_ready(self, key):
+        """A place the side thread has finished: it joins the game."""
+        with self.ready_lock:
+            got = self.ready.pop(key, None)
+        if got is not None and key not in self.scenes:
+            self.scenes[key] = self.home_only(got[0])
+            if got[1] is not None and key not in self.lowers:
+                self.lowers[key] = self.home_only(got[1])
 
     def go(self, key, remember=True):
         if self.fade_to or key == self.here.key:
