@@ -1,4 +1,4 @@
-# HUD — The Glade
+# The Glade
 
 *Created by the `vibe` command. Keep the two sections below current as the app grows —
 a future session starts by reading them.*
