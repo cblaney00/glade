@@ -1388,6 +1388,12 @@ class Perched:
         return self.obj.x, self.obj.y - 8 * self.obj.size
 
 
+def perched(a):
+    """A tree squid or owlet drawn as if on its branch: a Perched one from the trees, or a
+    battle body (team.Drawn) made for a tree dweller, as Tower and gym trainers bring."""
+    return isinstance(a, Perched) or getattr(a, "perched", False)
+
+
 def animals(scene, lower):
     """Every animal you can pick (not the fireflies): (animal, species)."""
     prey, _ = find_prey(scene, lower)
@@ -1437,7 +1443,7 @@ def touches(a, m, t):
     patch.set_clip(box)
     patch.fill(KEY, box)
     o = a.obj
-    if isinstance(a, Perched):
+    if perched(a):
         o.shine(patch, t, 12)
     else:
         for part in ("draw", "shine"):
@@ -1601,7 +1607,7 @@ def draw_elsewhere(s, a, at, t, scratch, alpha=255, cut=None, R=56):
     scratch.set_clip(src)
     scratch.blit(s, src.topleft, dest)
     o = a.obj
-    if isinstance(a, Perched):
+    if perched(a):
         o.shine(scratch, t, 12)
     else:
         for part in ("draw", "shine"):

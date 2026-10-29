@@ -17,6 +17,7 @@ import socket
 import subprocess
 import threading
 import time
+import traceback
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")  # pygame draws off-screen only
 # SDL would otherwise catch SIGTERM and turn it into a quit event nobody reads here (GTK
@@ -502,8 +503,21 @@ def run():
               Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
               Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
     last = [time.monotonic()]
+    seen = set()  # errors already written to the log
 
     def tick():
+        """One frame. A mistake in it is logged (once) and the next frame tries again: an
+        error that escaped here would stop the timer, and the glade would freeze for good."""
+        try:
+            frame()
+        except Exception as e:
+            key = (type(e).__name__, str(e))
+            if key not in seen:
+                seen.add(key)
+                traceback.print_exc()
+        return True
+
+    def frame():
         now = time.monotonic()
         dt, last[0] = min(0.1, now - last[0]), now
         glade.render(dt)
@@ -513,7 +527,6 @@ def run():
         for front in fronts:
             front.update()
         loading.between_frames(now + 1 / FPS)  # the far places load in the time left over
-        return True
 
     GLib.timeout_add(1000 // FPS, tick)
     Gtk.main()
