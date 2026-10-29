@@ -7,7 +7,8 @@ grass or behind a branch stands out. It eases in and out (nothing in the glade s
 
 His ask (2026-10-29): the ones worth catching stand out too. An animal whose IVs add up to
 `STRONG` or more (the top 5% of all rolls) is traced in shimmering pink-white instead of gold,
-with a little four-pointed star twinkling over it.
+with a little four-pointed star twinkling over it. Then (same day, his ask) no star: a thicker,
+pulsing electric-blue rim instead, a colour far from the gold so it is obvious.
 """
 
 import math
@@ -21,29 +22,17 @@ from team import ivs_of
 
 GOLD = (255, 206, 90)
 KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
+FAINT = 70  # a faint haze of light round an animal is not its body
 IN, HOLD, OUT = 0.6, 4.0, 1.0
-R = 44  # how far round an animal to look for its body
+R = 44  # how far round an animal to look for its body at first
+RMAX = 352  # and at most
 STRONG = 131  # an IV total this high or more is the top 5% (of 186; worked out from the 32**6 rolls)
-PEARL = (255, 190, 235)
+SHINE = (40, 230, 255)  # electric blue: nothing like the gold, so they jump out
 
 
 def strong(obj):
     """Is this animal's IV total in the top 5%?"""
     return sum(ivs_of(obj)) >= STRONG
-
-
-def twinkle(s, x, y, t, k):
-    """A little four-pointed star, pulsing."""
-    p = 0.5 + 0.5 * math.sin(t * 5)
-    n = 4 + round(3 * p)
-    a = round(255 * k)
-    star = art.plane((2 * n + 1, 2 * n + 1))
-    c = (255, 240, 250, a)
-    pygame.draw.line(star, c, (n, 0), (n, 2 * n))
-    pygame.draw.line(star, c, (0, n), (2 * n, n))
-    pygame.draw.line(star, (*PEARL, a), (n - 1, n - 1), (n + 1, n + 1))
-    pygame.draw.line(star, (*PEARL, a), (n - 1, n + 1), (n + 1, n - 1))
-    s.blit(star, (round(x) - n, round(y) - n))
 
 
 def button_rect(view):
@@ -99,6 +88,44 @@ class Vision:
             return 1.0
         return 1.0 - ease((a - IN - HOLD) / OUT)
 
+    def body(self, a, box, t):
+        """A mask of what animal `a` covers inside `box`."""
+        self.scratch.set_clip(box)
+        self.scratch.fill(KEY, box)
+        o = a.obj
+        if type(a).__name__ == "Perched":
+            o.shine(self.scratch, t, 12)
+        else:
+            for part in ("draw", "shine"):
+                fn = getattr(o, part, None)
+                if fn:
+                    fn(self.scratch, t)
+        self.scratch.set_clip(None)
+        body = pygame.mask.from_threshold(self.scratch.subsurface(box), KEY, (FAINT, FAINT, FAINT, 255))
+        body.invert()
+        return body
+
+    @staticmethod
+    def ring(body, n):
+        """The `n`-pixel band just outside the body."""
+        ring = pygame.mask.Mask(body.get_size())
+        for dx in range(-n, n + 1):
+            for dy in range(-n, n + 1):
+                if abs(dx) + abs(dy) <= n + 1:
+                    ring.draw(body, (dx, dy))
+        ring.erase(body, (0, 0))
+        return ring
+
+    @staticmethod
+    def cut(body, box, area):
+        """Does the body reach an edge of `box` that is not also the screen's edge?"""
+        w, h = body.get_size()
+        for b in body.get_bounding_rects():
+            if (b.left == 0 and box.left > area.left) or (b.top == 0 and box.top > area.top) \
+                    or (b.right == w and box.right < area.right) or (b.bottom == h and box.bottom < area.bottom):
+                return True
+        return False
+
     @property
     def length(self):
         return IN + HOLD + OUT
@@ -128,46 +155,38 @@ class Vision:
             x, y = a.pos()
             if low:
                 x, y = x - OFFSET[0], y - OFFSET[1]
-            box = pygame.Rect(round(x) - R, round(y) - R, 2 * R, 2 * R).clip(area)
-            if box.w <= 0 or box.h <= 0:
-                continue
-            # the animal's body: draw it alone onto a key colour and see what it covered
-            self.scratch.set_clip(box)
-            self.scratch.fill(KEY, box)
+            # the animal's body: draw it alone onto a key colour and see what it covered. Big
+            # ones (evolved, close up) can be larger than the first guess, so while the body
+            # runs off the edge of the box (and not off the screen), look again in a bigger one
             o = a.obj
-            if type(a).__name__ == "Perched":
-                o.shine(self.scratch, t, 12)
-            else:
-                for part in ("draw", "shine"):
-                    fn = getattr(o, part, None)
-                    if fn:
-                        fn(self.scratch, t)
-            self.scratch.set_clip(None)
-            body = pygame.mask.from_threshold(self.scratch.subsurface(box), KEY, (1, 1, 1, 255))
-            body.invert()
-            if body.count() == 0:
+            r = R
+            while True:
+                box = pygame.Rect(round(x) - r, round(y) - r, 2 * r, 2 * r).clip(area)
+                if box.w <= 0 or box.h <= 0:
+                    body = None
+                    break
+                body = self.body(a, box, t)
+                if r >= RMAX or not self.cut(body, box, area):
+                    break
+                r *= 2
+            if body is None or body.count() == 0:
                 continue
             # its true colours back, from the picture as it was
             piece = art.plane(box.size)
             piece.blit(orig, (0, 0), box)
             s.blit(body.to_surface(setsurface=piece, unsetcolor=(0, 0, 0, 0)), box.topleft)
-            # and a golden outline, two pixels wide, round all of it
-            ring = pygame.mask.Mask(body.get_size())
-            for dx in (-2, -1, 0, 1, 2):
-                for dy in (-2, -1, 0, 1, 2):
-                    if abs(dx) + abs(dy) <= 3:
-                        ring.draw(body, (dx, dy))
-            ring.erase(body, (0, 0))
+            rects = body.get_bounding_rects()
+            cx, cy = (box.x + rects[0].unionall(rects).centerx, box.y + rects[0].unionall(rects).centery) if rects else (x, y)
             if strong(o):
-                # worth catching: a shimmering pink-white rim, a brighter glow and a star on top
-                tint = PEARL if math.sin(t * 6 + x * 0.1) > 0 else (255, 250, 255)
+                # worth catching: a thicker electric-blue rim that pulses, and a stronger glow
+                ring = self.ring(body, 3)
+                p = 0.5 + 0.5 * math.sin(t * 6)
+                tint = tuple(round(c + (w - c) * p * 0.6) for c, w in zip(SHINE, (255, 255, 255)))
                 outline = ring.to_surface(setcolor=(*tint, round(255 * k)), unsetcolor=(0, 0, 0, 0))
                 s.blit(outline, box.topleft)
-                art.glow(s, x, y, 30, PEARL, round(70 * k) // 10 * 10)
-                rect = body.get_bounding_rects()
-                top = min(b.top for b in rect) + box.y if rect else y - 16
-                twinkle(s, x, top - 9, t, k)
+                art.glow(s, cx, cy, 36, SHINE, round(90 * k) // 10 * 10)
             else:
-                outline = ring.to_surface(setcolor=(*GOLD, round(255 * k)), unsetcolor=(0, 0, 0, 0))
+                # a golden outline, two pixels wide, round all of it
+                outline = self.ring(body, 2).to_surface(setcolor=(*GOLD, round(255 * k)), unsetcolor=(0, 0, 0, 0))
                 s.blit(outline, box.topleft)
-                art.glow(s, x, y, 22, GOLD, round(40 * k) // 10 * 10)
+                art.glow(s, cx, cy, 22, GOLD, round(40 * k) // 10 * 10)
