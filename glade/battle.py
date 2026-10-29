@@ -2084,7 +2084,9 @@ class Arena:
                                 enabled=not busy and (label != "Glow jar" or self.may_catch()),
                                 gold=label == "Glow jar" and self.may_catch())
                     x -= 4
-            if busy:
+            if self.menu == "switch" and not forced and not busy:
+                pass  # the Back button sits there
+            elif busy:
                 self.text(s, "...", r.x + 8, r.bottom - 16, DIM)
             elif forced:
                 self.text(s, "Choose who goes out next", r.x + 8, r.bottom - 16, DIM)
@@ -2122,17 +2124,42 @@ class Arena:
         """Your team, to pick who goes in: name and health; the one out and the fainted can't."""
         team = self.battle.teams[0]
         bw = (r.w - 24) // 3
+        peek = None
         for i, mon in enumerate(team):
             br = pygame.Rect(r.x + 6 + (i % 3) * (bw + 6), y0 + (i // 3) * 34, bw, 30)
             ok = mon.hp > 0 and i != self.battle.active[0]
             hot = ok and self.hot(br)
+            if self.hot(br):
+                peek = mon
             self.cloth(s, br, MINE if hot else mix(CLOTH, EDGE, 0.2 if ok else 0.55), hot=hot, alpha=215 if ok else 140)
-            self.text(s, self.fit(mon.species, bw - 10), br.x + 5, br.y + 3, (255, 255, 255) if hot else TEXT if ok else DIM)
-            self.bar(s, br.x + 5, br.y + 19, bw - 10, mon.hp, mon.maxhp)
+            thumb = small_picture(mon.species)  # a little picture, so he knows who is who
+            if not ok:
+                thumb = thumb.copy()
+                thumb.set_alpha(110)
+            s.blit(thumb, (br.x + 2, br.y + 2))
+            tx = br.x + 2 + thumb.get_width() + 3
+            self.text(s, self.fit(mon.species, br.right - 4 - tx), tx, br.y + 3, (255, 255, 255) if hot else TEXT if ok else DIM)
+            self.bar(s, tx, br.y + 19, br.right - 5 - tx, mon.hp, mon.maxhp)
             if ok:
                 self.buttons.append((br, lambda t, i=i: self.act(("switch", i), t)))
         if not forced:
             self.button(s, pygame.Rect(r.x + 8, r.bottom - 17, 44, 13), "Back", self.open_switch, t, small=True)
+        if peek is not None:
+            self.preview(s, peek, r)
+
+    def preview(self, s, mon, r):
+        """Pointing at one of yours in the switch list: a big picture of it above the board,
+        with its name, level, types and health."""
+        from dex import picture
+        card = pygame.Rect(r.x, r.y - 6 - 140, 156, 140)
+        self.cloth(s, card, MINE, alpha=235)
+        s.blit(pygame.transform.scale(picture(mon.species), (144, 104)), (card.x + 6, card.y + 6))
+        pygame.draw.rect(s, mix(MINE, (255, 255, 255), 0.4), (card.x + 6, card.y + 6, 144, 104), 1)
+        self.text(s, self.fit(f"{mon.species}  Lv{mon.level}", card.w - 12), card.x + 6, card.y + 112, (255, 255, 255))
+        nx = card.x + 3
+        for k in mon.types:
+            nx += self.badge(s, k, nx + 3, card.y + 126)
+        self.text(s, f"{max(0, mon.hp)}/{mon.maxhp}", card.right - 6, card.y + 126, TEXT, right=True)
 
     def close(self, t):
         self.leave(t)
@@ -2215,6 +2242,17 @@ class Arena:
 
 
 # --- right-click an animal: its base stats ---------------------------------------------
+
+_small = {}
+
+
+def small_picture(species):
+    """A species' Dex picture at half size, for the switch list."""
+    if species not in _small:
+        from dex import picture
+        _small[species] = pygame.transform.smoothscale(picture(species), (36, 26))
+    return _small[species]
+
 
 def stat_color(v):
     """Showdown-style: the higher the stat, the cooler the colour."""
