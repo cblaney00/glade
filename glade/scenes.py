@@ -128,6 +128,8 @@ class Scene(art.Lighting):
         for sp in self.spots:  # every path points the way its place lies on the map
             if sp.kind == "go":
                 sp.direction = heading(self.key, sp.target)
+        from gyms import place
+        place(self)  # a gym leader's banner stone, where there is one
         self.parts.append(("still", self.cur))
         self.cur = None
         from spacing import gather

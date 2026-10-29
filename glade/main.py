@@ -711,8 +711,8 @@ class Glade:
     def home_only(self, content):
         """On the desktop the paths lead nowhere: the far places are the game's (Wander)."""
         if self.desktop:  # (in place: the tree squid keep their own spots in the same list)
-            content.paths = [sp for sp in content.spots if sp.kind in ("go", "tower")]
-            content.spots[:] = [sp for sp in content.spots if sp.kind not in ("go", "tower")]
+            content.paths = [sp for sp in content.spots if sp.kind in ("go", "tower", "gym")]
+            content.spots[:] = [sp for sp in content.spots if sp.kind not in ("go", "tower", "gym")]
         return content
 
     def map_view(self):
@@ -805,7 +805,7 @@ class Glade:
         if getattr(board, "chosen", None) and board.then:
             board.then(t)
         elif getattr(board, "begin", False) and self.arena is None:
-            self.run = Run(board.team(), self)
+            self.run = board.make_run(self) if hasattr(board, "make_run") else Run(board.team(), self)
             self.arena = self.run.open(t)
         elif getattr(board, "boxes", False):
             self.board = Storage(self.signs.font, t)
@@ -821,6 +821,11 @@ class Glade:
                 else:  # the very first visit: choose your starter, then on to the tower's board
                     self.board = StarterBoard(self.signs.font, t,
                                               then=lambda t: setattr(self, "board", TowerBoard(self.signs.font, t)))
+            return
+        if sp.kind == "gym":  # a gym leader's banner stone (gyms.py)
+            if self.arena is None:
+                from gyms import GymBoard
+                self.board = GymBoard(self.signs.font, t, sp.target)
             return
         if sp.kind == "boxes":  # the shrine where your creatures are kept
             self.board = Storage(self.signs.font, t)

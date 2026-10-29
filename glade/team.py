@@ -159,6 +159,7 @@ class Collection:
         self.names = (data.get("box_names") or [f"Box {i + 1}" for i in range(BOXES)])[:BOXES]
         self.best = data.get("tower_best", 0)
         self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
+        self.badges = list(data.get("badges", []))  # gyms beaten (gyms.py), in the order won
         saved = [d for d in data.get("party", []) if d] + [d for row in data.get("boxes", []) for d in row if d]
         if any(not d.get("nature") or not d.get("uid") or not d.get("level") for d in saved):
             self.save()  # creatures kept before natures (or ids, or levels) existed: theirs are chosen now, for good
@@ -199,7 +200,7 @@ class Collection:
         os.makedirs(os.path.dirname(STATE), exist_ok=True)
         data = dict(party=[k.as_dict() if k else None for k in self.party],
                     boxes=[[k.as_dict() if k else None for k in row] for row in self.boxes],
-                    box_names=self.names, tower_best=self.best, tower_tried=self.tried)
+                    box_names=self.names, tower_best=self.best, tower_tried=self.tried, badges=self.badges)
         tmp = STATE + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f, indent=1)

@@ -52,21 +52,23 @@ def trainer(streak, rng, mine=TEAM):
             ivs = [max(0, min(31, v + rng.randint(-6, 6))) for v in k.ivs]
             rng.shuffle(ivs)
         team.append((species, tuple(ivs), None, None, k.level if k else None))
-    return rng.choice(TRAINERS), team
+    from gyms import with_ace
+    return rng.choice(TRAINERS), with_ace(team, rng)  # every trainer has an ace (his rule)
 
 
 class Run:
     """One go at the tower: your team, the streak so far, and what happens between battles."""
 
-    def __init__(self, team, glade):
+    def __init__(self, team, glade, single=False):
         self.team, self.glade = team, glade
+        self.single = single  # a Trainer battle: one at a time, no streak
         self.streak = 0
         self.rng = random.Random()
         self.recorded = False
 
     def battle(self, t):
         name, foes = trainer(self.streak, self.rng, self.team)
-        intro = f"{name} wants to battle! (Battle {self.streak + 1})"
+        intro = f"{name} wants to battle!" if self.single else f"{name} wants to battle! (Battle {self.streak + 1})"
         return foes, intro
 
     def open(self, t):
@@ -113,6 +115,16 @@ class Run:
             if not box.tried:
                 box.tried = True
                 box.save()
+        if self.single:
+            if arena.battle.winner == 0 and not getattr(arena, "counted", False):
+                arena.counted = True
+                self.evolve(arena)
+
+            def another(t):
+                arena.counted = False
+                foes, intro = self.battle(t)
+                arena.restart(foes, intro, t)
+            return [("Another trainer", another), ("Close", arena.close)]
         if arena.battle.winner == 0:
             if not getattr(arena, "counted", False):
                 arena.counted = True
@@ -144,6 +156,7 @@ class TowerBoard:
         self.buttons = []
         self.closed = False
         self.begin = False
+        self.single = False     # Trainer battle: one battle against a trainer your level, not a streak
         self.boxes = False
         self.asking = None      # resetting: None, "sure" (the are-you-sure note), "password" or "wrong"
 
@@ -159,6 +172,14 @@ class TowerBoard:
     def go(self):
         if self.party:
             self.begin, self.closed = True, True
+
+    def go_single(self):
+        if self.party:
+            self.single = True
+            self.go()
+
+    def make_run(self, glade):
+        return Run(self.team(), glade, single=self.single)
 
     def open_boxes(self):
         self.boxes, self.closed = True, True
@@ -226,6 +247,11 @@ class TowerBoard:
         if not self.party:
             self.text(s, "Your party is empty: catch some creatures first!", r.centerx, r.bottom - 60, DIM, center=True)
         self.button(s, pygame.Rect(r.right - 330, r.bottom - 38, 120, 24), "Your boxes", self.open_boxes, m)
+        self.button(s, pygame.Rect(r.right - 200, r.bottom - 66, 180, 24), "Trainer battle", self.go_single, m,
+                    enabled=bool(self.party))
+        badges = Collection().badges if not hasattr(self, "badges") else self.badges
+        self.badges = badges
+        self.text(s, f"Gym badges: {len(badges)}", r.x + 20, r.bottom - 60, TEXT)
         self.button(s, pygame.Rect(r.right - 200, r.bottom - 38, 180, 24), "Begin the challenge!", self.go, m,
                     enabled=bool(self.party))
         self.button(s, pygame.Rect(r.x + 150, r.bottom - 38, 100, 24), "Reset all", self.ask_reset, m,

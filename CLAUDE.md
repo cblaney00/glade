@@ -337,3 +337,13 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Tower wins are still counted but no longer evolve anything. **Tower trainers' creatures are the same level as
   the one of yours each is paired with (his pick)**; their kind is still matched by base total. Old saves get the
   level a wild one of their stage would have.
+- **Trainers, gyms, Elite 4 — part one** (`glade/gyms.py`, 2026-10-29, his design). The whole plan: normal trainer
+  battles (Tower only), one gym leader per place with that place's creatures, then once every gym is beaten the
+  Elite 4 (four type specialists, middle/final stages only, always together in the same order) and a random champion
+  picked separately. **Every trainer has an ace** (`gyms.with_ace`: last creature, stronger kind, +2 levels, IVs
+  >= 20; beatable). Done so far: the Tower board's **Trainer battle** (`Run(single=True)`: one trainer matched to your
+  party, Another trainer/Close; Tower streak trainers have aces too) and gyms in the **Forest, River and Mossy Rocks**
+  (a banner stone `Spot` kind "gym", placed by `gyms.place` from `Scene.done`; `GymBoard` → `GymRun`). Gym
+  difficulty is by how many you have beaten, any order (his rule: Emerald's casual Elite 4 level ~55 spread over all
+  30 places): `level_for(n)` = Lv 7 → 55, team 3, 4, 5 then 6. Badges in `Collection.badges`; rematches allowed.
+  Next: gyms for the other places, then the Elite 4 and champion.
