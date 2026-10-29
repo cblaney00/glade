@@ -46,15 +46,15 @@ much more detail; plaques must not move; the words always shown, nicely.
 In practice: depth planes fading into violet night mist, no outlines, moonlit rims and
 shaded undersides, dense hanging plants, and everything gently moving.
 
-**Desktop and Wander window (his ask, 2026-10-28):** the desktop (layer shell) is the home
-clearing alone: its apps, Forest Dex, Your party, Hide animals, Predator vision, Thunderstorm and
-the Claude panel; no paths, minimap or battles, and only `storm.CAP` (20) creature families,
-re-picked at each Thunderstorm. Everything else — every far place, the Battle Tower, all
-battles — is `glade --world` (`glade/world.py`), a full-screen window on the top screen that
-the **Wander** board under Your party opens; while it is open that board reads **Rest** and
-closes it. The desktop is all looks, no play: Forest Dex, Your party, right-clicking an animal
-(its stats card) and clicking the moon each open the game straight at that thing
-(`world.open_world`, handed over through `$XDG_RUNTIME_DIR/glade-world.ask`).
+**Desktop and Wander (his ask, 2026-10-28):** the desktop is all looks, no play: the home
+clearing alone (its apps, Hide animals, Predator vision, Thunderstorm, the Claude panel), no
+paths, minimap or battles, and only `storm.CAP` (20) creature families, re-picked at each
+Thunderstorm. The **Wander** board under Your party turns it into the whole game where it is,
+on both screens (`Glade.wander` in `main.py`; `glade/world.py` draws the board); it then reads
+**Rest**, which fades back to the plain desktop and lets the far places go (`Glade.rest`).
+Forest Dex, Your party, right-clicking an animal and clicking the moon also start the game,
+straight at that thing. (A separate game window was tried first: it could only cover the top
+screen, so he chose this.)
 
 ## How it is built
 
