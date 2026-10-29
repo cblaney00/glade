@@ -6,6 +6,10 @@ the boxes), on the right whoever you are pointing at or holding: its picture, ty
 and its IV web. Click a creature to pick it up, click a slot to put it down there (if
 someone is already there, you pick them up instead: a swap). Everything is saved as soon
 as it is put down (team.Collection).
+
+Changing moves (his ask, 2026-10-29; only here): the right panel keeps showing the last
+creature you pointed at, with a "Change moves" button. It opens the move list: click one of
+its four moves, then any move it can learn (its species' pool) to swap it in. Saved at once.
 """
 
 import pygame
@@ -29,6 +33,9 @@ class Storage:
         self.buttons = []
         self.slots = []         # (rect, where, i): where is "party" or a box number
         self.closed = False
+        self.shown = None       # the last one pointed at: the right panel stays on it
+        self.tutor = None       # the creature whose moves are being changed
+        self.slot_pick = 0      # which of its four moves the next pick replaces
 
     # --- what is where ---
     def get(self, where, i):
@@ -148,12 +155,87 @@ class Storage:
             if self.cell(s, cr, row[i], m) and row[i] and pointed is None:
                 pointed = row[i]
             self.slots.append((cr, self.page, i))
-        # who you are pointing at (or holding)
-        self.info(s, pygame.Rect(r.x + 608, r.y + 40, 278, 450), pointed, t)
+        # who you are pointing at (or holding); the panel stays on the last one
+        if pointed is not None and self.tutor is None:
+            self.shown = pointed
+        if self.shown is not None and self.shown not in self.box.everyone() and self.shown is not self.held:
+            self.shown = None
+        panel = pygame.Rect(r.x + 608, r.y + 40, 278, 450)
+        if self.tutor is not None:
+            self.moves_panel(s, panel, self.tutor, m)
+        else:
+            self.info(s, panel, self.shown, t)
+            if self.shown is not None and self.held is None:
+                self.button(s, pygame.Rect(panel.centerx - 50, panel.bottom - 22, 100, 17), "Change moves",
+                            self.open_tutor(self.shown), m)
         if self.held is not None and m:  # the one you are carrying, on the pointer
             pic = picture(self.held.species)
             pygame.draw.ellipse(s, mix(MINT, EDGE, 0.5), (m[0] - 30, m[1] + 16, 60, 10))
             s.blit(pic, pic.get_rect(center=(m[0], m[1] - 4)))
+
+    # --- changing moves ---
+    def open_tutor(self, kept):
+        def f():
+            self.tutor, self.slot_pick = kept, 0
+        return f
+
+    def choose_slot(self, i):
+        def f():
+            self.slot_pick = i
+        return f
+
+    def learn(self, name):
+        def f():
+            kept = self.tutor
+            if name in kept.moves:
+                return
+            if self.slot_pick < len(kept.moves):
+                kept.moves[self.slot_pick] = name
+            else:
+                kept.moves.append(name)
+            self.slot_pick = (self.slot_pick + 1) % 4 if len(kept.moves) < 4 else self.slot_pick
+            if self.held is None:  # one being carried is saved when it is put down
+                self.box.save()
+        return f
+
+    def done_tutor(self):
+        self.tutor = None
+
+    def move_row(self, s, r, name, m, picked, known, action):
+        """One move as a clickable row: its type colour, name, power, accuracy and PP."""
+        mv = MOVES.get(name)
+        hot = bool(m) and r.collidepoint(m) and not known
+        base = MINT if hot or picked else mix(CLOTH, EDGE, 0.15 if not known else 0.45)
+        cloth(s, r, base, hot=hot or picked, alpha=210 if not known or picked else 140)
+        if mv is None:
+            self.text(s, name, r.x + 8, r.y + 2, DIM)
+        else:
+            pygame.draw.rect(s, TYPE_COLOR.get(mv["t"], (200, 200, 200)), (r.x + 3, r.y + 3, 4, r.h - 6))
+            col = WHITE if hot or picked else DIM if known else TEXT
+            self.text(s, fit(self.font, name, 130), r.x + 10, r.y + 2, col)
+            acc = f"{mv['a']}%" if mv['a'] else '-'
+            self.text(s, f"{mv['p'] or '-'}  {acc}  {mv['pp']}pp", r.right - 6, r.y + 2, DIM, right=True)
+        self.buttons.append((r, action))
+
+    def moves_panel(self, s, r, kept, m):
+        cloth(s, r, mix(CLOTH, EDGE, 0.3), alpha=170)
+        self.text(s, fit(self.font, f"{kept.species}'s moves", r.w - 20), r.x + 10, r.y + 8, WHITE)
+        self.text(s, "Click a move, then one to learn.", r.x + 10, r.y + 22, DIM)
+        y = r.y + 40
+        for i in range(4):
+            name = kept.moves[i] if i < len(kept.moves) else "(empty)"
+            self.move_row(s, pygame.Rect(r.x + 8, y, r.w - 16, 16), name, m, i == self.slot_pick, False,
+                          self.choose_slot(i))
+            y += 18
+        y += 8
+        self.text(s, "CAN LEARN", r.x + 10, y, MINT)
+        y += 16
+        for name in SPECIES[kept.species]["pool"]:
+            known = name in kept.moves
+            self.move_row(s, pygame.Rect(r.x + 8, y, r.w - 16, 16), name, m, False, known,
+                          (lambda: None) if known else self.learn(name))
+            y += 17
+        self.button(s, pygame.Rect(r.centerx - 30, r.bottom - 26, 60, 18), "Done", self.done_tutor, m)
 
     def info(self, s, r, kept, t):
         cloth(s, r, mix(CLOTH, EDGE, 0.3), alpha=170)
@@ -217,7 +299,7 @@ class Storage:
             info = f"{mv['p'] or '-'}  {acc}  {mv['pp']}pp"
             self.text(s, info, r.right - 10, y + i * 14, DIM, right=True)
         # and the IV web
-        iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 60), 38, t)
+        iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 46), 34, t)
 
 
 def exp_line(kept):

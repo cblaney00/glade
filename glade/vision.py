@@ -4,18 +4,46 @@ A golden "Predator vision" button sits in the lower screen's top-left corner. Cl
 for a few seconds, the whole glade drains to black and white except the animals: they
 keep their colours and are traced in a glowing golden outline, so even one hiding in the
 grass or behind a branch stands out. It eases in and out (nothing in the glade snaps).
+
+His ask (2026-10-29): the ones worth catching stand out too. An animal whose IVs add up to
+`STRONG` or more (the top 5% of all rolls) is traced in shimmering pink-white instead of gold,
+with a little four-pointed star twinkling over it.
 """
+
+import math
 
 import pygame
 
 import art
 from apex import OFFSET, ease
 from battle import TEXT, animals, cloth
+from team import ivs_of
 
 GOLD = (255, 206, 90)
 KEY = (1, 254, 3)  # a colour nothing in the glade is drawn in
 IN, HOLD, OUT = 0.6, 4.0, 1.0
 R = 44  # how far round an animal to look for its body
+STRONG = 131  # an IV total this high or more is the top 5% (of 186; worked out from the 32**6 rolls)
+PEARL = (255, 190, 235)
+
+
+def strong(obj):
+    """Is this animal's IV total in the top 5%?"""
+    return sum(ivs_of(obj)) >= STRONG
+
+
+def twinkle(s, x, y, t, k):
+    """A little four-pointed star, pulsing."""
+    p = 0.5 + 0.5 * math.sin(t * 5)
+    n = 4 + round(3 * p)
+    a = round(255 * k)
+    star = art.plane((2 * n + 1, 2 * n + 1))
+    c = (255, 240, 250, a)
+    pygame.draw.line(star, c, (n, 0), (n, 2 * n))
+    pygame.draw.line(star, c, (0, n), (2 * n, n))
+    pygame.draw.line(star, (*PEARL, a), (n - 1, n - 1), (n + 1, n + 1))
+    pygame.draw.line(star, (*PEARL, a), (n - 1, n + 1), (n + 1, n - 1))
+    s.blit(star, (round(x) - n, round(y) - n))
 
 
 def button_rect(view):
@@ -130,6 +158,16 @@ class Vision:
                     if abs(dx) + abs(dy) <= 3:
                         ring.draw(body, (dx, dy))
             ring.erase(body, (0, 0))
-            outline = ring.to_surface(setcolor=(*GOLD, round(255 * k)), unsetcolor=(0, 0, 0, 0))
-            s.blit(outline, box.topleft)
-            art.glow(s, x, y, 22, GOLD, round(40 * k) // 10 * 10)
+            if strong(o):
+                # worth catching: a shimmering pink-white rim, a brighter glow and a star on top
+                tint = PEARL if math.sin(t * 6 + x * 0.1) > 0 else (255, 250, 255)
+                outline = ring.to_surface(setcolor=(*tint, round(255 * k)), unsetcolor=(0, 0, 0, 0))
+                s.blit(outline, box.topleft)
+                art.glow(s, x, y, 30, PEARL, round(70 * k) // 10 * 10)
+                rect = body.get_bounding_rects()
+                top = min(b.top for b in rect) + box.y if rect else y - 16
+                twinkle(s, x, top - 9, t, k)
+            else:
+                outline = ring.to_surface(setcolor=(*GOLD, round(255 * k)), unsetcolor=(0, 0, 0, 0))
+                s.blit(outline, box.topleft)
+                art.glow(s, x, y, 22, GOLD, round(40 * k) // 10 * 10)
