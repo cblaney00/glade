@@ -20,6 +20,8 @@ import random
 
 import pygame
 
+from loading import breathe
+
 W, H = 960, 540
 S = 2  # canvas pixels per pixel of the original 480x270 design
 
@@ -35,6 +37,7 @@ GLOW = dict(
 # --- colour ---------------------------------------------------------------------
 
 def mix(a, b, t):
+    breathe()
     t = max(0.0, min(1.0, t))
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
@@ -56,18 +59,39 @@ def solid(size=(W, H)):
     screen has an alpha channel, plain surfaces inherit it and start fully transparent,
     and everything drawn through them comes out black. 32-bit with no alpha channel,
     not 24-bit: whole-screen copies of 24-bit pixels are several times slower."""
+    breathe()
     return pygame.Surface(size, 0, 32, (0xFF0000, 0xFF00, 0xFF, 0))
 
 
 def plane(size=(W, H)):
+    breathe()
     return pygame.Surface(size, pygame.SRCALPHA)
+
+
+def bounds(surf):
+    """surf.get_bounding_rect(), the same answer five to ten times faster: pygame checks the
+    pixels one by one, this lets bytes.strip find the empty rows and columns."""
+    w = surf.get_width()
+    a = pygame.image.tobytes(surf, "RGBA")[3::4]
+    rest = a.lstrip(b"\0")
+    if not rest:
+        return pygame.Rect(0, 0, 0, 0)
+    top, bottom = (len(a) - len(rest)) // w, (len(a.rstrip(b"\0")) - 1) // w
+    left, right = w, -1
+    for y in range(top, bottom + 1):
+        row = a[y * w:(y + 1) * w]
+        lead = w - len(row.lstrip(b"\0"))
+        if lead < w:
+            left, right = min(left, lead), max(right, len(row.rstrip(b"\0")) - 1)
+    return pygame.Rect(left, top, right - left + 1, bottom - top + 1)
 
 
 def trimmed(surf):
     """A see-through layer cut down to the part that has anything on it, and where
     that part goes — so drawing it every frame does not blend a whole empty screen.
     None if it is empty."""
-    r = surf.get_bounding_rect()
+    breathe()
+    r = bounds(surf)
     if r.w == 0 or r.h == 0:
         return None
     return surf.subsurface(r).copy(), r.topleft
@@ -76,6 +100,7 @@ def trimmed(surf):
 def gradient(surf, rect, stops, steps=6):
     """Vertical gradient over rect in solid bands joined by an ordered-dither seam.
     Painted as one 4-pixel-wide strip (the dither repeats every 4 pixels) and tiled."""
+    breathe()
     x0, y0, w, h = rect
     n = len(stops) - 1
     strip = solid((4, h))
@@ -101,6 +126,7 @@ THIN = 0.75  # how much of the night mist is kept: less of it, more colour contr
 def mist_veil(pal, strength, low=0.0, size=(W, H)):
     """A sheet of mist to lay over everything drawn so far. `low` thickens it near
     the ground, like haze pooling in a valley."""
+    breathe()
     w, h = size
     strength, low = strength * THIN, low * THIN
     s = pygame.Surface(size, pygame.SRCALPHA)
@@ -112,6 +138,7 @@ def mist_veil(pal, strength, low=0.0, size=(W, H)):
 
 def finish(lay, pal, d, rng, texture=1.0):
     """Moonlit rim on the edges facing the moon, a shaded underside, and texture."""
+    breathe(0.012)  # (the mask below is one long step)
     mask = pygame.mask.from_surface(lay)
     count = mask.count()
     if count == 0:
@@ -149,6 +176,7 @@ def finish(lay, pal, d, rng, texture=1.0):
 
 def glow(s, x, y, r, color, strength=60):
     """Soft additive glow: concentric discs, stepped like pixel art."""
+    breathe()
     r = max(1, int(r))
     key = (r, color, strength)
     g = _GLOWS.get(key)
@@ -168,6 +196,7 @@ _GLOWS = {}
 
 def soft_ellipse(rx, ry, color, alpha):
     """An alpha ellipse that fades out toward its edge (for shadows and haze)."""
+    breathe()
     s = pygame.Surface((rx * 2 + 1, ry * 2 + 1), pygame.SRCALPHA)
     n = max(2, min(rx, ry) // 2)
     for i in range(n, 0, -1):
@@ -236,6 +265,7 @@ def glowmoss(lit, lay, x, y, w, h, color=None, strength=80, specks=1.0):
     """A cushion of fluorescent moss: a few soft mounds, dark at the base and glowing
     toward the top, sprouting thin stalks with shining spore capsules. It lights up
     the ground around it. `lit` is the picture's Lighting (and has an rng)."""
+    breathe()
     rng, color = lit.rng, color or GLOW["moss"]
     mid = mix(color, (20, 52, 60), 0.5)
     tone = dict(shade=(8, 22, 34), rim=mix(color, (255, 255, 255), 0.2), moon_side=-1)
@@ -270,6 +300,7 @@ def wave(x, phase, scales):
 
 def ridge(s, rng, y, amp, color, scales=(140, 46, 18), bottom=H, texture=True):
     """A rolling silhouette edge to edge, filled down to `bottom`. Returns its height per x."""
+    breathe()
     phase = rng.random() * 10
     tops = [int(y - amp * (0.5 + 0.35 * wave(x, phase, scales))) for x in range(W + 1)]
     pygame.draw.polygon(s, color, [(0, bottom)] + [(x, tops[x]) for x in range(0, W + 1, 2)] + [(W, bottom)])
@@ -279,6 +310,7 @@ def ridge(s, rng, y, amp, color, scales=(140, 46, 18), bottom=H, texture=True):
 
 
 def _dot(s, x, y, c):
+    breathe()
     if 0 <= x < s.get_width() and 0 <= y < s.get_height():
         s.set_at((x, y), c)
 
@@ -287,6 +319,7 @@ def hill_texture(s, tops, color, seed, bottom=H, side=-1):
     """Rolling hills are not one flat colour: bushy tufts break the skyline, folds of
     ground echo it further down (each with a lit lip and a dithered shadow under it), and
     darker clumps of trees mottle the slopes. Its own dice, so the scene stays put."""
+    breathe()
     rng = random.Random(seed)
     lit = mix(color, (255, 255, 255), 0.14)
     dark = mix(color, (12, 10, 40), 0.2)
@@ -330,6 +363,7 @@ def crag(s, poly, color, seed, side=-1, strata=(7, 15), fill=True):
     """Rock that reads as rock: strata (a dark seam with a lit lip), vertical joints
     between them, a few jagged cracks, and a dithered shadow over the half turned away
     from the moon. With fill=False only the marks are laid over what is already there."""
+    breathe()
     rng = random.Random(seed)
     tmp = plane()
     if fill:
@@ -380,6 +414,7 @@ def falls(s, top, bottom, color, foam, seed):
     """The body of a waterfall from span `top` (x0, x1, y) down to span `bottom`: ribbons
     of lighter and darker water, a bright lip where it pours over, darker edges, and a
     dithered haze of spray at its foot."""
+    breathe()
     rng = random.Random(seed)
     (tx0, tx1, ty), (bx0, bx1, by) = top, bottom
     n = int(max(tx1 - tx0, bx1 - bx0))
@@ -408,6 +443,7 @@ def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
     to the left) catch a little light and the others fall into shade; spurs run down
     from every peak, lit on the moon's side and shadowed on the other, and the rock is
     broken by ledges."""
+    breathe()
     tops = ridge(s, rng, y, amp, color, scales, texture=False)
     rng = random.Random(y * 1000 + amp)  # its own dice, so the rest of the scene stays put
     lit, hi = mix(color, (255, 255, 255), 0.16), mix(color, (255, 255, 255), 0.26)
@@ -453,6 +489,7 @@ def mountains(s, rng, y, amp, color, scales=(140, 46, 18), side=-1):
 
 def canopy(s, rng, x0, x1, y, color, r=(14, 28), jitter=12, down=True):
     """A lumpy mass of foliage along a line, filled toward the bottom (or the top)."""
+    breathe()
     x = x0
     lumps = []
     while x < x1:
@@ -471,6 +508,7 @@ def canopy(s, rng, x0, x1, y, color, r=(14, 28), jitter=12, down=True):
 def leafy(s, lumps, color, down, seed):
     """Leaf texture over a canopy's lumps: a lit, broken crown on each (toward the
     moon at the top-left), small leaf specks, and a dithered shadow where lumps overlap."""
+    breathe()
     rng = random.Random(seed)
     lit, dark = mix(color, (255, 255, 255), 0.13), mix(color, (12, 10, 40), 0.24)
     for x, cy, rr in lumps:
@@ -498,6 +536,7 @@ def leafy(s, lumps, color, down, seed):
 
 def clump(s, rng, cx, cy, r, color, n=9, squash=0.7):
     """A rounded cloud of leaves (tree crowns, bushes)."""
+    breathe()
     for _ in range(n):
         a = rng.random() * math.tau
         dd = rng.random() * r * 0.6
@@ -508,6 +547,7 @@ def clump(s, rng, cx, cy, r, color, n=9, squash=0.7):
 def foliage(s, rng, cx, cy, rx, ry, color, pal, density=1.0, leaf=(3, 6)):
     """A mass of leaves with ragged, leafy edges: many little discs in four tones, a
     shaded underside and a moonlit side."""
+    breathe()
     side = pal.get("moon_side", -1)
     dark = mix(color, pal["shade"], 0.42)
     mid = mix(color, pal["shade"], 0.18)
@@ -553,6 +593,7 @@ def foliage(s, rng, cx, cy, rx, ry, color, pal, density=1.0, leaf=(3, 6)):
 def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
     """A tall, slightly leaning trunk that flares into roots, with bark streaks.
     Returns its lean: at height y its middle is at x + (bottom - y) * lean."""
+    breathe()
     lean = rng.uniform(-0.04, 0.04)
     pts_l, pts_r = [], []
     for y in list(range(top, bottom, 4)) + [bottom]:
@@ -624,6 +665,7 @@ def trunk(s, rng, x, top, bottom, w, color, branches=2, pal=None):
 def pine(s, rng, x, base, h, color, snow=None, trunk=None, side=-1):
     """A fir: tiers of drooping, ragged boughs narrowing to a point, darker on the side
     away from the moon, each tier's upper edge laden with snow (if `snow`)."""
+    breathe()
     w = h * 0.42
     if trunk:
         pygame.draw.rect(s, trunk, (x - max(1, h // 30), base - h * 0.16, max(2, h // 15), h * 0.16 + 1))
@@ -662,6 +704,7 @@ def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):
     """A jagged, faceted boulder sitting on y=cy; with `moss`, a soft cap of moss over
     its top. If `glow_pts` is a list, points along the moss cap are appended to it
     (where the glowing moss should be lit)."""
+    breathe()
     n = 13
     pts = []
     for i in range(n):
@@ -717,6 +760,7 @@ def rock(s, rng, cx, cy, w, h, color, moss=None, mossiness=0.5, glow_pts=None):
 
 
 def grass_bed(s, rng, rect, color, n, hmax=6):
+    breathe()
     x0, y0, w, h = rect
     for _ in range(n):
         x, y = x0 + rng.randrange(w), y0 + rng.randrange(max(1, h))
@@ -724,6 +768,7 @@ def grass_bed(s, rng, rect, color, n, hmax=6):
 
 
 def blossoms(s, rng, rect, colors, n, mask=None):
+    breathe()
     x0, y0, w, h = rect
     sw, sh = s.get_size()
     for _ in range(n):
@@ -740,6 +785,7 @@ def blossoms(s, rng, rect, colors, n, mask=None):
 
 def flowers(s, rng, rect, colors, n, centre=(255, 236, 140)):
     """Little five-pixel flowers on short stems."""
+    breathe()
     x0, y0, w, h = rect
     for _ in range(n):
         x, y = x0 + rng.randrange(w), y0 + rng.randrange(max(1, h))
@@ -774,6 +820,7 @@ def on_path(x, y):
 
 def path(s, pts, widths, color, edge, pebbles=None, rng=None):
     """A trodden path along a polyline whose width changes (wide = near)."""
+    breathe()
     left, right = [], []
     for i, (p, w) in enumerate(zip(pts, widths)):
         q = pts[min(i + 1, len(pts) - 1)]
@@ -793,7 +840,7 @@ def path(s, pts, widths, color, edge, pebbles=None, rng=None):
     cut = plane()
     pygame.draw.polygon(cut, (255, 255, 255, 255), poly)
     inside = pygame.mask.from_surface(cut)
-    r = cut.get_bounding_rect()
+    r = bounds(cut)
     if r.w and r.h:
         dark, deep, light = mix(color, edge, 0.4), mix(color, edge, 0.75), mix(color, (255, 255, 255), 0.12)
         ok = lambda x, y: 0 <= x < W and 0 <= y < H and inside.get_at((x, y))  # noqa: E731

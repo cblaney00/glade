@@ -29,6 +29,7 @@ from tower import Run, TowerBoard
 import vision
 import world
 import hiding
+import loading
 import resume
 from evolve import EVOLVES, Evolution
 from art import H, W, mix
@@ -579,6 +580,8 @@ class Glade:
         self.scenes, self.lowers = {}, {}
         # the far places, built on the side while he plays, so the game never freezes (warm)
         self.ready, self.ready_lock, self.warmer, self.gen = {}, threading.Lock(), None, 0
+        self.building = threading.Lock()  # one place at a time: builds share some drawing state (art)
+        self.loaded_at = None  # when the last far place came in (for the loading bar)
         self.signs = Signs()
         self.minimap = Minimap(self.signs.font)
         self.panel = Panel()  # the Claude panel: a minimised way of talking to Claude (claude_panel.py)
@@ -644,9 +647,11 @@ class Glade:
         self.lifespans.settle()
         self.listener = Listener()
         self.desktop = True
-        with self.ready_lock:  # the side thread stops, and what it built is let go
+        loading.gate.stop = True  # the side thread stops at its next pause point
+        with self.ready_lock:  # ... and what it built is let go
             self.gen += 1
             self.ready = {}
+        self.loaded_at = None
         self.here = self.scene(HOME)
         self.history = []
         self.scenes = {HOME: self.here}
@@ -687,14 +692,20 @@ class Glade:
 
     def scene(self, key):
         self.take_ready(key)
-        if key not in self.scenes:
-            self.scenes[key] = self.home_only(BUILDERS[key]())
+        if key not in self.scenes:  # he got there before it loaded: build it now
+            with loading.Rush(), self.building:  # (the side thread finishes its place flat out first)
+                self.take_ready(key)
+                if key not in self.scenes:
+                    self.scenes[key] = self.home_only(BUILDERS[key]())
         return self.scenes[key]
 
     def lower(self):
         key = self.here.key
         if key not in self.lowers:
-            self.lowers[key] = self.home_only(Lower(self.here, self.bottom.w, self.bottom.h))
+            with loading.Rush(), self.building:
+                self.take_ready(key)
+                if key not in self.lowers:
+                    self.lowers[key] = self.home_only(Lower(self.here, self.bottom.w, self.bottom.h))
         return self.lowers[key]
 
     def home_only(self, content):
@@ -713,34 +724,60 @@ class Glade:
         if self.bottom:
             yield self.bottom, self.lower()
 
+    def nearest(self):
+        """Every place, nearest first (by paths) from where he is."""
+        order, seen = [self.here.key], {self.here.key}
+        for key in order:
+            for a, b in LINKS:
+                if key in (a, b):
+                    other = b if a == key else a
+                    if other not in seen and other in BUILDERS:
+                        seen.add(other)
+                        order.append(other)
+        return order + [k for k in BUILDERS if k not in seen]
+
+    def loading(self):
+        """(places loaded, all places) for the bar under Wander."""
+        with self.ready_lock:
+            ready = set(self.ready)
+        return len((set(self.scenes) | ready) & set(BUILDERS)), len(BUILDERS)
+
     def warm(self):
-        """Build the places next to where he is, so going there is instant. Each takes about a
-        second, so they are built one by one on the side (a thread), and the picture keeps moving."""
+        """Load every place, nearest first, so going anywhere is instant. Each takes about a
+        second, so a side thread builds them a little at a time, only in the gaps between frames
+        (loading.py): the picture never waits, and the bar under Wander shows how far it is."""
         if self.desktop:
             return False
         for key in list(self.ready):
             self.take_ready(key)
         if self.warmer is not None and self.warmer.is_alive():
             return True
-        # only the places one path away: building all thirty took turns with the picture
-        # for half a minute and made it lag, while these few are done in a few seconds
-        here = self.here.key
-        near = [b if a == here else a for a, b in LINKS if here in (a, b)]
-        todo = [k for k in near if k in BUILDERS and k not in self.scenes]
+        todo = [k for k in self.nearest() if k not in self.scenes]
         if not todo:
+            if self.loaded_at is None:
+                self.loaded_at = self.now()
             return False
         gen, size = self.gen, (self.bottom.w, self.bottom.h) if self.bottom else None
+        loading.gate.stop = False
 
         def build():
-            for key in todo:
-                if self.gen != gen:  # he went back to the desktop: stop
-                    return
-                sc = BUILDERS[key]()
-                low = Lower(sc, *size) if size else None
-                time.sleep(0.05)  # a breath between places
-                with self.ready_lock:
-                    if self.gen == gen:
-                        self.ready[key] = (sc, low)
+            loading.gate.side = threading.get_ident()
+            try:
+                for key in todo:
+                    with self.building:
+                        if self.gen != gen:  # he went back to the desktop: stop
+                            return
+                        if key in self.scenes:  # (he walked there first)
+                            continue
+                        sc = BUILDERS[key]()
+                        low = Lower(sc, *size) if size else None
+                        with self.ready_lock:
+                            if self.gen == gen:
+                                self.ready[key] = (sc, low)
+            except loading.Stopped:
+                pass
+            finally:
+                loading.gate.side = None
 
         self.warmer = threading.Thread(target=build, daemon=True)
         self.warmer.start()
@@ -1229,6 +1266,8 @@ class Glade:
                 vision.draw_dex_button(view.canvas, view, self.signs.font)
                 hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
                 world.draw_button(view.canvas, view, self.signs.font, not self.desktop)
+                if not self.desktop:
+                    world.draw_loading(view.canvas, view, self.signs.font, *self.loading(), self.loaded_at, t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
@@ -1291,6 +1330,7 @@ def loop(glade):
     clock = pygame.time.Clock()
     while True:
         dt = clock.tick(30) / 1000
+        frame_start = time.monotonic()
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 return
@@ -1316,6 +1356,7 @@ def loop(glade):
             if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                 glade.release(time.monotonic() - glade.t0)
         glade.frame(min(dt, 0.1))
+        loading.between_frames(frame_start + 1 / 30)  # the far places load in the time left over
 
 
 def main():

@@ -56,6 +56,16 @@ Forest Dex, Your party, right-clicking an animal and clicking the moon also star
 straight at that thing. (A separate game window was tried first: it could only cover the top
 screen, so he chose this.)
 
+**Loading while wandering** (`glade/loading.py`, 2026-10-28, his ask: Wander stuttered for ~20 s and he
+wanted to know when it is all loaded): Wander loads **every** place, nearest first, on a side thread
+that only works in the gaps between frames (`loading.between_frames` after each frame in both loops;
+`breathe()` pause points all through `art.py`, with `breathe(need)` before a long single step). A bar
+under the Wander board (`world.draw_loading`) reads "Loading places N/30", then "Every place is ready"
+for 4 s. All 30 take ~31 s; no frame over ~42 ms; ~0.8 GB once all are in, let go on Rest. Walking
+somewhere not yet loaded builds it at once (`loading.Rush`, ~1.5 s pause). Builds hold `Glade.building`
+(they share art's path state). `art.bounds` replaces pygame's slow `get_bounding_rect` (same answer).
+Any new drawing helper that loops a lot should call `breathe()`.
+
 ## How it is built
 
 Python + pygame (dev shell `vibe-python`; no numpy there, so everything is plain

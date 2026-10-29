@@ -31,3 +31,26 @@ def draw_button(s, view, font, playing):
         pygame.draw.ellipse(s, (250, 244, 255), (x + dx, y + dy - 1 + (i % 2), 4, 3))
     img = font.render("Rest" if playing else "Wander", False, (255, 255, 255) if hot or playing else TEXT)
     s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
+
+
+def loading_rect(view):
+    r = rect(view)
+    return pygame.Rect(r.x, r.bottom + 4, r.w, 22)
+
+
+def draw_loading(s, view, font, done, total, since, t):
+    """Under the Wander board while the far places load (loading.py): how many are ready, and
+    a filling bar, so he never has to guess. When all are in it says so for a few seconds,
+    then goes. `since`: when the last one came in (None while loading)."""
+    if since is not None and t - since > 4:
+        return
+    r = loading_rect(view)
+    full = since is not None
+    cloth(s, r, (150, 236, 190) if full else WANDER, hot=full, alpha=215)
+    msg = "Every place is ready" if full else f"Loading places {done}/{total}"
+    img = font.render(msg, False, (255, 255, 255) if full else TEXT)
+    s.blit(img, (r.x + 7, r.y + 2))
+    bar = pygame.Rect(r.x + 7, r.bottom - 6, r.w - 14, 3)
+    pygame.draw.rect(s, (60, 40, 96), bar)
+    k = 1.0 if full else done / max(1, total)
+    pygame.draw.rect(s, (255, 255, 255) if full else (238, 222, 255), (bar.x, bar.y, max(1, int(bar.w * k)), bar.h))

@@ -33,6 +33,7 @@ from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 import pygame  # noqa: E402
 
+import loading  # noqa: E402
 import main  # noqa: E402
 from art import H, W  # noqa: E402
 
@@ -511,6 +512,7 @@ def run():
                 s.area.queue_draw()
         for front in fronts:
             front.update()
+        loading.between_frames(now + 1 / FPS)  # the far places load in the time left over
         return True
 
     GLib.timeout_add(1000 // FPS, tick)
