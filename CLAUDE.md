@@ -353,5 +353,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Fern Gully (Bug), Crystal Caverns (Steel). **Badge case** (`glade/badges.py`, his design): right under Your party,
   the minimap's layout pressed into velvet with a socket per gym; a won badge is a cut gem in its leader's colour.
   Looks like a pouch for precious stones but modern, like a glasses case (pastel lilac hard shell, gold clasp, gold
-  stitching). Pointing at a slot names the gym. The Wander board moved down under it (`world.rect`).
+  stitching). Pointing at a slot names the gym (dark plum words: his ask, light ones were hard to read). It is a
+  **drop-down** (his ask): shut, only the lid shows; clicking the lid opens/shuts it (`badges.State`), and the Wander
+  board sits under whatever is shown (`world.rect`). Clicking a gem or empty slot goes there like the minimap
+  (from the desktop it starts Wander first). After an update the glade opens where he was again, wandering with
+  the minimap (`resume.restore` in `Glade.__init__`; it had been left out, so he landed on the plain desktop).
   Next: gyms for the other places, then the Elite 4 and champion.

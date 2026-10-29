@@ -17,7 +17,8 @@ WANDER = (196, 160, 255)
 
 
 def rect(view):
-    return pygame.Rect(8, 270, 150, 22)  # under the badge case (badges.py)
+    import badges
+    return pygame.Rect(8, badges.rect(view).bottom + 4, 150, 22)  # under the badge case, open or shut
 
 
 def draw_button(s, view, font, playing):

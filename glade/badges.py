@@ -6,6 +6,10 @@ hard shell with a glossy band and a gold clasp on its lid, opened onto deep viol
 gold stitching round it; the paths between places are pressed into the velvet, every gym is
 a little socket there, and a won badge sits in its socket as a cut gem in its leader's colour,
 glowing softly and now and then glinting. Pointing at a slot names its gym.
+
+It is a drop-down (his ask): closed, only the lid shows ("Badges 3/11"); clicking the lid
+opens the case under it, and again closes it. Clicking a gem or an empty slot goes to that
+place, like the minimap (main.Glade.click; from the desktop it starts Wander first).
 """
 
 import json
@@ -15,7 +19,8 @@ import os
 import pygame
 
 import art
-from battle import EDGE, TEXT, DIM, mix
+from apex import ease
+from battle import EDGE, mix
 from gyms import GYMS, TITLES
 from scenes import LINKS, MAP
 from team import STATE
@@ -33,9 +38,39 @@ CELL = 15   # velvet pixels between neighbouring places
 LID = 18    # the lid strip at the top, where "Badges" is written
 
 
+FULL = 154  # the open case's height; closed it is just the lid, as tall as the boards above
+
+
+class State:
+    open = False
+    since = -10.0   # when it was last opened or closed
+    shown = 22      # the height drawn last frame (world.rect puts the Wander board under it)
+
+
+def full(view):
+    """Right under the Your party board (hiding.party_rect), the same width, open."""
+    return pygame.Rect(8, 112, 150, FULL)
+
+
+def lid(view):
+    return pygame.Rect(8, 112, 150, 22)
+
+
 def rect(view):
-    """Right under the Your party board (hiding.party_rect), the same width."""
-    return pygame.Rect(8, 112, 150, 154)
+    """What is on screen now: the lid, the open case, or something between while it moves."""
+    r = full(view)
+    r.h = State.shown
+    return r
+
+
+def toggle(t):
+    State.open = not State.open
+    State.since = t
+
+
+def openness(t):
+    k = ease(min(1.0, (t - State.since) / 0.22))
+    return k if State.open else 1 - k
 
 
 # --- which badges are won: read from the save, only when it changes -------------------------
@@ -80,8 +115,8 @@ def node(r, key):
 
 def at(view, m):
     """The gym slot under the pointer, or None."""
-    r = rect(view)
-    if m is None or not r.collidepoint(m):
+    r = full(view)
+    if not State.open or m is None or not rect(view).collidepoint(m) or lid(view).collidepoint(m):
         return None
     for key in GYMS:
         nx, ny = node(r, key)
@@ -136,13 +171,15 @@ def case(r, have, pointed, font):
     pygame.draw.rect(s, GOLD, (cx - 6, LID - 3, 12, 5), border_radius=2)
     s.set_at((cx - 4, LID - 2), (255, 250, 220))
     # "Badges" on the lid, either side of the clasp
-    for words, x, right in (("Badges", 12, False), (f"{len(have)}/{len(GYMS)}", r.w - 12, True)):
+    for words, x, right in (("Badges", 12, False), (f"{len(have)}/{len(GYMS)}", r.w - 22, True)):
         img = font.render(words, False, (255, 255, 255))
         shade = font.render(words, False, SHELL_LO)
         y = 3 + (LID - 3 - img.get_height()) // 2
         x = x - img.get_width() if right else x
         s.blit(shade, (x + 1, y + 1))
         s.blit(img, (x, y))
+    ax, ay = r.w - 15, LID // 2 - 1  # a small arrow: click the lid to shut it
+    pygame.draw.polygon(s, (255, 255, 255), [(ax - 3, ay + 3), (ax + 3, ay + 3), (ax, ay)])
     # the velvet, softly napped, with gold stitching round its edge
     t = tray(r)
     pygame.draw.rect(s, VELVET_LO, t.inflate(2, 2), border_radius=6)
@@ -179,20 +216,62 @@ def case(r, have, pointed, font):
     # under the velvet: the gym pointed at, or a hint
     if pointed:
         words = TITLES[pointed] + ("" if pointed in have else " (not yet)")
-        color = (255, 255, 255) if pointed in have else TEXT
+        color = (34, 16, 56) if pointed in have else (64, 42, 96)
     else:
-        words, color = ("Every badge won!" if len(have) == len(GYMS) else "A gem for every gym"), DIM
+        words, color = ("Every badge won!" if len(have) == len(GYMS) else "A gem for every gym"), (64, 42, 96)
+    # dark plum, pressed into the pale shell (his ask: light words there were hard to read)
     img = font.render(words, False, color)
-    s.blit(img, ((r.w - img.get_width()) // 2, t.bottom + (r.h - t.bottom - img.get_height()) // 2 - 1))
+    lit = font.render(words, False, SHELL_HI)
+    x, y = (r.w - img.get_width()) // 2, t.bottom + (r.h - t.bottom - img.get_height()) // 2 - 1
+    s.blit(lit, (x, y + 1))
+    s.blit(img, (x, y))
+    _cache[key] = s
+    return s
+
+
+def closed(r, have, hot, font):
+    """The case shut: a slim pastel capsule with the clasp and a little arrow saying it opens."""
+    key = ("shut", r.size, len(have), hot)
+    if key in _cache:
+        return _cache[key]
+    s = pygame.Surface(r.size, pygame.SRCALPHA)
+    box = s.get_rect()
+    shell = mix(SHELL, SHELL_HI, 0.3) if hot else SHELL
+    pygame.draw.rect(s, EDGE, box, border_radius=10)
+    pygame.draw.rect(s, SHELL_LO, box.inflate(-2, -2), border_radius=9)
+    pygame.draw.rect(s, shell, box.inflate(-2, -4).move(0, -1), border_radius=9)
+    pygame.draw.line(s, SHELL_HI, (10, 2), (r.w - 11, 2))
+    pygame.draw.line(s, SHELL_LO, (6, r.h - 6), (r.w - 7, r.h - 6))  # the seam where it opens
+    cx = r.w // 2
+    pygame.draw.rect(s, GOLD_LO, (cx - 7, r.h - 9, 14, 6), border_radius=2)
+    pygame.draw.rect(s, GOLD, (cx - 6, r.h - 9, 12, 4), border_radius=2)
+    s.set_at((cx - 4, r.h - 8), (255, 250, 220))
+    for words, x, right in (("Badges", 12, False), (f"{len(have)}/{len(GYMS)}", r.w - 22, True)):
+        img = font.render(words, False, (255, 255, 255))
+        shade = font.render(words, False, SHELL_LO)
+        y = 1 + (r.h - 6 - img.get_height()) // 2
+        x = x - img.get_width() if right else x
+        s.blit(shade, (x + 1, y + 1))
+        s.blit(img, (x, y))
+    ax, ay = r.w - 15, r.h // 2 - 3  # a small arrow: it drops down
+    pygame.draw.polygon(s, (255, 255, 255), [(ax - 3, ay), (ax + 3, ay), (ax, ay + 3)])
     _cache[key] = s
     return s
 
 
 def draw(s, view, font, t):
-    r = rect(view)
+    r = full(view)
     have = won()
-    pointed = at(view, view.mouse())
-    s.blit(case(r, have, pointed, font), r)
+    m = view.mouse()
+    k = openness(t)
+    State.shown = round(lid(view).h + (FULL - lid(view).h) * k)
+    if k <= 0:
+        s.blit(closed(lid(view), have, bool(m) and lid(view).collidepoint(m), font), r)
+        return
+    pointed = at(view, m) if k >= 1 else None
+    s.blit(case(r, have, pointed, font), r, (0, 0, r.w, State.shown))
+    if k < 1:
+        return
     # the won gems glow softly and, one after another, catch the light
     for i, k in enumerate(have):
         nx, ny = node(r, k)

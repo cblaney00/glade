@@ -619,6 +619,7 @@ class Glade:
         if self.bottom:  # (nothing to restore: the desktop is always home, with nothing open)
             self.lower()
         storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
+        resume.restore(self)  # after an update: wandering again where he was (minimap and all)
 
     def wander(self, t):
         """Wander: the desktop becomes the whole game, fading in where it is."""
@@ -869,7 +870,14 @@ class Glade:
             self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
             return
         if m and badges.rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            return  # the badge case only shows; a click on it goes nowhere else
+            if badges.lid(view).collidepoint(m):
+                badges.toggle(t)  # the badge case drops down, or shuts
+                return
+            place = badges.at(view, m)
+            if place is not None:  # a gem or an empty slot: go there, like the minimap
+                self.wander(t)
+                self.go(place)
+            return
         if m and world.rect(view).collidepoint(m) and self.board is None and self.dex is None:
             if self.desktop:
                 self.wander(t)
