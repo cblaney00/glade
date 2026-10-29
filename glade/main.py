@@ -29,6 +29,7 @@ from tower import Run, TowerBoard
 import vision
 import world
 import hiding
+import badges
 import loading
 import resume
 from evolve import EVOLVES, Evolution
@@ -867,6 +868,8 @@ class Glade:
             self.wander(t)
             self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
             return
+        if m and badges.rect(view).collidepoint(m) and self.board is None and self.dex is None:
+            return  # the badge case only shows; a click on it goes nowhere else
         if m and world.rect(view).collidepoint(m) and self.board is None and self.dex is None:
             if self.desktop:
                 self.wander(t)
@@ -1276,6 +1279,7 @@ class Glade:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
                 vision.draw_dex_button(view.canvas, view, self.signs.font)
                 hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
+                badges.draw(view.canvas, view, self.signs.font, t)
                 world.draw_button(view.canvas, view, self.signs.font, not self.desktop)
                 if not self.desktop:
                     world.draw_loading(view.canvas, view, self.signs.font, *self.loading(), self.loaded_at, t)

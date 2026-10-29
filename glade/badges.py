@@ -1,0 +1,213 @@
+"""The badge case (his ask, 2026-10-29): right under "Your party", the gym badges he has won,
+laid out like the minimap (scenes.MAP) with a slot at every place that has a gym.
+
+His look: a pouch for precious stones, but modern, like a glasses case. So: a smooth pastel
+hard shell with a glossy band and a gold clasp on its lid, opened onto deep violet velvet with
+gold stitching round it; the paths between places are pressed into the velvet, every gym is
+a little socket there, and a won badge sits in its socket as a cut gem in its leader's colour,
+glowing softly and now and then glinting. Pointing at a slot names its gym.
+"""
+
+import json
+import math
+import os
+
+import pygame
+
+import art
+from battle import EDGE, TEXT, DIM, mix
+from gyms import GYMS, TITLES
+from scenes import LINKS, MAP
+from team import STATE
+
+SHELL = (172, 150, 214)      # the hard shell: a pastel lilac
+SHELL_HI = (226, 214, 250)
+SHELL_LO = (104, 84, 146)
+VELVET = (46, 26, 70)
+VELVET_LO = (28, 14, 46)
+VELVET_HI = (70, 44, 100)
+GOLD = (255, 214, 120)
+GOLD_LO = (176, 128, 60)
+
+CELL = 15   # velvet pixels between neighbouring places
+LID = 18    # the lid strip at the top, where "Badges" is written
+
+
+def rect(view):
+    """Right under the Your party board (hiding.party_rect), the same width."""
+    return pygame.Rect(8, 112, 150, 154)
+
+
+# --- which badges are won: read from the save, only when it changes -------------------------
+
+_seen = [None, ()]
+
+
+def won():
+    try:
+        stamp = os.stat(STATE).st_mtime
+    except OSError:
+        return ()
+    if stamp != _seen[0]:
+        try:
+            with open(STATE) as f:
+                _seen[1] = tuple(b for b in json.load(f).get("badges", []) if b in GYMS)
+        except (OSError, ValueError):
+            _seen[1] = ()
+        _seen[0] = stamp
+    return _seen[1]
+
+
+# --- layout -----------------------------------------------------------------------------------
+
+_xs = [x for x, _ in MAP.values()]
+_ys = [y for _, y in MAP.values()]
+X0, Y0 = min(_xs), min(_ys)
+COLS, ROWS = max(_xs) - X0 + 1, max(_ys) - Y0 + 1
+
+
+def tray(r):
+    """The velvet inside the case, in case coordinates."""
+    return pygame.Rect(7, LID + 5, r.w - 14, ROWS * CELL + 8)
+
+
+def node(r, key):
+    t = tray(r)
+    gx, gy = MAP[key]
+    left = t.x + (t.w - COLS * CELL) // 2
+    return left + (gx - X0) * CELL + CELL // 2, t.y + 4 + (gy - Y0) * CELL + CELL // 2
+
+
+def at(view, m):
+    """The gym slot under the pointer, or None."""
+    r = rect(view)
+    if m is None or not r.collidepoint(m):
+        return None
+    for key in GYMS:
+        nx, ny = node(r, key)
+        if abs(m[0] - r.x - nx) <= 7 and abs(m[1] - r.y - ny) <= 7:
+            return key
+    return None
+
+
+# --- drawing ----------------------------------------------------------------------------------
+
+def gem(s, x, y, c):
+    """A small cut gem: a bright crown over a pointed pavilion, with a lit facet."""
+    crown = [(x - 5, y - 1), (x - 3, y - 4), (x + 3, y - 4), (x + 5, y - 1)]
+    pygame.draw.polygon(s, mix(c, EDGE, 0.25), [(x - 5, y - 1), (x + 5, y - 1), (x, y + 5)])
+    pygame.draw.polygon(s, c, [(x - 5, y - 1), (x, y - 1), (x, y + 5)])           # the lit side
+    pygame.draw.polygon(s, mix(c, (255, 255, 255), 0.4), crown)
+    pygame.draw.line(s, mix(c, (255, 255, 255), 0.75), (x - 2, y - 4), (x + 2, y - 4))  # the table
+    pygame.draw.line(s, mix(c, EDGE, 0.45), (x - 5, y - 1), (x + 5, y - 1))       # the girdle
+    s.set_at((x - 2, y - 3), (255, 255, 255))
+    s.set_at((x - 1, y + 1), mix(c, (255, 255, 255), 0.6))
+
+
+def socket(s, x, y, c):
+    """An empty slot pressed into the velvet, with a faint ring of its gym's colour."""
+    pygame.draw.circle(s, VELVET_LO, (x, y), 6)
+    pygame.draw.circle(s, mix(c, VELVET, 0.5), (x, y), 6, 1)
+    pygame.draw.arc(s, VELVET_HI, (x - 6, y - 5, 12, 12), math.pi * 1.15, math.pi * 1.85, 1)  # lit lower lip
+
+
+_cache = {}
+
+
+def case(r, have, pointed, font):
+    key = (r.size, have, pointed)
+    if key in _cache:
+        return _cache[key]
+    if len(_cache) > 40:
+        _cache.clear()
+    s = pygame.Surface(r.size, pygame.SRCALPHA)
+    box = s.get_rect()
+    # the hard shell, rounded like a glasses case, with a glossy band across the lid
+    pygame.draw.rect(s, EDGE, box, border_radius=12)
+    pygame.draw.rect(s, SHELL_LO, box.inflate(-2, -2), border_radius=11)
+    pygame.draw.rect(s, SHELL, box.inflate(-2, -4).move(0, -1), border_radius=11)
+    pygame.draw.line(s, SHELL_HI, (12, 2), (r.w - 13, 2))
+    pygame.draw.line(s, mix(SHELL, SHELL_HI, 0.5), (8, 4), (r.w - 9, 4))
+    pygame.draw.line(s, SHELL_LO, (6, LID + 1), (r.w - 7, LID + 1))   # where the lid opens
+    pygame.draw.line(s, SHELL_HI, (6, LID + 2), (r.w - 7, LID + 2))
+    # the gold clasp at the middle of the lid's edge
+    cx = r.w // 2
+    pygame.draw.rect(s, GOLD_LO, (cx - 7, LID - 3, 14, 7), border_radius=2)
+    pygame.draw.rect(s, GOLD, (cx - 6, LID - 3, 12, 5), border_radius=2)
+    s.set_at((cx - 4, LID - 2), (255, 250, 220))
+    # "Badges" on the lid, either side of the clasp
+    for words, x, right in (("Badges", 12, False), (f"{len(have)}/{len(GYMS)}", r.w - 12, True)):
+        img = font.render(words, False, (255, 255, 255))
+        shade = font.render(words, False, SHELL_LO)
+        y = 3 + (LID - 3 - img.get_height()) // 2
+        x = x - img.get_width() if right else x
+        s.blit(shade, (x + 1, y + 1))
+        s.blit(img, (x, y))
+    # the velvet, softly napped, with gold stitching round its edge
+    t = tray(r)
+    pygame.draw.rect(s, VELVET_LO, t.inflate(2, 2), border_radius=6)
+    pygame.draw.rect(s, VELVET, t, border_radius=5)
+    for y in range(t.y + 2, t.bottom - 2, 2):
+        for x in range(t.x + 2 + (y // 2) % 3, t.right - 2, 5):
+            s.set_at((x, y), mix(VELVET, VELVET_HI, 0.35))
+    stitch = t.inflate(-6, -6)
+    for x in range(stitch.x + 3, stitch.right - 3, 4):
+        for y in (stitch.y, stitch.bottom - 1):
+            s.set_at((x, y), GOLD_LO)
+            s.set_at((x + 1, y), GOLD_LO)
+    for y in range(stitch.y + 3, stitch.bottom - 3, 4):
+        for x in (stitch.x, stitch.right - 1):
+            s.set_at((x, y), GOLD_LO)
+            s.set_at((x, y + 1), GOLD_LO)
+    # the paths pressed into the velvet, and a little dimple at every place
+    for a, b in LINKS:
+        (ax, ay), (bx, by) = node(r, a), node(r, b)
+        pygame.draw.line(s, VELVET_HI, (ax, ay + 1), (bx, by + 1), 2)
+        pygame.draw.line(s, VELVET_LO, (ax, ay), (bx, by), 2)
+    for k in MAP:
+        if k not in GYMS:
+            nx, ny = node(r, k)
+            pygame.draw.rect(s, VELVET_LO, (nx - 1, ny - 1, 3, 3))
+            s.set_at((nx, ny + 1), VELVET_HI)
+    for k, (_, _, _, c) in GYMS.items():
+        nx, ny = node(r, k)
+        socket(s, nx, ny, c)
+        if k in have:
+            gem(s, nx, ny, c)
+        if k == pointed:
+            pygame.draw.circle(s, (255, 255, 255), (nx, ny), 8, 1)
+    # under the velvet: the gym pointed at, or a hint
+    if pointed:
+        words = TITLES[pointed] + ("" if pointed in have else " (not yet)")
+        color = (255, 255, 255) if pointed in have else TEXT
+    else:
+        words, color = ("Every badge won!" if len(have) == len(GYMS) else "A gem for every gym"), DIM
+    img = font.render(words, False, color)
+    s.blit(img, ((r.w - img.get_width()) // 2, t.bottom + (r.h - t.bottom - img.get_height()) // 2 - 1))
+    _cache[key] = s
+    return s
+
+
+def draw(s, view, font, t):
+    r = rect(view)
+    have = won()
+    pointed = at(view, view.mouse())
+    s.blit(case(r, have, pointed, font), r)
+    # the won gems glow softly and, one after another, catch the light
+    for i, k in enumerate(have):
+        nx, ny = node(r, k)
+        x, y = r.x + nx, r.y + ny
+        c = GYMS[k][3]
+        k_ = 0.5 + 0.5 * math.sin(t * 1.4 + i * 1.3)
+        art.glow(s, x, y, 9, c, int(30 + 40 * k_) // 10 * 10)
+        glint = (t * 0.6 + i * 0.37) % 3.0
+        if glint < 0.25:  # a little four-point star flashes on the crown
+            a = 1 - abs(glint - 0.125) / 0.125
+            star = mix(c, (255, 255, 255), 0.5 + 0.5 * a)
+            sx, sy = x + 2, y - 4
+            s.set_at((sx, sy), (255, 255, 255))
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                s.set_at((sx + dx, sy + dy), star)
+            if a > 0.5:
+                for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2)):
+                    s.set_at((sx + dx, sy + dy), star)

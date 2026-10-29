@@ -348,4 +348,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (a banner stone `Spot` kind "gym", placed by `gyms.place` from `Scene.done`; `GymBoard` → `GymRun`). Gym
   difficulty is by how many you have beaten, any order (his rule: Emerald's casual Elite 4 level ~55 spread over all
   30 places): `level_for(n)` = Lv 7 → 55, team 3, 4, 5 then 6. Badges in `Collection.badges`; rematches allowed.
+  **Part two** (2026-10-29, his ask: 8 more, 11 in all; places and types Claude's pick): Hot Springs (Fire),
+  Snowy Ridge (Ice), Storm Peaks (Electric), Sunken Temple (Ghost), Floating Isles (Psychic), Thornwood (Dark),
+  Fern Gully (Bug), Crystal Caverns (Steel). **Badge case** (`glade/badges.py`, his design): right under Your party,
+  the minimap's layout pressed into velvet with a socket per gym; a won badge is a cut gem in its leader's colour.
+  Looks like a pouch for precious stones but modern, like a glasses case (pastel lilac hard shell, gold clasp, gold
+  stitching). Pointing at a slot names the gym. The Wander board moved down under it (`world.rect`).
   Next: gyms for the other places, then the Elite 4 and champion.

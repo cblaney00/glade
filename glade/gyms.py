@@ -12,7 +12,8 @@ rest (a stronger kind of the same stage, two levels up, good IVs), but not out o
 Beaten gyms are kept as badges (`Collection.badges`, in the order won). A beaten leader can
 be fought again at the level they were won at, for practice.
 
-Part one has three gyms (the Forest, the River, the Mossy Rocks). The Elite 4 come once
+Part one has three gyms (the Forest, the River, the Mossy Rocks); part two adds eight more
+(eleven in all). Badges won are shown in the badge case (badges.py). The Elite 4 come once
 every gym is beaten (not made yet).
 """
 
@@ -35,8 +36,20 @@ GYMS = {
     "forest": ("Leader Bramwen", ("Grass",), (690, 404), (150, 230, 120)),
     "river": ("Leader Marisel", ("Water",), (560, 500), (120, 200, 255)),
     "rocks": ("Leader Cragga", ("Rock", "Ground"), (320, 420), (220, 190, 140)),
+    # part two (2026-10-29, his ask: eight more), one type each that the place is rich in
+    "springs": ("Leader Cinderra", ("Fire",), (560, 468), (255, 140, 90)),
+    "ridge": ("Leader Frostine", ("Ice",), (720, 462), (190, 235, 255)),
+    "storm": ("Leader Voltan", ("Electric",), (600, 490), (250, 236, 100)),
+    "temple": ("Leader Wraithe", ("Ghost",), (680, 500), (170, 140, 235)),
+    "isles": ("Leader Seraphy", ("Psychic",), (300, 498), (255, 150, 210)),
+    "thorn": ("Leader Nocta", ("Dark",), (560, 500), (150, 100, 170)),
+    "gully": ("Leader Fernwick", ("Bug",), (620, 500), (180, 225, 90)),
+    "caverns": ("Leader Argenta", ("Steel",), (260, 488), (205, 215, 230)),
 }
-TITLES = dict(forest="Forest Gym", river="River Gym", rocks="Mossy Rocks Gym")
+TITLES = dict(forest="Forest Gym", river="River Gym", rocks="Mossy Rocks Gym", springs="Hot Springs Gym",
+              ridge="Snowy Ridge Gym", storm="Storm Peaks Gym", temple="Sunken Temple Gym",
+              isles="Floating Isles Gym", thorn="Thornwood Gym", gully="Fern Gully Gym",
+              caverns="Crystal Caverns Gym")
 
 
 def level_for(n):
