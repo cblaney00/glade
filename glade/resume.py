@@ -49,7 +49,8 @@ class Updater:
 
 
 def save(glade):
-    d = dict(when=time.time(), place=glade.here.key, history=list(glade.history[-20:]))
+    d = dict(when=time.time(), place=glade.here.key, history=list(glade.history[-20:]),
+             wander=not glade.desktop)
     if glade.dex is not None:
         d["dex"] = dict(page=glade.dex.page, pick=glade.dex.pick, tab=glade.dex.tab)
     if type(glade.board).__name__ == "Storage":
@@ -72,6 +73,8 @@ def restore(glade):
     from storage import Storage
     t = time.monotonic() - glade.t0
     try:
+        if d.get("wander"):  # he was wandering: the new glade is the game again, where he was
+            glade.wander(t)
         if d.get("place") and d["place"] != glade.here.key and not glade.desktop:  # (the desktop is home only)
             glade.here = glade.scene(d["place"])
         glade.history = list(d.get("history", []))
