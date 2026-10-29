@@ -35,6 +35,7 @@ STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")
 WHITE = (255, 255, 255)
 MINT = (110, 255, 180)
+CHOSEN = (255, 205, 80)  # the gold frame round the looked-up slot
 
 
 # --- pictures --------------------------------------------------------------------------
@@ -364,6 +365,7 @@ class Dex:
         cols, rows = 8, 6
         cw, ch = area.w // cols, (area.h - 26) // rows
         first = self.page * PER_PAGE + 1
+        chosen = None
         for i in range(PER_PAGE):
             num = first + i
             if num > TOTAL:
@@ -391,6 +393,13 @@ class Dex:
             else:
                 self.text(s, "?", cell.centerx, cell.centery - 4, DIM, center=True)
             self.buttons.append((cell, self.choose(num)))
+            if on:
+                chosen = cell
+        if chosen:  # the one looked up: a pulsing gold frame, drawn last so nothing covers it (his ask)
+            pulse = (math.sin(pygame.time.get_ticks() / 180) + 1) / 2
+            glow(s, chosen.centerx, chosen.centery, 44, CHOSEN, int(70 + 70 * pulse))
+            pygame.draw.rect(s, CHOSEN, chosen.inflate(8, 8), 3, border_radius=6)
+            pygame.draw.rect(s, mix(CHOSEN, WHITE, pulse), chosen.inflate(2, 2), 2, border_radius=4)
         pages = (TOTAL + PER_PAGE - 1) // PER_PAGE
         y = area.bottom - 20
         if self.page > 0:
