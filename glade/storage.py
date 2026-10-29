@@ -168,7 +168,7 @@ class Storage:
         s.blit(pic, (r.x + 6, r.y + 6))
         # beside the picture: who it is
         x0, y = r.x + 156, r.y + 10
-        self.text(s, f"#{sp['num']:03d}  Lv100", x0, y, DIM)
+        self.text(s, f"#{sp['num']:03d}  Lv{kept.level}", x0, y, DIM)
         self.text(s, fit(self.font, kept.species, r.right - 8 - x0), x0, y + 13, WHITE)
         x = x0
         for kind in sp["types"]:
@@ -182,9 +182,9 @@ class Storage:
         what = f"+{SHORT[up]} -{SHORT[down]}" if up else "no effect"
         self.text(s, what, x0, y + 61, DIM)
         self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 74, DIM)
-        self.text(s, f"Tower wins: {kept.wins}", x0, y + 87, DIM)
+        self.text(s, fit(self.font, exp_line(kept), r.right - 8 - x0), x0, y + 87, DIM)
         # the stats table: base, IV, EV and the stat itself (raised: mint, lowered: pink)
-        maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature)
+        maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature, kept.level)
         values = [maxhp] + [stats[k] for k in ("atk", "def", "spa", "spd", "spe")]
         keys = [None, "atk", "def", "spa", "spd", "spe"]
         y = r.y + 118
@@ -218,6 +218,15 @@ class Storage:
             self.text(s, info, r.right - 10, y + i * 14, DIM, right=True)
         # and the IV web
         iv_web(s, self.font, kept.ivs, (r.centerx, y + 56 + 60), 38, t)
+
+
+def exp_line(kept):
+    """How far it is from its next level."""
+    import levels
+    if kept.level >= levels.MAX:
+        return "Max level"
+    need = levels.exp_for(levels.growth(kept.species), kept.level + 1) - kept.exp
+    return f"{need} Exp to Lv{kept.level + 1}"
 
 
 SHORT = dict(atk="Atk", spa="SpA", spd="SpD", spe="Spe", **{"def": "Def"})

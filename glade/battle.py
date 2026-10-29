@@ -5,7 +5,7 @@ for two animals: click one (it is yours), then another (its opponent). They are 
 random moves that suit them and fight it out in a battle box in that corner. You click
 your moves; the opponent chooses its own.
 
-All the numbers follow Gen 3 (Ruby/Sapphire/Emerald): level 100, perfect IVs, 84 EVs
+All the numbers follow Gen 3 (Ruby/Sapphire/Emerald): levels (levels.py), perfect IVs, 84 EVs
 in every stat, neutral natures, Leftovers. The stat and damage formulas, the critical
 hit chances, accuracy stages, the type chart, whether a move is physical or special (by
 its type, as in Gen 3), sleep/freeze/paralysis/poison/confusion, Protect, multi-hit,
@@ -727,22 +727,22 @@ CRIT = (1 / 16, 1 / 8, 1 / 4, 1 / 3, 1 / 2)
 # Gen 3 accuracy/evasion stages, -6..+6
 ACC = ((33, 100), (36, 100), (43, 100), (50, 100), (60, 100), (75, 100), (1, 1),
        (133, 100), (166, 100), (2, 1), (233, 100), (133, 50), (3, 1))
-LEVEL = 100
+LEVEL = 100  # only for a creature given no level of its own (levels.py has the rest)
 
 
 STARTER_ABILITY = {"Overgrow": "Grass", "Blaze": "Fire", "Torrent": "Water"}
 
 
-def calc_stats(species, ivs, evs, nature):
-    """Gen 3 stats at level 100: HP = (2*Base + IV + EV/4) * L/100 + L + 10; the others
+def calc_stats(species, ivs, evs, nature, level=LEVEL):
+    """Gen 3 stats at that level: HP = (2*Base + IV + EV/4) * L/100 + L + 10; the others
     (2*Base + IV + EV/4) * L/100 + 5, then x1.1 or x0.9 for the nature. Returns (hp, {stat: v})."""
     from team import nature_effect
     hp, *rest = SPECIES[species]["base"]
     up, down = nature_effect(nature)
-    maxhp = (2 * hp + ivs[0] + evs[0] // 4) * LEVEL // 100 + LEVEL + 10
+    maxhp = (2 * hp + ivs[0] + evs[0] // 4) * level // 100 + level + 10
     stats = {}
     for k, b, iv, ev in zip(STATS, rest, ivs[1:], evs[1:]):
-        v = (2 * b + iv + ev // 4) * LEVEL // 100 + 5
+        v = (2 * b + iv + ev // 4) * level // 100 + 5
         stats[k] = v * 11 // 10 if k == up else v * 9 // 10 if k == down else v
     return maxhp, stats
 
@@ -772,9 +772,13 @@ def moveset(species, rng):
 
 
 class Mon:
-    def __init__(self, species, rng, foe=False, ivs=None, moves=None, label=None, nature=None, evs=None):
+    def __init__(self, species, rng, foe=False, ivs=None, moves=None, label=None, nature=None, evs=None,
+                 level=None, exp=None, uid=None):
         """`ivs`: its own IVs (team.py), all 31 if not given; `moves`: its four, or random ones;
-        `nature`: its nature (neutral if not given); `evs`: its effort values (84 each)."""
+        `nature`: its nature (neutral if not given); `evs`: its effort values (84 each);
+        `level`: its level (a wild one's for its stage if not given, levels.py); `exp`: its
+        experience; `uid`: which of your kept creatures it is (only those gain experience)."""
+        import levels
         from team import EVS
         sp = SPECIES[species]
         self.species, self.types, self.ability = species, sp["types"], sp["ability"]
@@ -782,7 +786,11 @@ class Mon:
         self.ivs = tuple(ivs) if ivs else (31,) * 6
         self.nature = nature or "Hardy"
         self.evs = tuple(evs or EVS)
-        self.maxhp, self.stats = calc_stats(species, self.ivs, self.evs, self.nature)
+        self.level = level or levels.wild_level(species)
+        self.growth = levels.growth(species)
+        self.exp = max(exp or 0, levels.exp_for(self.growth, self.level))
+        self.uid = uid
+        self.maxhp, self.stats = calc_stats(species, self.ivs, self.evs, self.nature, self.level)
         self.hp = self.maxhp
         picked = [m for m in (moves or []) if m in MOVES] or moveset(species, rng)
         self.moves = [[m, MOVES[m]["pp"]] for m in picked]
@@ -807,9 +815,10 @@ def as_mon(x, rng, foe):
     if isinstance(x, str):
         return Mon(x, rng, foe)
     if isinstance(x, tuple):
-        species, ivs, moves, nature = (list(x) + [None, None, None])[:4]
-        return Mon(species, rng, foe, ivs, moves, nature=nature or rng.choice(NATURE_LIST()))
-    return Mon(x.species, rng, foe, x.ivs, x.moves, nature=x.nature, evs=x.evs)
+        species, ivs, moves, nature, level = (list(x) + [None] * 4)[:5]
+        return Mon(species, rng, foe, ivs, moves, nature=nature or rng.choice(NATURE_LIST()), level=level)
+    return Mon(x.species, rng, foe, x.ivs, x.moves, nature=x.nature, evs=x.evs, level=x.level, exp=x.exp,
+               uid=x.uid)
 
 
 def _known(x):
@@ -845,6 +854,8 @@ class Battle:
         self.teams = [[as_mon(x, self.rng, False) for x in mine][:6], [as_mon(x, self.rng, True) for x in theirs][:6]]
         self.active = [0, 0]
         self.fought = {0}  # which of yours have been out in this battle
+        self.faced = {0: {0}}  # each of theirs -> which of yours have been out against it (they share its experience)
+        self.leveled = set()   # which of yours grew a level in this battle (they may evolve after it)
         self.wild = wild
         self.need = None
         self.caught = None
@@ -938,6 +949,7 @@ class Battle:
         self.active[side] = i
         if side == 0:
             self.fought.add(i)
+        self.faced.setdefault(self.active[1], set()).add(self.active[0])
         new = self.mons[side]
         if side == 0:
             self.say(f"Come back, {old.name}! Go, {new.name}!" if old.hp > 0 else f"Go, {new.name}!")
@@ -996,7 +1008,7 @@ class Battle:
                 if rng.random() < 0.5:
                     # 40 power, typeless, its own Attack against its own Defense, no crit or roll
                     a, d = staged(u.stats["atk"], u.boosts["atk"]), staged(u.stats["def"], u.boosts["def"])
-                    dmg = min(u.hp, (a * 40 * (2 * LEVEL // 5 + 2) // d) // 50 + 2)
+                    dmg = min(u.hp, (a * 40 * (2 * u.level // 5 + 2) // d) // 50 + 2)
                     u.hp -= dmg
                     self.say("It hurt itself in its confusion!", hit=self.side(u))
                     self.check_faint(u)
@@ -1050,7 +1062,7 @@ class Battle:
             a //= 2
         if u.hp * 3 <= u.maxhp and STARTER_ABILITY.get(u.ability) == t:  # Overgrow, Blaze, Torrent
             a = a * 15 // 10
-        dmg = (a * m["p"] * (2 * LEVEL // 5 + 2) // d) // 50
+        dmg = (a * m["p"] * (2 * u.level // 5 + 2) // d) // 50
         if phys and u.status == "brn" and u.ability != "Guts":
             dmg //= 2
         dmg += 2
@@ -1078,7 +1090,7 @@ class Battle:
                 self.say(f"{f.name}'s Water Absorb made it useless!")
             return
         if m.get("fixed"):  # Night Shade: as much damage as the user's level
-            dmg = min(f.hp, LEVEL)
+            dmg = min(f.hp, u.level)
             f.hp -= dmg
             self.say("", hit=self.side(f))
             self.check_faint(f)
@@ -1239,6 +1251,29 @@ class Battle:
             mon.hp = 0
             mon.down = True
             self.say(f"{mon.name} fainted!", by=-1 - self.side(mon))
+            if self.side(mon) == 1:
+                self.share_exp(mon)
+
+    def share_exp(self, foe):
+        """Gen 3: each of yours that was out against it and is still standing gets a share of
+        its experience (x1.5 from a trainer), and may grow a level or more (levels.py)."""
+        import levels
+        mine = [self.teams[0][i] for i in sorted(self.faced.get(self.active[1], ())) if self.teams[0][i].hp > 0]
+        if not mine:
+            return
+        exp = levels.gained(foe.species, foe.level, len(mine), trainer=not self.wild)
+        for i, m in enumerate(self.teams[0]):
+            if m not in mine or m.uid is None or m.level >= levels.MAX:
+                continue
+            m.exp += exp
+            self.say(f"{m.name} gained {exp} Exp. Points!")
+            while m.level < levels.MAX and m.exp >= levels.exp_for(m.growth, m.level + 1):
+                m.level += 1
+                old = m.maxhp
+                m.maxhp, m.stats = calc_stats(m.species, m.ivs, m.evs, m.nature, m.level)
+                m.hp += m.maxhp - old
+                self.leveled.add(i)
+                self.say(f"{m.name} grew to Lv. {m.level}!")
 
     def end_of_turn(self, order):
         for s in order:
@@ -1289,7 +1324,7 @@ class Battle:
                 if e == 0 or (m["t"] == "Ground" and them.ability == "Levitate"):
                     score = 0
                 else:
-                    dmg = LEVEL if m.get("fixed") else self.damage(me, them, m, roll=92) * (3 if m.get("multi") else 1)
+                    dmg = me.level if m.get("fixed") else self.damage(me, them, m, roll=92) * (3 if m.get("multi") else 1)
                     score = 1000 * acc if dmg >= them.hp else 100 * min(1.0, dmg / them.hp) * acc
             else:
                 st = m.get("st")
@@ -1815,10 +1850,12 @@ class Arena:
         self.menu = None
         self.battle.turn(action)
         b = self.battle
+        self.keep_exp()
         if b.caught is not None and self.caught is None and self.foe:
             from team import Collection, Kept
             box = Collection()
-            where = box.add(Kept(b.caught.species, b.caught.ivs, [m for m, _ in b.caught.moves], b.caught.nature))
+            where = box.add(Kept(b.caught.species, b.caught.ivs, [m for m, _ in b.caught.moves], b.caught.nature,
+                                 level=b.caught.level))
             if where is not None:
                 box.save()
                 self.caught = self.foe[0].obj
@@ -1826,6 +1863,39 @@ class Arena:
             else:
                 b.say("But your boxes are all full! It was let go.")
         self.feed(t)
+
+    def keep_exp(self):
+        """Your creatures' new experience and levels, saved straight away (kept even if the
+        battle is lost, as in Pokémon) and given to the team this arena holds."""
+        from team import Collection
+        grown = [m for m in self.battle.teams[0] if m.uid is not None]
+        mine = {k.uid: k for k in self.mine if getattr(k, "uid", None)}
+        changed = [m for m in grown if (m.level, m.exp) != (getattr(mine.get(m.uid), "level", None), getattr(mine.get(m.uid), "exp", None))]
+        if not changed:
+            return
+        box = Collection()
+        for m in changed:
+            for k in (box.find(m.uid), mine.get(m.uid)):
+                if k is not None:
+                    k.level, k.exp = m.level, m.exp
+        box.save()
+
+    def ready(self):
+        """Once a battle is over: those of yours who grew a level in it and are now ready to
+        evolve (team.Kept, the arena's own), once each."""
+        import levels
+        b = self.battle
+        if b is None or b.winner is None or self.queue:
+            return []
+        mine = {k.uid: k for k in self.mine if getattr(k, "uid", None)}
+        out = []
+        for i in sorted(b.leveled):
+            m = b.teams[0][i]
+            k = mine.get(m.uid)
+            if k is not None and levels.ready_to_evolve(k.species, k.level):
+                out.append(k)
+        b.leveled = set()
+        return out
 
     def use(self, i, t):
         self.act(i, t)
@@ -1930,7 +2000,7 @@ class Arena:
         hp = max(0, round(self.hp[side]))
         label = f"{hp}/{mon.maxhp}" if side == 0 else f"{math.ceil(100 * hp / mon.maxhp)}%"
         lw = self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
-        self.text(s, self.fit(f"{mon.name}  Lv100", w - 24 - lw), x + 6, y + 3, (255, 255, 255))
+        self.text(s, self.fit(f"{mon.name}  Lv{mon.level}", w - 24 - lw), x + 6, y + 3, (255, 255, 255))
         self.bar(s, x + 6, y + 17, w - 12, self.hp[side], mon.maxhp)
         nx = x
         for k in mon.types:  # line two: its types and any status, and the team's orbs
@@ -2257,7 +2327,9 @@ class Card:
         surf = pygame.Surface(self.rect.size, pygame.SRCALPHA)
         cloth(surf, surf.get_rect(), CLOTH, alpha=240)
         y = 5
-        self.text(surf, self.fit(self.species, self.W - 16), 8, y, (255, 255, 255))
+        import levels
+        lw = self.text(surf, f"Lv{levels.wild_level(self.species)}", self.W - 8, y, TEXT, right=True)
+        self.text(surf, self.fit(self.species, self.W - 22 - lw), 8, y, (255, 255, 255))
         y += 16
         x = 8
         for kind in sp["types"]:

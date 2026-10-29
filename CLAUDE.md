@@ -325,3 +325,14 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (the 20), stories in `glade/lore8.py`. #295-#444; legendaries moved to #449/#450 with DEX_SIZE. Types now 13-23
   lines each (Dragon 13 is the least, Water 23 the most). Next new line: #445 (only #445-#448 left before the
   legendaries; grow DEX_SIZE for more).
+- **Levels and experience** (`glade/levels.py`, 2026-10-28, his ask: a reason to level your party, Emerald's
+  exp math). Wild: first stages Lv5, middle Lv16, finals Lv32 (legendaries Lv50, Claude's pick). Stats use the
+  creature's level (`calc_stats(..., level)`), as do damage and Night Shade. A fainted foe's exp (base exp x
+  level / 7, shared by yours that faced it and still stand, x1.5 from a trainer; none for catching) goes to
+  kept creatures only (`Mon.uid`); `Battle.share_exp`, saved each turn by `Arena.keep_exp`. Growth rates are
+  Emerald's six, one per line from its first stage's name (starters Medium Slow, legendaries Slow); base exp
+  is about 20/34/40% of the base total by stage. **Evolving is by level now (his pick): 16 and 32**, after the
+  battle it was reached in (`Arena.ready` → `EvolveBoard`; Tower between battles, wild battles via main.py);
+  Tower wins are still counted but no longer evolve anything. **Tower trainers' creatures are the same level as
+  the one of yours each is paired with (his pick)**; their kind is still matched by base total. Old saves get the
+  level a wild one of their stage would have.

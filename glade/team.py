@@ -83,16 +83,27 @@ BOXES, PER_BOX = 8, 30
 class Kept:
     """One caught creature."""
 
-    def __init__(self, species, ivs, moves, nature=None, evs=None, uid=None, wins=0):
+    def __init__(self, species, ivs, moves, nature=None, evs=None, uid=None, wins=0, level=None, exp=None):
+        import levels
         self.species, self.ivs, self.moves = species, tuple(ivs), list(moves)
         self.nature = nature or random.choice(NATURES)
         self.evs = tuple(evs or EVS)
         self.uid = uid or "%08x" % random.getrandbits(32)  # which one it is, wherever it is kept
-        self.wins = wins  # Battle Tower battles it fought in and won: at 3, then 6 more, it can evolve
+        self.wins = wins  # Battle Tower battles it fought in and won (it used to evolve by these)
+        # its level and experience (levels.py); one kept before levels existed starts where a
+        # wild one of its stage would
+        known = species in _species()
+        self.level = level or (levels.wild_level(species) if known else 5)
+        self.exp = max(exp or 0, levels.exp_for(levels.growth(species), self.level) if known else 0)
 
     def as_dict(self):
         return dict(species=self.species, ivs=list(self.ivs), moves=self.moves, nature=self.nature,
-                    evs=list(self.evs), uid=self.uid, wins=self.wins)
+                    evs=list(self.evs), uid=self.uid, wins=self.wins, level=self.level, exp=self.exp)
+
+
+def _species():
+    from battle import SPECIES
+    return SPECIES
 
 
 # His naming rule (2026-10-27): one word, no real animal in it (only an attached "fly"). Old
@@ -127,7 +138,7 @@ RENAMED = {
 def _kept(d):
     try:
         return Kept(RENAMED.get(d["species"], d["species"]), d["ivs"], d["moves"], d.get("nature"), d.get("evs"), d.get("uid"),
-                    d.get("wins", 0)) if d else None
+                    d.get("wins", 0), d.get("level"), d.get("exp")) if d else None
     except (KeyError, TypeError):
         return None
 
@@ -149,8 +160,8 @@ class Collection:
         self.best = data.get("tower_best", 0)
         self.tried = data.get("tower_tried", False)  # a run at the Battle Tower: then you may catch
         saved = [d for d in data.get("party", []) if d] + [d for row in data.get("boxes", []) for d in row if d]
-        if any(not d.get("nature") or not d.get("uid") for d in saved):
-            self.save()  # creatures kept before natures (or ids) existed: theirs are chosen now, for good
+        if any(not d.get("nature") or not d.get("uid") or not d.get("level") for d in saved):
+            self.save()  # creatures kept before natures (or ids, or levels) existed: theirs are chosen now, for good
 
     def find(self, uid):
         for k in self.everyone():

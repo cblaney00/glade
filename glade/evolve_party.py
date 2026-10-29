@@ -1,10 +1,10 @@
-"""Your own creatures evolving, after Battle Tower wins.
+"""Your own creatures evolving, after a battle in which they grew a level.
 
-A creature that has fought in 3 won Tower battles can evolve into its middle form, and after
-6 more into its final form (tower.Run.count_wins). When it is ready, this board opens over the
-tower: "What? Pippalotl is evolving!", its picture glowing and flickering between its old and
+A creature evolves into its middle form at level 16 and its final form at 32 (levels.py,
+like Pokémon). After the battle in which it gets there (the Tower's, or a wild one), this
+board opens: "What? Pippalotl is evolving!", its picture glowing and flickering between its old and
 new forms, faster and faster, then a flash and "Congratulations!". Like in Pokémon you may
-press Stop while it flickers; it stays as it is and will try again after its next win.
+press Stop while it flickers; it stays as it is and will try again the next time it grows a level.
 """
 
 import random
@@ -143,5 +143,5 @@ class EvolveBoard:
             img = pygame.transform.scale(self.pics[0], big)
             s.blit(img, img.get_rect(center=(cx, cy)))
             self.text(s, f"Huh? {self.old} stopped evolving!", cx, r.y + 18, WHITE)
-            self.text(s, "It will want to try again after its next win.", cx, r.y + 36, DIM)
+            self.text(s, "It will try again when it next grows a level.", cx, r.y + 36, DIM)
         self.button(s, pygame.Rect(cx - 50, r.bottom - 44, 100, 26), "Next" if self.queue else "OK", self.next, m)

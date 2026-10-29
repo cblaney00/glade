@@ -1194,6 +1194,11 @@ class Glade:
                 self.evolution = None
             else:
                 self.evolution.update(t)
+        if self.arena is not None and self.arena.mode != "tower" and self.board is None:
+            ready = self.arena.ready()  # a wild battle over: anyone who reached level 16 or 32 evolves
+            if ready:
+                from evolve_party import EvolveBoard
+                self.board = EvolveBoard(self.signs.font, ready, t)
         if self.arena is not None:
             if self.arena.done:
                 self.arena.finish()  # closed: everyone is home

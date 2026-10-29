@@ -31,7 +31,8 @@ def trainer(streak, rng, mine=TEAM):
     it stands for: a different kind with a base-stat total within 20 of it (a first stage
     against a first stage, a final one against a final one), with IVs about as good as its
     own (each within 6, shuffled about). It is matched to whatever party you bring, so it stays
-    fair as your party changes, and the streak does not make them stronger."""
+    fair as your party changes, and the streak does not make them stronger. Each is the same
+    level as the one of yours it stands for."""
     from team import roll_ivs
     if isinstance(mine, int):
         mine = [None] * mine
@@ -50,7 +51,7 @@ def trainer(streak, rng, mine=TEAM):
         else:
             ivs = [max(0, min(31, v + rng.randint(-6, 6))) for v in k.ivs]
             rng.shuffle(ivs)
-        team.append((species, tuple(ivs), None))
+        team.append((species, tuple(ivs), None, None, k.level if k else None))
     return rng.choice(TRAINERS), team
 
 
@@ -77,14 +78,10 @@ class Run:
         arena.mouse = g.top.mouse
         return arena
 
-    WINS_TO_EVOLVE = (3, 9)  # fought in 3 won battles: its middle form; 6 more: its final form
-
     def count_wins(self, battle):
-        """Each of yours that went out in a won battle has one more Tower win; any that have
-        enough may evolve (you can stop it: evolve_party.py)."""
-        from evolve import EVOLVES, stage_of
+        """Each of yours that went out in a won battle has one more Tower win (just counted now:
+        they evolve by level, levels.py)."""
         box = Collection()
-        ready = []
         for i in sorted(battle.fought):
             if i >= len(self.team):
                 continue
@@ -92,11 +89,12 @@ class Run:
             kept = box.find(mine.uid) or mine
             kept.wins += 1
             mine.wins = kept.wins
-            nxt = EVOLVES.get(kept.species)
-            _, stage = stage_of(kept.species)
-            if nxt and kept.wins >= self.WINS_TO_EVOLVE[min(stage, 2) - 1]:
-                ready.append(mine)
         box.save()
+
+    def evolve(self, arena):
+        """Any of yours that grew to level 16 or 32 in that battle evolves now, between battles
+        (you can stop it: evolve_party.py)."""
+        ready = arena.ready()
         if ready and self.glade.board is None:
             from evolve_party import EvolveBoard
             self.glade.board = EvolveBoard(self.glade.signs.font, ready, self.glade.now())
@@ -121,6 +119,7 @@ class Run:
                 self.streak += 1
                 self.record()
                 self.count_wins(arena.battle)
+                self.evolve(arena)
 
             def next_one(t):
                 arena.counted = False
@@ -222,7 +221,7 @@ class TowerBoard:
             if kept:
                 s.blit(picture(kept.species), (cr.centerx - 36, cr.y + 10))
                 self.text(s, kept.species, cr.centerx, cr.y + 66, WHITE, center=True)
-                self.text(s, f"IVs {sum(kept.ivs)}/186", cr.centerx, cr.y + 80, DIM, center=True)
+                self.text(s, f"Lv{kept.level}   IVs {sum(kept.ivs)}/186", cr.centerx, cr.y + 80, DIM, center=True)
         self.text(s, f"Best streak: {self.best}", r.x + 20, r.bottom - 32, TEXT)
         if not self.party:
             self.text(s, "Your party is empty: catch some creatures first!", r.centerx, r.bottom - 60, DIM, center=True)
