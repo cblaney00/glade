@@ -36,17 +36,50 @@ def newcomer(thing):
     return thing
 
 
-def roster(content, everyone=False):
+def roster(content, everyone=False, any_family=False):
     """Every animal of a place (or of the ground below it) that takes turns being out
-    (`everyone`: the bodies of ones you caught too)."""
+    (`everyone`: the bodies of ones you caught too). On the desktop only the families in
+    `FAMILIES` take part (`any_family`: all of them)."""
     if content is None:
         return []
     out, seen = [], set()
     for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
-        if id(o) not in seen and type(o).__name__ in ROTATE and (everyone or not getattr(o, "caught", False)):
+        if id(o) not in seen and type(o).__name__ in ROTATE and (everyone or not getattr(o, "caught", False)) \
+                and (any_family or FAMILIES is None or family(o) in FAMILIES):
             seen.add(id(o))
             out.append(o)
     return out
+
+
+# The desktop lets only CAP creature families (an evolution line counts as one family) come
+# out, a new random set at each thunderstorm, so it does less work (his ask, 2026-10-28).
+# None: everyone (the Wander window).
+CAP = 20
+FAMILIES = None
+_FIRST = {}
+
+
+def family(x):
+    """The first stage of an animal's (or a species name's) evolution line."""
+    from battle import species_of
+    from evolve import EVOLVES
+    if not _FIRST:
+        _FIRST.update({v: k for k, v in EVOLVES.items()})
+    s = x if isinstance(x, str) else species_of(x)
+    while s in _FIRST:
+        s = _FIRST[s]
+    return s
+
+
+def limit(contents, rng):
+    """Pick CAP of the families living in `contents` at random; everyone else stays in hiding."""
+    global FAMILIES
+    animals = [o for c in contents for o in roster(c, everyone=True, any_family=True)]
+    fams = sorted({family(o) for o in animals} - {None})
+    FAMILIES = set(rng.sample(fams, min(CAP, len(fams))))
+    for o in animals:
+        if family(o) not in FAMILIES:
+            o.gone = True
 
 
 FEWER = 0.27  # the share of a place's animals kept back, so the screen is less crowded
@@ -323,6 +356,8 @@ class Storm:
             m.update(t)
 
     def come_out(self, t):
+        if FAMILIES is not None:  # the desktop: a new set of families comes out
+            limit([self.scene, self.low], self.rng)
         n = 0
         for content, low in ((self.scene, False), (self.low, True)):
             animals = [o for o in roster(content) if not self.kept(o)]

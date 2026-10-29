@@ -72,7 +72,7 @@ def restore(glade):
     from storage import Storage
     t = time.monotonic() - glade.t0
     try:
-        if d.get("place") and d["place"] != glade.here.key:
+        if d.get("place") and d["place"] != glade.here.key and not glade.desktop:  # (the desktop is home only)
             glade.here = glade.scene(d["place"])
         glade.history = list(d.get("history", []))
         if "dex" in d:

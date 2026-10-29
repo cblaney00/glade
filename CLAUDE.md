@@ -46,6 +46,14 @@ much more detail; plaques must not move; the words always shown, nicely.
 In practice: depth planes fading into violet night mist, no outlines, moonlit rims and
 shaded undersides, dense hanging plants, and everything gently moving.
 
+**Desktop and Wander window (his ask, 2026-10-28):** the desktop (layer shell) is the home
+clearing alone: its apps, Forest Dex, Your party, Hide animals, Predator vision, Thunderstorm and
+the Claude panel; no paths, minimap or battles, and only `storm.CAP` (20) creature families,
+re-picked at each Thunderstorm. Everything else — every far place, the Battle Tower, all
+battles — is `glade --world` (`glade/world.py`), a full-screen window on the top screen that
+the **Wander** board under Your party opens; while it is open that board reads **Rest** and
+closes it. "Battle it!" on a desktop card opens the window with `--battle <species>`.
+
 ## How it is built
 
 Python + pygame (dev shell `vibe-python`; no numpy there, so everything is plain

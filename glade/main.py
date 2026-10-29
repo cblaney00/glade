@@ -1,6 +1,7 @@
 """The Glade — a living pixel-art desktop.
 
 Run:  python glade/main.py            (Ctrl+Q quits)
+      python glade/main.py --world    (the rest of the Glade, as its own window: world.py)
       python glade/main.py --shots DIR   (renders a picture of every place, then exits)
 """
 
@@ -26,6 +27,7 @@ import storm
 from team import Collection, ivs_of, nature_of
 from tower import Run, TowerBoard
 import vision
+import world
 import hiding
 import resume
 from evolve import EVOLVES, Evolution
@@ -562,10 +564,13 @@ class View:
 
 
 class Glade:
-    def __init__(self, screen, rect, lower=None):
+    def __init__(self, screen, rect, lower=None, wander=False):
         """`rect`: where the glade goes on screen. `lower`: a second monitor, if any —
-        it shows the ground in front of you, below whichever place you are in."""
+        it shows the ground in front of you, below whichever place you are in. `wander`: this
+        is the Wander window (world.py), with every place in it; otherwise it is the desktop,
+        the home clearing alone."""
         self.screen = screen
+        self.desktop = not wander
         self.top = View(rect, W, H)
         self.bottom = None
         if lower is not None:
@@ -606,7 +611,11 @@ class Glade:
         self.covered = set()  # the views a full-screen window is hiding: not drawn (set by wayland.py)
         self.game_since = None  # when a full-screen window last came up
         self.updater = resume.Updater()  # after a rebuild: switch to the new glade when nothing is going on
-        resume.restore(self)  # ... and open where the old one was
+        if self.desktop:
+            resume.restore(self)  # ... and open where the old one was
+            if self.bottom:
+                self.lower()
+            storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
 
     def set_covered(self, views):
         """Which screens a full-screen window (a game) now fills: those are not drawn."""
@@ -640,14 +649,20 @@ class Glade:
 
     def scene(self, key):
         if key not in self.scenes:
-            self.scenes[key] = BUILDERS[key]()
+            self.scenes[key] = self.home_only(BUILDERS[key]())
         return self.scenes[key]
 
     def lower(self):
         key = self.here.key
         if key not in self.lowers:
-            self.lowers[key] = Lower(self.here, self.bottom.w, self.bottom.h)
+            self.lowers[key] = self.home_only(Lower(self.here, self.bottom.w, self.bottom.h))
         return self.lowers[key]
+
+    def home_only(self, content):
+        """On the desktop the paths lead nowhere: the far places are the Wander window's."""
+        if self.desktop:
+            content.spots = [sp for sp in content.spots if sp.kind not in ("go", "tower")]
+        return content
 
     def map_view(self):
         """The minimap sits on the lower screen, which has room in its corner."""
@@ -660,6 +675,8 @@ class Glade:
 
     def warm(self):
         """Build the next place nobody has visited yet, so going there is instant."""
+        if self.desktop:
+            return False
         for key in BUILDERS:
             if key not in self.scenes:
                 self.scene(key)
@@ -715,7 +732,7 @@ class Glade:
 
     def click(self, t):
         panel_view = self.bottom or self.top
-        if self.panel.click(panel_view, panel_view.mouse()):
+        if self.desktop and self.panel.click(panel_view, panel_view.mouse()):
             return
         if self.fade_to:
             return
@@ -736,6 +753,14 @@ class Glade:
         if m and hiding.party_rect(view).collidepoint(m) and self.board is None and self.dex is None:
             self.popup, self.card = None, None
             self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
+            return
+        if m and world.rect(view).collidepoint(m) and self.board is None and self.dex is None:
+            if not self.desktop:
+                raise SystemExit  # "Rest": the window closes
+            if world.is_open():
+                world.close_world()
+            else:
+                world.open_world()
             return
         view = self.storm_view()
         if view is not None:  # the Thunderstorm button, while battle stats are on screen
@@ -776,6 +801,9 @@ class Glade:
             elif m and card.fight is not None and card.fight.collidepoint(m) and self.arena is None \
                     and not getattr(card, "locked", False):
                 def fight(t, animal=card.animal, species=card.species, here=self.here):
+                    if self.desktop:  # battles are the Wander window's: it opens and starts this one
+                        world.open_world(battle=species)
+                        return
                     if self.arena is not None or here is not self.here:
                         return
                     low = self.lower() if self.bottom else None  # a wild battle: your party against it
@@ -801,7 +829,7 @@ class Glade:
                 continue
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
-            if view is self.map_view():
+            if view is self.map_view() and not self.desktop:
                 place = self.minimap.at(m)
                 if place is not None:
                     self.go(place)
@@ -938,7 +966,9 @@ class Glade:
         if word:
             if self.on_heard:
                 self.on_heard()
-            if word == "battle":
+            if word == "battle" and self.desktop:
+                world.open_world()
+            elif word == "battle":
                 if self.arena is None:
                     low = self.lower() if self.bottom else None
                     self.arena = Arena(self.here, low, self.signs.font, t)
@@ -999,7 +1029,7 @@ class Glade:
             self.signs.draw(s, hot, True, t)
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
-        if view is self.map_view():
+        if view is self.map_view() and not self.desktop:
             pointed = None if self.fade_to else self.minimap.at(view.mouse())
             self.minimap.draw(s, view, self.here.key, pointed, t)
         if self.popup is not None and self.popup.view is view:
@@ -1022,7 +1052,8 @@ class Glade:
     def render(self, dt):
         """Advance everything by dt and paint each view's canvas (without showing it)."""
         t = time.monotonic() - self.t0
-        self.updater.tick(self, t)
+        if self.desktop:
+            self.updater.tick(self, t)
         # a quick fade, so clicking through the places never feels slow
         if self.fade_to:
             self.fade += dt / 0.15
@@ -1126,12 +1157,13 @@ class Glade:
                     cloth(view.canvas, r, (255, 206, 90), hot=True, alpha=235)
                     img = self.signs.font.render(msg, False, (255, 255, 255))
                     view.canvas.blit(img, (r.x + 7, r.centery - img.get_height() // 2))
-            if view is (self.bottom or self.top):
+            if view is (self.bottom or self.top) and self.desktop:
                 self.panel.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
             if view is self.map_view() and self.board is None and self.dex is None:
                 vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
                 vision.draw_dex_button(view.canvas, view, self.signs.font)
                 hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
+                world.draw_button(view.canvas, view, self.signs.font, not self.desktop or world.is_open())
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
@@ -1190,24 +1222,36 @@ def shots(out):
         print(f"{key}: built in {built:.2f}s, {per * 1000:.1f} ms/frame")
 
 
-def main():
-    if len(sys.argv) > 2 and sys.argv[1] == "--shots":
-        return shots(sys.argv[2])
-    if os.environ.get("WAYLAND_DISPLAY") and "--x11" not in sys.argv:
-        import wayland  # Hyprland: the glade as the desktop layer, one surface per monitor
-        return wayland.run()
-    pygame.init()
-    mons = monitors()
-    # One window covering every monitor; the bits of it that no monitor shows are unseen.
-    area = mons[0].unionall(mons[1:]) if len(mons) > 1 else mons[0]
-    os.environ["SDL_VIDEO_WINDOW_POS"] = f"{area.x},{area.y}"
-    pygame.display.set_caption("The Glade")
-    screen = pygame.display.set_mode(area.size, pygame.NOFRAME)
-    pygame.mouse.set_visible(False)
-    keep_at_back(area)
-    mons = [r.move(-area.x, -area.y) for r in mons]
-    screen.fill(INK)
-    glade = Glade(screen, fit(mons[0], W, H), mons[1] if len(mons) > 1 else None)
+def wander():
+    """The Wander window (world.py): every place, on the top screen, full screen."""
+    if not world.claim():
+        return
+    os.environ["SDL_VIDEO_X11_WMCLASS"] = world.CLASS
+    os.environ["SDL_VIDEO_WAYLAND_WMCLASS"] = world.CLASS
+    import signal
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # "Rest" on the desktop
+    try:
+        pygame.init()
+        mon = monitors()[0]
+        os.environ["SDL_VIDEO_WINDOW_POS"] = f"{mon.x},{mon.y}"
+        pygame.display.set_caption("The Glade")
+        screen = pygame.display.set_mode(mon.size, pygame.NOFRAME)
+        pygame.mouse.set_visible(False)
+        screen.fill(INK)
+        glade = Glade(screen, fit(pygame.Rect(0, 0, *mon.size), W, H), None, wander=True)
+        species = world.battle_wanted()
+        if species:
+            found = world.find_foe(glade.here, species)
+            if found is not None:
+                glade.arena = Arena(glade.here, None, glade.signs.font, glade.now(), mode="wild",
+                                    foe=(found[0], found[1], glade.here), mine=Collection().members())
+                glade.arena.mouse = glade.top.mouse
+        loop(glade)
+    finally:
+        world.release()
+
+
+def loop(glade):
     clock = pygame.time.Clock()
     while True:
         dt = clock.tick(30) / 1000
@@ -1236,6 +1280,29 @@ def main():
             if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                 glade.release(time.monotonic() - glade.t0)
         glade.frame(min(dt, 0.1))
+
+
+def main():
+    if len(sys.argv) > 2 and sys.argv[1] == "--shots":
+        return shots(sys.argv[2])
+    if "--world" in sys.argv:
+        return wander()
+    if os.environ.get("WAYLAND_DISPLAY") and "--x11" not in sys.argv:
+        import wayland  # Hyprland: the glade as the desktop layer, one surface per monitor
+        return wayland.run()
+    pygame.init()
+    mons = monitors()
+    # One window covering every monitor; the bits of it that no monitor shows are unseen.
+    area = mons[0].unionall(mons[1:]) if len(mons) > 1 else mons[0]
+    os.environ["SDL_VIDEO_WINDOW_POS"] = f"{area.x},{area.y}"
+    pygame.display.set_caption("The Glade")
+    screen = pygame.display.set_mode(area.size, pygame.NOFRAME)
+    pygame.mouse.set_visible(False)
+    keep_at_back(area)
+    mons = [r.move(-area.x, -area.y) for r in mons]
+    screen.fill(INK)
+    glade = Glade(screen, fit(mons[0], W, H), mons[1] if len(mons) > 1 else None)
+    loop(glade)
 
 
 if __name__ == "__main__":
