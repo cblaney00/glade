@@ -611,8 +611,7 @@ class Glade:
         self.covered = set()  # the views a full-screen window is hiding: not drawn (set by wayland.py)
         self.game_since = None  # when a full-screen window last came up
         self.updater = resume.Updater()  # after a rebuild: switch to the new glade when nothing is going on
-        if self.desktop:
-            resume.restore(self)  # ... and open where the old one was
+        if self.desktop:  # (nothing to restore: the desktop is always home, with nothing open)
             if self.bottom:
                 self.lower()
             storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
@@ -744,7 +743,10 @@ class Glade:
             return
         if m and vision.dex_rect(view).collidepoint(m) and self.board is None and self.dex is None:
             self.popup, self.card = None, None
-            self.dex = Dex(self.signs.font, None, t)  # the quick way into the Forest Dex
+            if self.desktop:
+                world.open_world("dex")
+            else:
+                self.dex = Dex(self.signs.font, None, t)  # the quick way into the Forest Dex
             return
         if m and hiding.keep_rect(view).collidepoint(m) and self.board is None and self.dex is None:
             self.hide = not self.hide  # his switch: everyone hides until he shows them again
@@ -752,7 +754,10 @@ class Glade:
             return
         if m and hiding.party_rect(view).collidepoint(m) and self.board is None and self.dex is None:
             self.popup, self.card = None, None
-            self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
+            if self.desktop:
+                world.open_world("party")
+            else:
+                self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
             return
         if m and world.rect(view).collidepoint(m) and self.board is None and self.dex is None:
             if not self.desktop:
@@ -802,7 +807,7 @@ class Glade:
                     and not getattr(card, "locked", False):
                 def fight(t, animal=card.animal, species=card.species, here=self.here):
                     if self.desktop:  # battles are the Wander window's: it opens and starts this one
-                        world.open_world(battle=species)
+                        world.open_world("battle", species)
                         return
                     if self.arena is not None or here is not self.here:
                         return
@@ -844,6 +849,9 @@ class Glade:
             sp = self.unless_animal(view, view.hovered(content.spots), m, t)
             moon = getattr(content, "moon", None)
             if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
+                if self.desktop:  # its secrets are the game's
+                    world.open_world("moon")
+                    return
                 self.listener.start(t)  # the moon listens...
                 if self.on_listen:
                     self.on_listen()
@@ -907,6 +915,34 @@ class Glade:
                 self.popup = Popup(self.signs.font, view, m, choices, t)
             return
 
+    def asked(self, req, t):
+        """The game: do what the desktop asked for (world.open_world)."""
+        do, species = req.get("do"), req.get("species")
+        self.popup = None
+        if do in ("dex", "party", "card", "battle") and self.board is not None:
+            self.board.close()
+            self.board = None
+        if do in ("dex", "party", "card", "battle"):
+            self.dex = self.card = None
+        if do == "dex":
+            self.dex = Dex(self.signs.font, species, t)
+        elif do == "party":
+            self.board = Storage(self.signs.font, t)
+        elif do == "moon":
+            self.listener.start(t)
+        elif do in ("card", "battle") and species:
+            if self.here.key != HOME:  # the animal was at home
+                self.here, self.fade = self.scene(HOME), 1.0
+            found = world.find_foe(self.here, species)
+            if found is None or (do == "card" and found[1] != species):
+                self.dex = Dex(self.signs.font, species, t)  # nobody just like it here: its Dex page
+            elif do == "battle" and self.arena is None:
+                self.arena = Arena(self.here, None, self.signs.font, t, mode="wild",
+                                   foe=(found[0], found[1], self.here), mine=Collection().members())
+                self.arena.mouse = self.top.mouse
+            else:
+                self.show_card(self.top, found[0].pos(), found[1], t, found[0])
+
     def unless_animal(self, view, sp, m, t):
         """A path's wide clickable area gives way to an animal drawn right under the
         pointer (the Mossdelve lives inside the Mossy Rocks path's); its sign never does."""
@@ -925,6 +961,9 @@ class Glade:
         return self.bottom or self.top
 
     def show_card(self, view, m, species, t, animal=None):
+        if self.desktop:  # stats, battles and evolving are the game's: it opens at this card
+            world.open_world("card", species)
+            return
         evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
         ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
         if animal is not None:
@@ -1239,13 +1278,6 @@ def wander():
         pygame.mouse.set_visible(False)
         screen.fill(INK)
         glade = Glade(screen, fit(pygame.Rect(0, 0, *mon.size), W, H), None, wander=True)
-        species = world.battle_wanted()
-        if species:
-            found = world.find_foe(glade.here, species)
-            if found is not None:
-                glade.arena = Arena(glade.here, None, glade.signs.font, glade.now(), mode="wild",
-                                    foe=(found[0], found[1], glade.here), mine=Collection().members())
-                glade.arena.mouse = glade.top.mouse
         loop(glade)
     finally:
         world.release()
@@ -1255,6 +1287,10 @@ def loop(glade):
     clock = pygame.time.Clock()
     while True:
         dt = clock.tick(30) / 1000
+        if not glade.desktop:
+            req = world.take()
+            if req is not None:
+                glade.asked(req, glade.now())
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 return

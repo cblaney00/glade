@@ -52,7 +52,9 @@ the Claude panel; no paths, minimap or battles, and only `storm.CAP` (20) creatu
 re-picked at each Thunderstorm. Everything else — every far place, the Battle Tower, all
 battles — is `glade --world` (`glade/world.py`), a full-screen window on the top screen that
 the **Wander** board under Your party opens; while it is open that board reads **Rest** and
-closes it. "Battle it!" on a desktop card opens the window with `--battle <species>`.
+closes it. The desktop is all looks, no play: Forest Dex, Your party, right-clicking an animal
+(its stats card) and clicking the moon each open the game straight at that thing
+(`world.open_world`, handed over through `$XDG_RUNTIME_DIR/glade-world.ask`).
 
 ## How it is built
 

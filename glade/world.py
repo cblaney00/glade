@@ -4,12 +4,16 @@ The desktop is just the home clearing now: its apps, the Forest Dex, your party,
 panel and the Thunderstorm. Everything further out — the far places, the paths and minimap,
 the Battle Tower and every battle — is a game in its own window on the top screen:
 `glade --world`. The "Wander" board under "Your party" opens it; while it is open that board
-says "Rest" (on the desktop and in the window) and closes it again. "Battle it!" on an
-animal's card on the desktop opens the window and starts that battle there.
+says "Rest" (on the desktop and in the window) and closes it again.
+
+The desktop is all looks and no play (his rule, 2026-10-28): the Forest Dex and Your party
+boards, right-clicking an animal (its stats card), and clicking the moon all open the game
+straight at that thing (`open_world`, handed over in $XDG_RUNTIME_DIR/glade-world.ask).
 
 Only one window at a time: it keeps its process id in $XDG_RUNTIME_DIR/glade-world.pid.
 """
 
+import json
 import os
 import signal
 import subprocess
@@ -21,6 +25,7 @@ import pygame
 from battle import TEXT, cloth
 
 PID = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "glade-world.pid")
+ASK = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "glade-world.ask")
 CLASS = "glade-world"  # the window's class, for the desktop's window rules
 WANDER = (196, 160, 255)
 
@@ -46,18 +51,39 @@ def is_open():
     return _seen[1]
 
 
-def open_world(battle=None):
-    """Open the window (`battle`: a species to fight as soon as it is open)."""
+def open_world(do=None, species=None):
+    """Open the game at `do` — "dex" (at `species`' page), "party", "card" (`species`' stats),
+    "battle" (against `species`), "moon" (listening for a word) — or just open it. Already
+    open: it does that and comes to the front."""
+    try:
+        with open(ASK, "w") as f:
+            json.dump(dict(do=do, species=species), f)
+    except OSError:
+        pass
     if _pid() is not None:
+        try:
+            subprocess.Popen(["hyprctl", "dispatch", "focuswindow", f"class:^({CLASS})$"],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            pass
         return
     args = [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), "--world"]
-    if battle:
-        args += ["--battle", battle]
     try:
         subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         _seen[0], _seen[1] = time.monotonic(), True
     except OSError:
         pass
+
+
+def take():
+    """In the game: what the desktop last asked for (once), or None."""
+    try:
+        with open(ASK) as f:
+            req = json.load(f)
+        os.remove(ASK)
+        return req
+    except (OSError, ValueError):
+        return None
 
 
 def close_world():
@@ -104,15 +130,6 @@ def draw_button(s, view, font, open_now):
         pygame.draw.ellipse(s, (250, 244, 255), (x + dx, y + dy - 1 + (i % 2), 4, 3))
     img = font.render("Rest" if open_now else "Wander", False, (255, 255, 255) if hot or open_now else TEXT)
     s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
-
-
-def battle_wanted():
-    """The species asked for with --battle, if any."""
-    if "--battle" in sys.argv:
-        i = sys.argv.index("--battle")
-        if i + 1 < len(sys.argv):
-            return sys.argv[i + 1]
-    return None
 
 
 def find_foe(scene, species):
