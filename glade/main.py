@@ -714,7 +714,7 @@ class Glade:
             yield self.bottom, self.lower()
 
     def warm(self):
-        """Build the places nobody has visited yet, so going there is instant. Each takes about a
+        """Build the places next to where he is, so going there is instant. Each takes about a
         second, so they are built one by one on the side (a thread), and the picture keeps moving."""
         if self.desktop:
             return False
@@ -722,7 +722,11 @@ class Glade:
             self.take_ready(key)
         if self.warmer is not None and self.warmer.is_alive():
             return True
-        todo = [k for k in BUILDERS if k not in self.scenes]
+        # only the places one path away: building all thirty took turns with the picture
+        # for half a minute and made it lag, while these few are done in a few seconds
+        here = self.here.key
+        near = [b if a == here else a for a, b in LINKS if here in (a, b)]
+        todo = [k for k in near if k in BUILDERS and k not in self.scenes]
         if not todo:
             return False
         gen, size = self.gen, (self.bottom.w, self.bottom.h) if self.bottom else None
