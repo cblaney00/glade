@@ -211,6 +211,7 @@ class Dex:
         self.view = "stats"  # the entry's switch: "stats" or "lore"
         self.sort, self.desc = "No.", False
         self.cpage = 0  # Compare tab: which page of rows is showing
+        self.find = False  # Compare tab: turn to the looked-up one's row on the next draw
         self._texts = {}  # rendered words, kept so a full table doesn't re-render every frame
         self.buttons = []  # (rect, action), rebuilt every frame
         self.closed = False
@@ -259,6 +260,13 @@ class Dex:
         s.blit(img, img.get_rect(center=r.center))
         self.buttons.append((r, action))
 
+    def to_dex(self):
+        """Back to the slots, on the page with the one looked up (it may have been picked in Compare)."""
+        self.tab, self.page = "dex", (self.pick - 1) // PER_PAGE
+
+    def to_compare(self):
+        self.tab, self.find = "compare", True  # the table opens on the page with the one looked up
+
     def choose(self, num):
         def f():
             self.pick = num
@@ -275,9 +283,9 @@ class Dex:
             return
         self.text(s, "FOREST DEX", r.x + 14, r.y + 10, WHITE)
         self.text(s, f"Found {len(self.known)} of {TOTAL}", r.x + 104, r.y + 10, DIM)
-        self.button(s, pygame.Rect(r.x + 250, r.y + 7, 60, 18), "Dex", lambda: setattr(self, "tab", "dex"), m,
+        self.button(s, pygame.Rect(r.x + 250, r.y + 7, 60, 18), "Dex", self.to_dex, m,
                     on=self.tab == "dex")
-        self.button(s, pygame.Rect(r.x + 314, r.y + 7, 76, 18), "Compare", lambda: setattr(self, "tab", "compare"),
+        self.button(s, pygame.Rect(r.x + 314, r.y + 7, 76, 18), "Compare", self.to_compare,
                     m, on=self.tab == "compare")
         self.button(s, pygame.Rect(r.x + 394, r.y + 7, 112, 18), "Your creatures", self.open_boxes, m)
         self.button(s, pygame.Rect(r.right - 66, r.y + 7, 56, 18), "Close", lambda: setattr(self, "closed", True), m)
@@ -440,6 +448,10 @@ class Dex:
         # only the rows that fit are drawn, a page at a time (drawing all 400+ every frame froze the Glade)
         per = max(1, (area.h - 24 - 44) // 20)
         pages = max(1, (len(rows) + per - 1) // per)
+        if self.find:
+            self.find = False
+            at = next((n for n, row in enumerate(rows) if row[0] == self.pick), 0)
+            self.cpage = at // per
         self.cpage = max(0, min(self.cpage, pages - 1))
         found = len(rows)
         rows = rows[self.cpage * per:(self.cpage + 1) * per]
@@ -447,8 +459,12 @@ class Dex:
             y = area.y + 24 + n * 20
             rr = pygame.Rect(area.x, y - 2, area.w, 19)
             hot = rr.collidepoint(m) if m else False
-            if row[0] == self.pick or hot:
-                cloth(s, rr, MINT if row[0] == self.pick else CLOTH, alpha=120)
+            if row[0] == self.pick:  # the looked-up one: the same pulsing gold as its slot in the Dex tab
+                pulse = (math.sin(pygame.time.get_ticks() / 180) + 1) / 2
+                cloth(s, rr, mix(CHOSEN, CLOTH, 0.5), hot=True, alpha=150)
+                pygame.draw.rect(s, mix(CHOSEN, WHITE, pulse), rr.inflate(2, 2), 2, border_radius=4)
+            elif hot:
+                cloth(s, rr, CLOTH, alpha=120)
             x = area.x
             for label, i, w in cols:
                 v = row[i]

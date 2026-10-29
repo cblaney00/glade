@@ -110,6 +110,8 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   picture (`dex.specimen`: one made just to be drawn; the entry's moves, the slots' are still),
   and the rest are "?" slots. Dex tab: pages of 48 slots. Compare tab: a table of everything
   found so far, sorted by clicking a column. On the right, the chosen one's stats and moves.
+  (2026-10-29, his ask) The one looked up always has a pulsing gold frame (`dex.CHOSEN`): its slot in the
+  Dex tab and its row in Compare; each tab opens on the page that has it (`to_dex`, `to_compare`).
 - `glade/beasts.py` — the **second wave** of animals (2026-10-26, his ask: 10 more first-stage
   creatures, varied typing, in keeping with the glade): `Flier` (Gloomflit, Lanternwing,
   Glimmerfly, Mistwisp), `Walker` (Brawlhop, Mossdelve, Sporeling, Rimeslink, Copper
