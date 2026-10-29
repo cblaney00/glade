@@ -15,7 +15,7 @@ its four moves, then any move it can learn (its species' pool) to swap it in. Sa
 import pygame
 
 from apex import ease
-from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, calc_stats, cloth, iv_web, mix
+from battle import CLOTH, DIM, EDGE, MOVES, SPECIES, TEXT, TYPE_COLOR, calc_stats, cloth, iv_web, mix, stat_color
 from dex import MINT, WHITE, picture
 from team import BOXES, PER_BOX, TEAM, Collection, nature_effect
 
@@ -265,12 +265,12 @@ class Storage:
         self.text(s, what, x0, y + 61, DIM)
         self.text(s, fit(self.font, sp["ability"], r.right - 8 - x0), x0, y + 74, DIM)
         self.text(s, fit(self.font, exp_line(kept), r.right - 8 - x0), x0, y + 87, DIM)
-        # the stats table: base, IV, EV and the stat itself (raised: mint, lowered: pink)
+        # the stats table: base (with the stats card's bar), IV, EV and the stat itself (raised: mint, lowered: pink)
         maxhp, stats = calc_stats(kept.species, kept.ivs, kept.evs, kept.nature, kept.level)
         values = [maxhp] + [stats[k] for k in ("atk", "def", "spa", "spd", "spe")]
         keys = [None, "atk", "def", "spa", "spd", "spe"]
         y = r.y + 118
-        cols = (r.x + 10, r.x + 92, r.x + 136, r.x + 180, r.right - 10)
+        cols = (r.x + 10, r.x + 106, r.x + 180, r.x + 214, r.right - 10)
         for c, h in zip(cols, ("", "Base", "IV", "EV", "Stat")):
             self.text(s, h, c, y, DIM, right=c != cols[0])
         for i, (label, base, iv, ev, v, k) in enumerate(zip(LONG, sp["base"], kept.ivs, kept.evs, values, keys)):
@@ -278,6 +278,9 @@ class Storage:
             tint = MINT if k and k == up else (255, 150, 200) if k and k == down else TEXT
             self.text(s, label + (" +" if k and k == up else " -" if k and k == down else ""), cols[0], yy, tint)
             self.text(s, str(base), cols[1], yy, TEXT, right=True)
+            pygame.draw.rect(s, (20, 12, 30), (cols[1] + 5, yy + 5, 46, 5), border_radius=2)
+            pygame.draw.rect(s, stat_color(base), (cols[1] + 5, yy + 5, round(46 * min(1.0, base / 150)), 5),
+                             border_radius=2)
             self.text(s, str(iv), cols[2], yy, WHITE if iv == 31 else TEXT, right=True)
             self.text(s, str(ev), cols[3], yy, TEXT, right=True)
             self.text(s, str(v), cols[4], yy, tint if k else WHITE, right=True)
