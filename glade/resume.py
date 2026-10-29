@@ -3,8 +3,9 @@
 After a rebuild the computer has a newer glade installed than the one running. Every few seconds
 the running glade checks; when there is a newer one, a notice shows by the Thunderstorm button
 (which shows too), and pressing Thunderstorm loads it (his choice): it notes where you are (the
-place, the Forest Dex's page and creature, the boxes) and steps aside; the desktop starts the new
-one at once (pkgs/glade's glade-desktop loop), and it opens where you were. The button is the only
+place, the Forest Dex's page and creature, the boxes) and steps aside. The desktop is started
+again at once by pkgs/glade's glade-desktop loop; the game (world.py) starts the new version of
+itself in its place (game.Game.restart), and it opens where you were. The button is the only
 way it ever updates, and it always works when pressed, even mid-battle (his rule, 2026-10-27).
 """
 
@@ -44,13 +45,14 @@ class Updater:
         """Switch to the newer glade now (the Thunderstorm button), whatever is going on."""
         if not self.waiting:
             return False
-        save(glade)
-        os._exit(0)  # the desktop starts the new glade straight away
+        if hasattr(glade, "restart"):  # the game: it opens where you were, in its new version
+            save(glade)
+            glade.restart()
+        os._exit(0)  # the desktop: its loop starts the new glade straight away
 
 
 def save(glade):
-    d = dict(when=time.time(), place=glade.here.key, history=list(glade.history[-20:]),
-             wander=not glade.desktop)
+    d = dict(when=time.time(), place=glade.here.key, history=list(glade.history[-20:]))
     if glade.dex is not None:
         d["dex"] = dict(page=glade.dex.page, pick=glade.dex.pick, tab=glade.dex.tab)
     if type(glade.board).__name__ == "Storage":
@@ -73,9 +75,7 @@ def restore(glade):
     from storage import Storage
     t = time.monotonic() - glade.t0
     try:
-        if d.get("wander"):  # he was wandering: the new glade is the game again, where he was
-            glade.wander(t)
-        if d.get("place") and d["place"] != glade.here.key and not glade.desktop:  # (the desktop is home only)
+        if d.get("place") and d["place"] != glade.here.key:
             glade.here = glade.scene(d["place"])
         glade.history = list(d.get("history", []))
         if "dex" in d:

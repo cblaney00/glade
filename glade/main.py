@@ -1,12 +1,14 @@
-"""The Glade — a living pixel-art desktop.
+"""The Glade — a living pixel-art desktop, and the game that lives in it (world.py).
 
-Run:  python glade/main.py            (Ctrl+Q quits)
+Run:  python glade/main.py            the desktop (desktop.py; Ctrl+Q quits)
+      python glade/main.py --game     the game (game.py), on its own
       python glade/main.py --shots DIR   (renders a picture of every place, then exits)
+
+This module is what the two share: the name boards, the views, and main.Glade.
 """
 
 import glob
 import math
-import random
 import os
 import re
 import shlex
@@ -18,26 +20,17 @@ import time
 import pygame
 
 import art
-from apex import OFFSET, Hunt, Listener
-from battle import Arena, Card, Perched, animal_under
-from dex import Dex
-from starter import StarterBoard
-from storage import Storage
+from battle import Perched, animal_under, cloth
 import storm
-from team import Collection, ivs_of, nature_of
-from tower import Run, TowerBoard
-import vision
-import world
 import hiding
 import badges
 import loading
 import resume
-from evolve import EVOLVES, Evolution
 from art import H, W, mix
 from life import swell
 from lower import Lower
 from claude_panel import Panel
-from scenes import BUILDERS, LINKS, MAP
+from scenes import BUILDERS
 
 HOME = "glade"
 
@@ -345,109 +338,6 @@ class Popup:
         s.blit(surf, r)
 
 
-class Minimap:
-    """A little carved board in the corner with every place laid out the way the paths
-    run (scenes.MAP): the place you are in glows, and its name is written underneath.
-    Pointing at another place shows its name; clicking it goes there."""
-
-    NAMES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
-                 rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower",
-                 caverns="The Crystal Caverns", meadow="The Starfall Meadow", hollow="The Mushroom Hollow",
-                 bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge", shore="The Glow Shore")
-    NAMES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood"))
-    COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
-                  forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110),
-                  tower=(255, 214, 236), caverns=(190, 140, 255), meadow=(255, 236, 160), hollow=(200, 255, 170),
-                  bog=(190, 255, 210), ruins=(150, 230, 255), bridge=(220, 214, 255), shore=(90, 240, 230))
-    COLORS.update(dict(falls=(170, 230, 255), peak=(190, 255, 220), gully=(110, 220, 150), orchard=(255, 196, 120), temple=(110, 230, 190), dunes=(240, 210, 160), lava=(255, 120, 80), grotto=(255, 150, 170), kelp=(70, 170, 160), lighthouse=(255, 240, 180), comet=(200, 170, 255), garden=(230, 220, 255), isles=(160, 220, 255), storm=(250, 250, 140), thorn=(170, 90, 150)))
-    CELL = 18  # canvas pixels between neighbouring places (22 until the map grew to thirty places)
-
-    def __init__(self, font):
-        self.font = font
-        xs = [x for x, _ in MAP.values()]
-        ys = [y for _, y in MAP.values()]
-        self.x0, self.y0 = min(xs), min(ys)
-        cols, rows = max(xs) - self.x0 + 1, max(ys) - self.y0 + 1
-        name_w = max(font.size(n)[0] for n in self.NAMES.values())
-        self.w = max(cols * self.CELL + 16, name_w + 16)
-        self.map_h = rows * self.CELL + 6
-        self.h = self.map_h + font.get_height() + 10
-        self.cache = {}
-        self.rect = None
-
-    def place(self, view):
-        """Bottom-right of the view."""
-        self.rect = pygame.Rect(0, 0, self.w + 4, self.h + 7)
-        self.rect.bottomright = (view.w - 6, view.h - 30)
-        return self.rect
-
-    def node(self, key):
-        """Centre of a place's stone, in board coordinates."""
-        gx, gy = MAP[key]
-        cols = max(x for x, _ in MAP.values()) - self.x0 + 1
-        left = 2 + (self.w - cols * self.CELL) // 2
-        return (left + (gx - self.x0) * self.CELL + self.CELL // 2, 4 + 3 + (gy - self.y0) * self.CELL + self.CELL // 2)
-
-    def at(self, m):
-        """The place under the pointer `m` (canvas coordinates), or None."""
-        if self.rect is None or m is None or not self.rect.collidepoint(m):
-            return None
-        bx, by = m[0] - self.rect.x, m[1] - self.rect.y
-        for key in MAP:
-            nx, ny = self.node(key)
-            if abs(bx - nx) <= self.CELL // 2 and abs(by - ny) <= self.CELL // 2:
-                return key
-        return None
-
-    def board(self, here, pointed):
-        key = (here, pointed)
-        if key in self.cache:
-            return self.cache[key]
-        s = pygame.Surface((self.w + 4, self.h + 7), pygame.SRCALPHA)
-        r = pygame.Rect(2, 4, self.w, self.h)
-        pygame.draw.rect(s, EDGE, r.inflate(2, 2), border_radius=3)
-        pygame.draw.rect(s, WOOD, r, border_radius=2)
-        pygame.draw.line(s, WOOD_HI, (r.x + 2, r.y), (r.right - 3, r.y))
-        pygame.draw.line(s, WOOD_LO, (r.x + 2, r.bottom - 1), (r.right - 3, r.bottom - 1))
-        for gx in range(r.x + 4, r.right - 3, 7):  # wood grain
-            s.set_at((gx, r.bottom - 5), WOOD_LO)
-        # the paths between places (scenes.LINKS)
-        trail = (150, 112, 150)
-        for a, b in LINKS:
-            pygame.draw.line(s, trail, self.node(a), self.node(b), 3)
-        for k in MAP:
-            nx, ny = self.node(k)
-            c = self.COLORS[k]
-            stone = pygame.Rect(0, 0, 12, 10)
-            stone.center = (nx, ny)
-            if k == here:
-                pygame.draw.rect(s, (255, 255, 255), stone.inflate(4, 4), border_radius=3)
-                pygame.draw.rect(s, c, stone, border_radius=2)
-                s.set_at((stone.x + 2, stone.y + 2), (255, 255, 255))
-            else:
-                pygame.draw.rect(s, HOT if k == pointed else EDGE, stone.inflate(2, 2), border_radius=3)
-                pygame.draw.rect(s, mix(c, WOOD, 0.55), stone, border_radius=2)
-        label = self.NAMES[pointed or here]
-        text = self.font.render(label, False, HOT if pointed and pointed != here else TEXT)
-        shade = self.font.render(label, False, EDGE)
-        tx, ty = r.centerx - text.get_width() // 2, r.y + self.map_h + 2
-        s.blit(shade, (tx + 1, ty + 1))
-        s.blit(text, (tx, ty))
-        moss = (150, 255, 200)  # a tuft of glowing moss on the top-left corner
-        for dx, dy in ((0, 0), (1, -1), (2, -1), (3, 0), (4, -1), (5, 0), (2, -2), (6, 0)):
-            s.set_at((r.x + 3 + dx, r.y + dy), moss if dy < 0 else (90, 190, 150))
-        self.cache[key] = s
-        return s
-
-    def draw(self, s, view, here, pointed, t):
-        rect = self.place(view)
-        s.blit(self.board(here, pointed), rect)
-        # you-are-here: a soft glow breathing slowly over the place you are in
-        nx, ny = self.node(here)
-        k = 0.5 + 0.5 * math.sin(t * 1.8)
-        art.glow(s, rect.x + nx, rect.y + ny, 11, self.COLORS[here], int(50 + 50 * k) // 10 * 10)
-
-
 def sparkle(s, x, y, t, color=(255, 255, 240)):
     """Twinkling little stars circling a spot you are pointing at."""
     for i in range(6):
@@ -566,12 +456,16 @@ class View:
 
 
 class Glade:
+    """What the desktop and the game share (world.py): the views, the places and their lower
+    screens, the name boards and opening apps, the animals coming and going, Thunderstorm,
+    hiding for games and Hide animals, the squid trees, the Claude panel and updates.
+    desktop.Desktop and game.Game each build on this through the hooks at the end; nothing
+    here plays (no battles, cards, Dex, boards, minimap or far places)."""
+
     def __init__(self, screen, rect, lower=None):
         """`rect`: where the glade goes on screen. `lower`: a second monitor, if any —
-        it shows the ground in front of you, below whichever place you are in. It starts as
-        the desktop, the home clearing alone; Wander turns it into the whole game (world.py)."""
+        it shows the ground in front of you, below whichever place you are in."""
         self.screen = screen
-        self.desktop = True
         self.top = View(rect, W, H)
         self.bottom = None
         if lower is not None:
@@ -579,13 +473,10 @@ class Glade:
             pw, ph = min(W, lower.w // scale), min(H, lower.h // scale)
             self.bottom = View(fit(lower, pw, ph), pw, ph)
         self.scenes, self.lowers = {}, {}
-        # the far places, built on the side while he plays, so the game never freezes (warm)
-        self.ready, self.ready_lock, self.warmer, self.gen = {}, threading.Lock(), None, 0
         self.building = threading.Lock()  # one place at a time: builds share some drawing state (art)
-        self.loaded_at = None  # when the last far place came in (for the loading bar)
         self.signs = Signs()
-        self.minimap = Minimap(self.signs.font)
         self.panel = Panel()  # the Claude panel: a minimised way of talking to Claude (claude_panel.py)
+        self.show_panel = True  # (not in the game's window: that is for any computer, not his desktop)
         self.here = self.scene(HOME)
         self.fade, self.fade_to = 0.0, None
         self.flash = None
@@ -594,74 +485,21 @@ class Glade:
         self.picked = None  # (view, spot) chosen with Tab
         self.keys_on = False  # the keyboard is steering the glade (the dock shows the hint)
         self.on_launch = None  # called whenever an app is opened
-        # the easter egg (apex.py): click the moon, type the word
-        self.listener = Listener()
-        self.on_listen = None  # called when the moon starts listening for typing
+        self.on_listen = None  # called when the moon starts listening for typing (the game's)
         self.on_heard = None   # ... and when it has heard the word
-        self.hunt = None
-        self.arena = None  # the battle (battle.py): click the moon, type "battle"
         self.held = None  # (view, content, spot, where it was pressed): a squid being dragged
         self.popup = None  # the right-click menu, while it is open
-        self.card = None   # an animal's battle stats (battle.py), from a right-click
-        self.dex = None    # the Forest Dex (dex.py), opened from that card
-        self.board = None  # the Battle Tower's team picker (tower.py) or your creature boxes (storage.py)
-        self.run = None    # a go at the Battle Tower
         self.storm = None  # a thunderstorm (storm.py): the animals take turns
         self.storm_scratch = art.solid()
-        self.vision = None  # Predator vision (vision.py), for a few seconds after its button
         self.lifespans = storm.Lifespans()  # each animal is out a while, then a new one takes its place
-        self.evolution = None  # an animal evolving (evolve.py), from its stats card
         self.hiding = None  # the animals hiding while he plays a game (hiding.py)
         self.hide = hiding.load_hide()  # his "Hide animals" switch
         self.covered = set()  # the views a full-screen window is hiding: not drawn (set by wayland.py)
         self.game_since = None  # when a full-screen window last came up
-        self.updater = resume.Updater()  # after a rebuild: switch to the new glade when nothing is going on
-        if self.bottom:  # (nothing to restore: the desktop is always home, with nothing open)
+        self.updater = resume.Updater()  # after a rebuild: Thunderstorm switches to the new glade
+        if self.bottom:
             self.lower()
-        storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
-        resume.restore(self)  # after an update: wandering again where he was (minimap and all)
 
-    def wander(self, t):
-        """Wander: the desktop becomes the whole game, fading in where it is."""
-        if not self.desktop:
-            return
-        self.desktop = False
-        storm.FAMILIES = None  # every family may come out again
-        for content in list(self.scenes.values()) + list(self.lowers.values()):
-            content.spots[:] = getattr(content, "paths", []) + content.spots
-            content.paths = []
-        self.fade = 1.0
-        self.popup = None
-
-    def rest(self, t):
-        """Rest: the game fades away and everything it was doing ends; back to the plain desktop,
-        at home, with the far places let go (so the computer does less)."""
-        if self.desktop:
-            return
-        for thing in (self.arena, self.hunt, self.storm, self.evolution, self.hiding):
-            if thing is not None:
-                thing.finish()
-        if self.board is not None:
-            self.board.close()
-        self.arena = self.hunt = self.storm = self.evolution = self.hiding = None
-        self.board = self.dex = self.card = self.popup = self.held = self.picked = None
-        self.run, self.vision, self.fade_to = None, None, None
-        self.lifespans.settle()
-        self.listener = Listener()
-        self.desktop = True
-        loading.gate.stop = True  # the side thread stops at its next pause point
-        with self.ready_lock:  # ... and what it built is let go
-            self.gen += 1
-            self.ready = {}
-        self.loaded_at = None
-        self.here = self.scene(HOME)
-        self.history = []
-        self.scenes = {HOME: self.here}
-        self.lowers = {k: v for k, v in self.lowers.items() if k == HOME}
-        for content in [self.here] + list(self.lowers.values()):
-            self.home_only(content)
-        storm.limit([self.here] + list(self.lowers.values()), random.Random())
-        self.fade = 1.0
     def set_covered(self, views):
         """Which screens a full-screen window (a game) now fills: those are not drawn."""
         views = set(views)
@@ -693,10 +531,8 @@ class Glade:
         return time.monotonic() - self.t0
 
     def scene(self, key):
-        self.take_ready(key)
-        if key not in self.scenes:  # he got there before it loaded: build it now
-            with loading.Rush(), self.building:  # (the side thread finishes its place flat out first)
-                self.take_ready(key)
+        if key not in self.scenes:
+            with loading.Rush(), self.building:
                 if key not in self.scenes:
                     self.scenes[key] = self.home_only(BUILDERS[key]())
         return self.scenes[key]
@@ -705,94 +541,18 @@ class Glade:
         key = self.here.key
         if key not in self.lowers:
             with loading.Rush(), self.building:
-                self.take_ready(key)
                 if key not in self.lowers:
                     self.lowers[key] = self.home_only(Lower(self.here, self.bottom.w, self.bottom.h))
         return self.lowers[key]
 
-    def home_only(self, content):
-        """On the desktop the paths lead nowhere: the far places are the game's (Wander)."""
-        if self.desktop:  # (in place: the tree squid keep their own spots in the same list)
-            content.paths = [sp for sp in content.spots if sp.kind in ("go", "tower", "gym")]
-            content.spots[:] = [sp for sp in content.spots if sp.kind not in ("go", "tower", "gym")]
-        return content
-
     def map_view(self):
-        """The minimap sits on the lower screen, which has room in its corner."""
+        """The corner boards (and the game's minimap) sit on the lower screen, which has room."""
         return self.bottom or self.top
 
     def views(self):
         yield self.top, self.here
         if self.bottom:
             yield self.bottom, self.lower()
-
-    def nearest(self):
-        """Every place, nearest first (by paths) from where he is."""
-        order, seen = [self.here.key], {self.here.key}
-        for key in order:
-            for a, b in LINKS:
-                if key in (a, b):
-                    other = b if a == key else a
-                    if other not in seen and other in BUILDERS:
-                        seen.add(other)
-                        order.append(other)
-        return order + [k for k in BUILDERS if k not in seen]
-
-    def loading(self):
-        """(places loaded, all places) for the bar under Wander."""
-        with self.ready_lock:
-            ready = set(self.ready)
-        return len((set(self.scenes) | ready) & set(BUILDERS)), len(BUILDERS)
-
-    def warm(self):
-        """Load every place, nearest first, so going anywhere is instant. Each takes about a
-        second, so a side thread builds them a little at a time, only in the gaps between frames
-        (loading.py): the picture never waits, and the bar under Wander shows how far it is."""
-        if self.desktop:
-            return False
-        for key in list(self.ready):
-            self.take_ready(key)
-        if self.warmer is not None and self.warmer.is_alive():
-            return True
-        todo = [k for k in self.nearest() if k not in self.scenes]
-        if not todo:
-            if self.loaded_at is None:
-                self.loaded_at = self.now()
-            return False
-        gen, size = self.gen, (self.bottom.w, self.bottom.h) if self.bottom else None
-        loading.gate.stop = False
-
-        def build():
-            loading.gate.side = threading.get_ident()
-            try:
-                for key in todo:
-                    with self.building:
-                        if self.gen != gen:  # he went back to the desktop: stop
-                            return
-                        if key in self.scenes:  # (he walked there first)
-                            continue
-                        sc = BUILDERS[key]()
-                        low = Lower(sc, *size) if size else None
-                        with self.ready_lock:
-                            if self.gen == gen:
-                                self.ready[key] = (sc, low)
-            except loading.Stopped:
-                pass
-            finally:
-                loading.gate.side = None
-
-        self.warmer = threading.Thread(target=build, daemon=True)
-        self.warmer.start()
-        return True
-
-    def take_ready(self, key):
-        """A place the side thread has finished: it joins the game."""
-        with self.ready_lock:
-            got = self.ready.pop(key, None)
-        if got is not None and key not in self.scenes:
-            self.scenes[key] = self.home_only(got[0])
-            if got[1] is not None and key not in self.lowers:
-                self.lowers[key] = self.home_only(got[1])
 
     def go(self, key, remember=True):
         if self.fade_to or key == self.here.key:
@@ -802,35 +562,11 @@ class Glade:
             self.history.append(self.here.key)
         self.fade_to, self.picked = key, None
 
-    def after_board(self, board, t):
-        """A board has closed: begin the tower challenge, or open the boxes, if that was asked."""
-        if getattr(board, "chosen", None) and board.then:
-            board.then(t)
-        elif getattr(board, "begin", False) and self.arena is None:
-            self.run = board.make_run(self) if hasattr(board, "make_run") else Run(board.team(), self)
-            self.arena = self.run.open(t)
-        elif getattr(board, "boxes", False):
-            self.board = Storage(self.signs.font, t)
-
     def activate(self, view, content, sp, t):
         if sp.kind == "grow":  # the seed sign: grow another tree for the squid
             content.colony.grow(t)
             return
-        if sp.kind == "tower":  # the Battle Tower's door
-            if self.arena is None:
-                if Collection().members():
-                    self.board = TowerBoard(self.signs.font, t)
-                else:  # the very first visit: choose your starter, then on to the tower's board
-                    self.board = StarterBoard(self.signs.font, t,
-                                              then=lambda t: setattr(self, "board", TowerBoard(self.signs.font, t)))
-            return
-        if sp.kind == "gym":  # a gym leader's banner stone (gyms.py)
-            if self.arena is None:
-                from gyms import GymBoard
-                self.board = GymBoard(self.signs.font, t, sp.target)
-            return
-        if sp.kind == "boxes":  # the shrine where your creatures are kept
-            self.board = Storage(self.signs.font, t)
+        if self.activate_play(view, content, sp, t):
             return
         if sp.kind == "go":
             self.go(sp.target)
@@ -845,94 +581,38 @@ class Glade:
 
     def click(self, t):
         panel_view = self.bottom or self.top
-        if self.panel.click(panel_view, panel_view.mouse()):
+        if self.show_panel and self.panel.click(panel_view, panel_view.mouse()):
             return
         if self.fade_to:
             return
-        view = self.map_view()  # the Predator vision button
+        view = self.map_view()  # the boards in the corner
         m = view.mouse() if view is not None else None
-        if m and vision.button_rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            if self.vision is None:
-                self.vision = vision.Vision(t)
-            return
-        if m and vision.dex_rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            self.popup, self.card = None, None
-            self.wander(t)  # the desktop's buttons open the game at that thing
-            self.dex = Dex(self.signs.font, None, t)  # the quick way into the Forest Dex
-            return
-        if m and hiding.keep_rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            self.hide = not self.hide  # his switch: everyone hides until he shows them again
-            hiding.save_hide(self.hide)
-            return
-        if m and hiding.party_rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            self.popup, self.card = None, None
-            self.wander(t)
-            self.board = Storage(self.signs.font, t)  # your party, in the creature boxes
-            return
-        if m and badges.rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            if badges.lid(view).collidepoint(m):
-                badges.toggle(t)  # the badge case drops down, or shuts
+        if m and self.corner_free():
+            if hiding.keep_rect(view).collidepoint(m):
+                self.hide = not self.hide  # his switch: everyone hides until he shows them again
+                hiding.save_hide(self.hide)
                 return
-            place = badges.at(view, m)
-            if place is not None:  # a gem or an empty slot: go there, like the minimap
-                self.wander(t)
-                self.go(place)
-            return
-        if m and world.rect(view).collidepoint(m) and self.board is None and self.dex is None:
-            if self.desktop:
-                self.wander(t)
-            else:
-                self.rest(t)
-            return
+            if badges.rect(view).collidepoint(m):
+                if badges.lid(view).collidepoint(m):
+                    badges.toggle(t)  # the badge case drops down, or shuts
+                    return
+                place = badges.at(view, m)
+                if place is not None:  # a gem or an empty slot: go there, like the minimap
+                    self.to_place(place, t)
+                return
+            if self.corner_click(view, m, t):
+                return
         view = self.storm_view()
-        if view is not None:  # the Thunderstorm button, while battle stats are on screen
+        if view is not None:  # the Thunderstorm button
             m = view.mouse()
             if m and storm.button_rect(view).collidepoint(m):
                 if self.updater.load(self):  # a newer glade is waiting: the button loads it
                     return
                 self.lifespans.settle()
-                self.storm, self.card, self.dex = storm.Storm(self, t), None, None
+                self.storm = storm.Storm(self, t)
+                self.storm_started()
                 return
-        if self.board is not None:  # the tower's board or the boxes: like the dex
-            m = self.top.mouse()
-            board = self.board
-            if m and board.rect.collidepoint(m):
-                board.click(m)
-            else:
-                board.close()
-            if board.closed:
-                self.board = None
-                self.after_board(board, t)
-            return
-        if self.dex is not None:  # the dex takes clicks on it; one outside it closes it
-            m = self.top.mouse()
-            if m and self.dex.rect.collidepoint(m):
-                self.dex.click(m)
-                if self.dex.closed:
-                    if getattr(self.dex, "boxes", False):
-                        self.board = Storage(self.signs.font, t)
-                    self.dex = None
-            else:
-                self.dex = None
-            return
-        if self.card is not None:  # a click closes the stats card, opens the dex, or evolves it
-            card, self.card = self.card, None
-            m = card.view.mouse()
-            if m and card.button.collidepoint(m):
-                self.dex = Dex(self.signs.font, card.species, t)
-            elif m and card.fight is not None and card.fight.collidepoint(m) and self.arena is None \
-                    and not getattr(card, "locked", False):
-                def fight(t, animal=card.animal, species=card.species, here=self.here):
-                    if self.arena is not None or here is not self.here:
-                        return
-                    low = self.lower() if self.bottom else None  # a wild battle: your party against it
-                    self.arena = Arena(self.here, low, self.signs.font, t, mode="wild",
-                                       foe=(animal, species, self.here), mine=Collection().members())
-                    self.arena.mouse = self.top.mouse
-                fight(t)
-            elif m and card.evolve is not None and card.evolve.collidepoint(m) and self.evolution is None:
-                self.evolution = Evolution(card.animal, card.species, t)
-                self.evolution.font, self.evolution.scene = self.signs.font, self.here
+        if self.play_click(t):
             return
         if self.popup is not None:  # a click chooses from the open menu, or just closes it
             pop, self.popup = self.popup, None
@@ -940,7 +620,7 @@ class Glade:
             if i is not None:
                 pop.choices[i][1](t)
             return
-        if self.arena is not None and self.arena.click(self, t):
+        if self.play_click_late(t):
             return
         for view, content in self.views():
             m = view.mouse()
@@ -948,25 +628,12 @@ class Glade:
                 continue
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
-            if view is self.map_view() and not self.desktop:
-                place = self.minimap.at(m)
-                if place is not None:
-                    self.go(place)
-                    return
-                if self.minimap.rect and self.minimap.rect.collidepoint(m):
-                    return
-            if self.zoomed(view):  # zoomed in on a battle: only its path signs are there to click
-                sp = view.hovered([sp for sp in content.spots if sp.kind == "go"])
-                if sp is not None:
-                    self.activate(view, content, sp, t)
+            if self.map_click(view, content, m, t):
                 return
             sp = self.unless_animal(view, view.hovered(content.spots), m, t)
             moon = getattr(content, "moon", None)
             if sp is None and moon and math.hypot(m[0] - moon[0], m[1] - moon[1]) < moon[2] + 6:
-                self.wander(t)  # its secrets are the game's
-                self.listener.start(t)  # the moon listens...
-                if self.on_listen:
-                    self.on_listen()
+                self.moon_clicked(t)  # its secrets are the game's
                 return
             if sp is None:
                 for c in content.creatures:
@@ -985,13 +652,8 @@ class Glade:
     def right_click(self, t):
         """Right-click an animal to see its battle stats; right-click a squid to open or
         remove it (or see its stats); right-click a tree he grew to take it away."""
-        self.popup, self.card = None, None
-        if self.board is not None:
-            self.board.close()
-            board, self.board = self.board, None
-            return
-        if self.dex is not None:
-            self.dex = None
+        self.popup = None
+        if self.play_right_click(t):
             return
         if self.fade_to:
             return
@@ -1040,32 +702,9 @@ class Glade:
         waiting it is always there, battle or not: it is the only way to load it."""
         if self.updater.waiting:
             return self.bottom or self.top
-        if self.storm is not None or self.evolution is not None:  # (shown the rest of the time, his ask)
+        if self.storm is not None or self.storm_blocked():  # (shown the rest of the time, his ask)
             return None
         return self.bottom or self.top
-
-    def show_card(self, view, m, species, t, animal=None):
-        self.wander(t)  # stats, battles and evolving are the game's: it opens at this card
-        evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
-        ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
-        if animal is not None:
-            animal.nature = nature_of(animal.obj)  # its own nature, shown on the card
-            leave = getattr(animal.obj, "leave_at", None)  # looked at, and about to go: it stays a little
-            if leave is not None and leave < t + 15:        # longer, 10-45 seconds more (his numbers)
-                animal.obj.leave_at = t + random.uniform(10, 45)
-        at, body = m, None
-        if animal is not None:  # the card goes beside the animal itself, clear of all of it
-            ax, ay = animal.pos()
-            if getattr(animal, "low", False):
-                ax, ay = ax - OFFSET[0], ay - OFFSET[1]
-            z = getattr(animal.obj, "size", 1.0)
-            body = pygame.Rect(0, 0, round(44 * z), round(40 * z))
-            body.center = (round(ax), round(ay - 6 * z))
-            body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
-            at = body.center
-        self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
-                         fight=animal is not None and self.arena is None and not isinstance(animal, Perched), avoid=body)
-        self.card.locked = not Collection().members()
 
     def release(self, t):
         """The mouse button comes up. A squid that was barely moved was clicked; one that
@@ -1080,22 +719,6 @@ class Glade:
         else:
             content.colony.dragging = None
             self.activate(view, content, sp, t)
-
-    def typed(self, ch, t):
-        """A letter typed while the moon is listening."""
-        word = self.listener.key(ch, t)
-        if word:
-            if self.on_heard:
-                self.on_heard()
-            if word == "battle":
-                if self.arena is None:
-                    low = self.lower() if self.bottom else None
-                    self.arena = Arena(self.here, low, self.signs.font, t)
-                    self.arena.mouse = self.top.mouse
-            elif self.hunt is None:
-                low = self.lower() if self.bottom else None
-                size = (self.bottom.w, self.bottom.h) if self.bottom else (0, 0)
-                self.hunt = Hunt(self.here, low, size, t)
 
     # --- the keyboard ----------------------------------------------------------------
     # Commands: left/right/up/down walk along the path that goes that way; next/prev
@@ -1128,10 +751,6 @@ class Glade:
         elif cmd == "back" and self.history:
             self.go(self.history.pop(), remember=False)
 
-    def zoomed(self, view):
-        """The top screen is zoomed in on a battle (battle.Arena.camera)."""
-        return view is self.top and self.arena is not None and self.arena.zoomed
-
     def overlay(self, view, content, t):
         s = view.canvas
         if self.zoomed(view):  # (its path signs are drawn after the battle, on top)
@@ -1148,9 +767,7 @@ class Glade:
             self.signs.draw(s, hot, True, t)
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
-        if view is self.map_view() and not self.desktop:
-            pointed = None if self.fade_to else self.minimap.at(view.mouse())
-            self.minimap.draw(s, view, self.here.key, pointed, t)
+        self.map_overlay(view, t)
         if self.popup is not None and self.popup.view is view:
             self.popup.draw(s, view.mouse(), t)
         if self.flash and self.flash[0] is view:
@@ -1162,6 +779,7 @@ class Glade:
 
     def frame(self, dt):
         self.render(dt)
+        self.screen.fill(INK)
         for view, _ in self.views():
             view.present(self.screen)
             if self.screen.get_masks()[3]:  # composited screen: make sure no pixel is see-through
@@ -1181,14 +799,9 @@ class Glade:
         elif self.fade > 0:
             self.fade = max(0.0, self.fade - dt / 0.15)
         elif t > 2:
-            self.warm()
+            self.idle_work(t)
         self.here.update(dt)
-        if self.hunt is not None:
-            if self.hunt.done or self.hunt.scene is not self.here:
-                self.hunt.finish()  # finished, or he went elsewhere: everyone is back
-                self.hunt = None
-            else:
-                self.hunt.update(dt, t)
+        self.update_play(dt, t)
         if self.fade_to:
             self.lifespans.settle()
         elif self.storm is None and self.hiding is None:
@@ -1202,28 +815,7 @@ class Glade:
             else:
                 self.storm.update(t)
         self.hide_for_games(t)
-        if self.evolution is not None:
-            if self.evolution.scene is not self.here:
-                self.evolution.finish()  # he walked off: it has simply evolved
-                self.evolution = None
-            elif self.evolution.done:
-                self.evolution = None
-            else:
-                self.evolution.update(t)
-        if self.arena is not None and self.arena.mode != "tower" and self.board is None:
-            ready = self.arena.ready()  # a wild battle over: anyone who reached level 16 or 32 evolves
-            if ready:
-                from evolve_party import EvolveBoard
-                self.board = EvolveBoard(self.signs.font, ready, t)
-        if self.arena is not None:
-            if self.arena.done:
-                self.arena.finish()  # closed: everyone is home
-                self.arena = None
-            elif not self.fade_to:  # it comes along to whichever place he goes
-                self.arena.scene = self.here
-                self.arena.place(self.here)  # clear of this place's signs
-                self.arena.lower = self.lower() if self.bottom else None
-                self.arena.update(dt, t)
+        self.update_play_late(dt, t)
         if self.held is not None:
             view, content, _, start = self.held
             if content is not self.here:
@@ -1238,38 +830,15 @@ class Glade:
             if view in self.covered:  # under a full-screen game: nobody can see it, so it waits
                 continue
             content.draw(view.canvas, t)
-            if view is self.top:
-                self.listener.draw_moon(view.canvas, getattr(content, "moon", None), t)
-            if self.hunt is not None:
-                self.hunt.draw(view.canvas, view is self.bottom, t)
+            self.under(view, content, t)
             if self.storm is not None:
                 self.storm.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
-            if self.vision is not None:
-                if self.vision.done(t) or self.fade_to:
-                    self.vision = None
-                else:
-                    self.vision.draw(view.canvas, view.w, view.h, self.here, self.lower() if self.bottom else None,
-                                     view is self.bottom, t)
+            self.seen(view, content, t)
             self.lifespans.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             if self.hiding is not None:
                 self.hiding.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             self.overlay(view, content, t)
-            if self.arena is not None:
-                self.arena.draw(view.canvas, view is self.bottom, t)
-                if view is self.top:  # path signs stay on top of the battle board, and clickable
-                    m = view.mouse()
-                    paths = [sp for sp in content.spots if sp.kind == "go"] if self.zoomed(view) else self.arena.paths(content)
-                    for sp in paths:  # (a place first walked into mid-battle has no boards yet)
-                        self.signs.prepare(sp, view.w, view.h)
-                        self.signs.draw(view.canvas, sp, bool(m) and sp.boards[2].collidepoint(m), t)
-            if self.card is not None and self.card.view is view:
-                self.card.draw(view.canvas, t)
-            if self.dex is not None and view is self.top:
-                self.dex.draw(view.canvas, view.mouse(), t)
-            if self.board is not None and view is self.top:
-                self.board.draw(view.canvas, view.mouse(), t)
-            if self.evolution is not None:
-                self.evolution.draw(view.canvas, view is self.bottom, t)
+            self.above(view, content, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
                 if self.updater.waiting:  # the notice: a newer glade to check out
@@ -1277,20 +846,13 @@ class Glade:
                     msg = "Newer glade ready! Thunderstorm loads it"
                     w = self.signs.font.size(msg)[0] + 14
                     r = pygame.Rect(b.x - w - 6, b.y, w, b.h)
-                    from battle import cloth
                     cloth(view.canvas, r, (255, 206, 90), hot=True, alpha=235)
                     img = self.signs.font.render(msg, False, (255, 255, 255))
                     view.canvas.blit(img, (r.x + 7, r.centery - img.get_height() // 2))
-            if view is (self.bottom or self.top):
+            if view is (self.bottom or self.top) and self.show_panel:
                 self.panel.draw(view.canvas, view, self.signs.font, t, self.storm_view() is view)
-            if view is self.map_view() and self.board is None and self.dex is None:
-                vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
-                vision.draw_dex_button(view.canvas, view, self.signs.font)
-                hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
-                badges.draw(view.canvas, view, self.signs.font, t)
-                world.draw_button(view.canvas, view, self.signs.font, not self.desktop)
-                if not self.desktop:
-                    world.draw_loading(view.canvas, view, self.signs.font, *self.loading(), self.loaded_at, t)
+            if view is self.map_view() and self.corner_free():
+                self.corner(view, t)
             if self.fade > 0:
                 veil = art.solid()
                 veil.fill(INK)
@@ -1299,6 +861,77 @@ class Glade:
             m = view.mouse()
             if m:
                 view.canvas.blit(CURSOR, (int(m[0]), int(m[1])))
+
+    # --- hooks: what the desktop and the game each add (desktop.py, game.py) -----------------
+    def home_only(self, content):
+        return content
+
+    def idle_work(self, t):
+        """Between fades: the game loads its far places."""
+
+    def update_play(self, dt, t):
+        """Before the animals' comings and goings."""
+
+    def update_play_late(self, dt, t):
+        """After them."""
+
+    def under(self, view, content, t):
+        """Drawn just after the place itself."""
+
+    def seen(self, view, content, t):
+        """Drawn over the weather, before the animals coming and going."""
+
+    def above(self, view, content, t):
+        """Drawn over the name boards: battles, cards, the Dex, boards."""
+
+    def map_overlay(self, view, t):
+        """With the name boards: the game's minimap."""
+
+    def corner(self, view, t):
+        """The boards in the lower screen's top-left corner (corner.py)."""
+
+    def corner_free(self):
+        """Whether the corner boards are shown and clickable now."""
+        return True
+
+    def corner_click(self, view, m, t):
+        return False
+
+    def to_place(self, key, t):
+        """A badge-case gem was clicked."""
+
+    def storm_started(self):
+        pass
+
+    def storm_blocked(self):
+        return False
+
+    def play_click(self, t):
+        return False
+
+    def play_click_late(self, t):
+        return False
+
+    def map_click(self, view, content, m, t):
+        return False
+
+    def moon_clicked(self, t):
+        pass
+
+    def activate_play(self, view, content, sp, t):
+        return False
+
+    def play_right_click(self, t):
+        return False
+
+    def show_card(self, view, m, species, t, animal=None):
+        pass
+
+    def typed(self, ch, t):
+        pass
+
+    def zoomed(self, view):
+        return False
 
 
 KEYS = {pygame.K_LEFT: "left", pygame.K_a: "left", pygame.K_RIGHT: "right", pygame.K_d: "right",
@@ -1315,6 +948,7 @@ def shots(out):
     pygame.display.set_mode((W, H))
     os.makedirs(out, exist_ok=True)
     lw, lh, lx = 800, 450, 80
+    from game import Minimap
     signs = Signs()
     minimap = Minimap(signs.font)
     only = os.environ.get("GLADE_ONLY")
@@ -1351,12 +985,14 @@ def shots(out):
 
 def loop(glade):
     clock = pygame.time.Clock()
-    while True:
+    while getattr(glade, "running", True):
         dt = clock.tick(30) / 1000
         frame_start = time.monotonic()
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 return
+            if e.type == pygame.VIDEORESIZE and hasattr(glade, "resized"):  # the game's window
+                glade.resized(e.size)
             if e.type == pygame.KEYDOWN and e.key == pygame.K_q and e.mod & pygame.KMOD_CTRL:
                 return
             if e.type == pygame.KEYDOWN and glade.panel.typing:  # a reply to Claude, being typed
@@ -1385,9 +1021,15 @@ def loop(glade):
 def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--shots":
         return shots(sys.argv[2])
+    if "--game" in sys.argv:
+        import game  # the game: all the play (world.py)
+        return game.run()
+    import world
+    from desktop import Desktop
+    world.claim(world.DESKTOP_PID)  # (so the game knows it has a desktop to stand in for)
     if os.environ.get("WAYLAND_DISPLAY") and "--x11" not in sys.argv:
         import wayland  # Hyprland: the glade as the desktop layer, one surface per monitor
-        return wayland.run()
+        return wayland.run(Desktop)
     pygame.init()
     mons = monitors()
     # One window covering every monitor; the bits of it that no monitor shows are unseen.
@@ -1399,7 +1041,7 @@ def main():
     keep_at_back(area)
     mons = [r.move(-area.x, -area.y) for r in mons]
     screen.fill(INK)
-    glade = Glade(screen, fit(mons[0], W, H), mons[1] if len(mons) > 1 else None)
+    glade = Desktop(screen, fit(mons[0], W, H), mons[1] if len(mons) > 1 else None)
     loop(glade)
 
 

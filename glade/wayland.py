@@ -8,6 +8,11 @@ nearest-neighbour scaling, so the pixels stay crisp.
 
 The main monitor (the one at the top-left of the layout) shows the glade; the next
 one shows the ground in front of it, exactly as under XFCE.
+
+Both programs run here (world.py): the desktop, and the game, which takes the desktop's place
+on the same layer while it is open (the desktop hides its surfaces and waits, `paused`). The
+keyboard steering pipe is the desktop's; while the game is open the desktop passes what comes
+through it on to the game's own pipe.
 """
 
 import json
@@ -314,10 +319,13 @@ class Keyboard:
         self.surfaces = []  # set by run(): the glade's surfaces, to know which a game covers
         self.fs_pending = False
         runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
-        self.pipe = os.path.join(runtime, "glade.ctl")
+        self.pipe = os.path.join(runtime, "glade.ctl")  # what glade-ctl writes to (the desktop's)
+        self.game_pipe = os.path.join(runtime, "glade-game.ctl")  # the game's, passed on by the desktop
 
-    def start(self, glade):
+    def start(self, glade, pipe=None):
         self.glade = glade
+        if pipe:
+            self.pipe = pipe
         self.submap = ""
         glade.on_launch = self.off
         # the moon: while it listens, letters go to the glade ("glademoon" submap)
@@ -365,7 +373,8 @@ class Keyboard:
         if self.glade.keys_on and time.monotonic() - self.used > self.IDLE:
             self.off()
         t = time.monotonic() - self.glade.t0
-        if self.submap == "glademoon" and not self.glade.listener.listening(t):
+        listener = getattr(self.glade, "listener", None)  # (the game's)
+        if self.submap == "glademoon" and (listener is None or not listener.listening(t)):
             self.off()  # the moon stopped listening: the letters are the windows' again
         return True
 
@@ -373,6 +382,14 @@ class Keyboard:
         try:
             data = os.read(fd, 4096).decode(errors="replace")
         except BlockingIOError:
+            return True
+        if getattr(self.glade, "paused", lambda: False)():  # the game is open: it is the game's
+            try:
+                out = os.open(self.game_pipe, os.O_WRONLY | os.O_NONBLOCK)
+                os.write(out, data.encode())
+                os.close(out)
+            except OSError:
+                pass
             return True
         for cmd in data.split():
             if cmd == "lower":  # the dock brought a window up: the Dex / card / board step back
@@ -478,7 +495,8 @@ def monitors():
     return sorted(mons, key=key)
 
 
-def run():
+def run(make):
+    """`make`: desktop.Desktop or game.Game."""
     pygame.init()
     pygame.display.set_mode((1, 1))
     mons = monitors()
@@ -487,8 +505,11 @@ def run():
     if len(mons) > 1:
         g1 = mons[1].get_geometry()
         lower = pygame.Rect(0, 0, g1.width, g1.height)
-    glade = main.Glade(None, main.fit(pygame.Rect(0, 0, g0.width, g0.height), W, H), lower)
-    KEYBOARD.start(glade)
+    glade = make(None, main.fit(pygame.Rect(0, 0, g0.width, g0.height), W, H), lower)
+    is_game = hasattr(glade, "rest")
+    glade.pausable = True
+    glade.quit = Gtk.main_quit
+    KEYBOARD.start(glade, KEYBOARD.game_pipe if is_game else None)
     surfaces = [Surface(glade, glade.top, mons[0])]
     if glade.bottom:
         surfaces.append(Surface(glade, glade.bottom, mons[1]))
@@ -499,9 +520,12 @@ def run():
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
 
-    fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None),
-              Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
-              Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
+    fronts = []
+    if is_game:  # the stats card, the Dex and the boards, in front of the windows
+        fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None),
+                  Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
+                  Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
+    hidden, shown = [False], [False]
     last = [time.monotonic()]
     seen = set()  # errors already written to the log
 
@@ -520,10 +544,29 @@ def run():
     def frame():
         now = time.monotonic()
         dt, last[0] = min(0.1, now - last[0]), now
+        if getattr(glade, "paused", lambda: False)():  # the desktop, while the game is open
+            if not hidden[0]:
+                hidden[0] = True
+                for s in surfaces:
+                    s.win.hide()
+            return
+        if hidden[0]:  # the game has closed: back it comes
+            hidden[0] = False
+            last[0] = now
+            for s in surfaces:
+                s.win.show_all()
+                s.set_cursor()
+            return
         glade.render(dt)
+        if not getattr(glade, "running", True):
+            return
         for s in surfaces:
             if s.view not in glade.covered:  # under a full-screen game: no need to show it
                 s.area.queue_draw()
+        if is_game and not shown[0]:  # the game's first frame is up: the desktop can step aside
+            shown[0] = True
+            import world
+            world.mark_ready()
         for front in fronts:
             front.update()
         loading.between_frames(now + 1 / FPS)  # the far places load in the time left over

@@ -46,15 +46,26 @@ much more detail; plaques must not move; the words always shown, nicely.
 In practice: depth planes fading into violet night mist, no outlines, moonlit rims and
 shaded undersides, dense hanging plants, and everything gently moving.
 
-**Desktop and Wander (his ask, 2026-10-28):** the desktop is all looks, no play: the home
-clearing alone (its apps, Hide animals, Predator vision, Thunderstorm, the Claude panel), no
-paths, minimap or battles, and only `storm.CAP` (20) creature families, re-picked at each
-Thunderstorm. The **Wander** board under Your party turns it into the whole game where it is,
-on both screens (`Glade.wander` in `main.py`; `glade/world.py` draws the board); it then reads
-**Rest**, which fades back to the plain desktop and lets the far places go (`Glade.rest`).
-Forest Dex, Your party, right-clicking an animal and clicking the moon also start the game,
-straight at that thing. (A separate game window was tried first: it could only cover the top
-screen, so he chose this.)
+**Desktop and game: two programs, one shared base** (2026-10-29, Lando's rule: a standalone game that
+works without the Glade desktop, no duplicate code, all gameplay only in the game; his picks; `world.py`
+explains it). `main.Glade` is everything both share (views, places, name boards, apps, animals coming
+and going, Thunderstorm, hiding, squid trees, Claude panel, updates) and plays nothing; it has hooks
+(end of the class). `desktop.Desktop` (`glade`) adds only looks: the home clearing, no paths, `storm.CAP`
+(20) families, boards Forest Dex / Hide animals / Your party / badge case / **Wander** (no Predator
+vision: his pick). Those boards, a badge gem, right-clicking an animal and the moon all open the game
+straight at that thing (`world.open_world`, handed over in `$XDG_RUNTIME_DIR/glade-world.ask`).
+`game.Game` (`glade --game`) adds all the play: every place, paths, minimap, far places loading,
+Predator vision, cards, battles, eggs, Dex, party, Tower, gyms; its **Rest** board closes it. **Never put
+gameplay in desktop.py or main.Glade; anything both need goes in main.Glade.** On his desktop (Wayland and
+the desktop running) the game takes the desktop's place, behind windows on both screens (his pick): same
+layer-shell code (`wayland.run(Game)`), and the desktop hides its surfaces once the game's first frame is up
+(`world.showing`, `Desktop.paused`) and passes glade-ctl keys on to `glade-game.ctl`. Anywhere else (Lando's
+machines, X11, `--window`) the game is an ordinary resizable window with both screens stacked (`game.window`),
+without the Claude panel. One game at a time (`glade-world.pid`; the desktop writes `glade-desktop.pid`).
+After an update the game restarts itself in place (`Game.restart`, `os.execv`) and reopens where he was
+(`resume.restore`); the desktop is restarted by the config's glade-desktop loop. (History: Wander used to turn
+the desktop itself into the game; before that a separate window was tried, which showed nothing because it
+inherited `SDL_VIDEODRIVER=dummy`; `game.window` removes that.)
 
 **Loading while wandering** (`glade/loading.py`, 2026-10-28, his ask: Wander stuttered for ~20 s and he
 wanted to know when it is all loaded): Wander loads **every** place, nearest first, on a side thread
@@ -191,12 +202,14 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   Pokémon does. The stats card's gold "Evolve into …" button plays a ~4 s evolution: dim, a
   white shape flickering faster between forms, a flash, and a banner. It does not persist
   across restarts yet. Final stages are not made yet: don't add them unless he asks.
-- `glade/main.py` — one window spanning every monitor (Glade on the one at +0+0, pond
-  on the next), moved into place and made "below/sticky/skip_taskbar"
-  with `wmctrl` so it sits behind every window; name boards, fades, app launching.
-- `glade/wayland.py` — the same under Hyprland, as a layer-shell surface per monitor.
+- `glade/main.py` — the shared base (`Glade`, name boards, views) and the entry point: the desktop by
+  default (under X11 one window spanning every monitor, made "below/sticky/skip_taskbar" with `wmctrl`),
+  `--game` for the game. `glade/desktop.py` and `glade/game.py` are the two programs (above).
+- `glade/wayland.py` — either program under Hyprland, as a layer-shell surface per monitor.
+- `glade/corner.py` — stacks the boards in the lower screen's top-left corner (each app sets `ORDER`).
 
-Run: `nix develop /home/insideabush/nixos-config#vibe-python --command python glade/main.py`
+Run: `nix develop /home/insideabush/nixos-config#vibe-python --command python glade/main.py` (add `--game`
+for the game; `--game --window` forces the window)
 (Ctrl+Q quits, Home key jumps home). Review the art without a display:
 `python glade/main.py --shots DIR` writes a PNG of every place.
 
@@ -356,6 +369,5 @@ started at login under Hyprland. Changing the installed copy is a config change 
   stitching). Pointing at a slot names the gym (dark plum words: his ask, light ones were hard to read). It is a
   **drop-down** (his ask): shut, only the lid shows; clicking the lid opens/shuts it (`badges.State`), and the Wander
   board sits under whatever is shown (`world.rect`). Clicking a gem or empty slot goes there like the minimap
-  (from the desktop it starts Wander first). After an update the glade opens where he was again, wandering with
-  the minimap (`resume.restore` in `Glade.__init__`; it had been left out, so he landed on the plain desktop).
+  (from the desktop it opens the game there).
   Next: gyms for the other places, then the Elite 4 and champion.

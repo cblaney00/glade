@@ -219,14 +219,17 @@ class Lifespans:
         self.far_at = 0.0  # when to next look at the places not on screen
 
     def keep(self, glade):
-        arena = glade.arena
+        """The animals the game is using (in a battle, evolving, with their card open): they stay.
+        (The desktop has none of those.)"""
+        arena = getattr(glade, "arena", None)
         keep = [f.a.obj for f in arena.fighters] + [p[0].obj for p in arena.picked] if arena else []
         if arena is not None and arena.foe:
             keep.append(arena.foe[0].obj)
-        if glade.evolution is not None:
-            keep.append(glade.evolution.obj)
-        if glade.card is not None and glade.card.animal is not None:
-            keep.append(glade.card.animal.obj)
+        evolution, card = getattr(glade, "evolution", None), getattr(glade, "card", None)
+        if evolution is not None:
+            keep.append(evolution.obj)
+        if card is not None and card.animal is not None:
+            keep.append(card.animal.obj)
         return keep
 
     def update(self, glade, t):
@@ -304,7 +307,7 @@ class Storm:
         self.rng = random.Random()
         self.scene = glade.here
         self.low = glade.lower() if glade.bottom else None
-        arena = glade.arena
+        arena = getattr(glade, "arena", None)  # (the game's)
         self.keep = [f.a.obj for f in arena.fighters] + [p[0].obj for p in arena.picked] if arena else []
         self.moves = []
         self.chosen = False

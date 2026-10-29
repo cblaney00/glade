@@ -17,6 +17,8 @@ import random
 
 import pygame
 
+import corner
+
 from battle import TEXT, cloth
 from storm import Shelter, roster
 from team import STATE
@@ -116,11 +118,11 @@ PARTY = (150, 190, 255)
 
 
 def keep_rect(view):
-    return pygame.Rect(8, 60, 150, 22)
+    return corner.rect("keep")
 
 
 def party_rect(view):
-    return pygame.Rect(8, 86, 150, 22)
+    return corner.rect("party")
 
 
 def draw_buttons(s, view, font, hide):
@@ -144,4 +146,26 @@ def draw_buttons(s, view, font, hide):
         cx, cy = r.x + 6 + (i % 3) * 5, r.centery - 3 + (i // 3) * 6
         pygame.draw.circle(s, (240, 246, 255), (cx, cy), 2)
     img = font.render("Your party", False, (255, 255, 255) if hot else TEXT)
+    s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))
+
+
+DEX = (150, 230, 190)
+
+
+def dex_rect(view):
+    """The Forest Dex button, at the top of the corner boards (under Predator vision in the game)."""
+    return corner.rect("dex")
+
+
+def draw_dex_button(s, view, font):
+    """A mint board with a little open book."""
+    r = dex_rect(view)
+    m = view.mouse()
+    hot = bool(m) and r.collidepoint(m)
+    cloth(s, r, DEX, hot=hot, alpha=230)
+    bx, by = r.x + 6, r.centery - 5
+    pygame.draw.polygon(s, (240, 236, 220), [(bx, by), (bx + 7, by + 1), (bx + 7, by + 10), (bx, by + 9)])
+    pygame.draw.polygon(s, (220, 214, 196), [(bx + 7, by + 1), (bx + 14, by), (bx + 14, by + 9), (bx + 7, by + 10)])
+    pygame.draw.line(s, (120, 90, 110), (bx + 7, by + 1), (bx + 7, by + 10))
+    img = font.render("Forest Dex", False, (255, 255, 255) if hot else TEXT)
     s.blit(img, (r.x + 26, r.centery - img.get_height() // 2))

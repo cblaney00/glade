@@ -19,6 +19,7 @@ import os
 import pygame
 
 import art
+import corner
 from apex import ease
 from battle import EDGE, mix
 from gyms import GYMS, TITLES
@@ -47,20 +48,25 @@ class State:
     shown = 22      # the height drawn last frame (world.rect puts the Wander board under it)
 
 
+corner.HEIGHT["badges"] = lambda: State.shown
+
+
 def full(view):
     """Right under the Your party board (hiding.party_rect), the same width, open."""
-    return pygame.Rect(8, 112, 150, FULL)
+    r = corner.rect("badges")
+    r.h = FULL
+    return r
 
 
 def lid(view):
-    return pygame.Rect(8, 112, 150, 22)
+    r = corner.rect("badges")
+    r.h = 22
+    return r
 
 
 def rect(view):
     """What is on screen now: the lid, the open case, or something between while it moves."""
-    r = full(view)
-    r.h = State.shown
-    return r
+    return corner.rect("badges")
 
 
 def toggle(t):
