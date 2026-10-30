@@ -371,7 +371,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   board sits under whatever is shown (`world.rect`). Clicking a gem or empty slot goes there like the minimap
   (from the desktop it opens the game there).
   **Part three** (2026-10-30, his ask: "add the rest of the gyms"; leaders, types and spots Claude's pick): every
-  other place but the Tower has one, **29 in all** (`gyms.PLACES = len(GYMS)`, so the 29th is Lv 53, ace 55). Types
+  other place but the Tower has one, **29 in all** (`gyms.PLACES = len(GYMS)`, so the 29th is Lv 55, ace 57). Types
   follow who lives there; repeats are fine, two-type gyms take creatures of either type (Bog Poison, Cloud Bridge
   Fighting/Flying, Comet Crater Dragon/Rock, Lava Lake Fire/Dragon, ...). The desktop never draws the Glade's stone
   (`gyms.SHOW`). The gym board shows badges in two rows of 15.
