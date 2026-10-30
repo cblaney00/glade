@@ -72,7 +72,8 @@ class Surface:
         GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
         area = self.area = Gtk.DrawingArea()
         area.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
-                        | Gdk.EventMask.BUTTON_RELEASE_MASK
+                        | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.SCROLL_MASK
+                        | Gdk.EventMask.SMOOTH_SCROLL_MASK
                         | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK)
         area.connect("draw", self.draw)
         area.connect("motion-notify-event", self.motion)
@@ -80,6 +81,7 @@ class Surface:
         area.connect("leave-notify-event", self.leave)
         area.connect("button-press-event", self.press)
         area.connect("button-release-event", self.release)
+        area.connect("scroll-event", self.scroll)
         area.connect("size-allocate", self.resized)
         win.connect("key-press-event", self.key)
         win.add(area)
@@ -167,6 +169,16 @@ class Surface:
         if event.button == 1:
             self.view.pointer = (event.x, event.y)
             self.glade.release(time.monotonic() - self.glade.t0)
+        return True
+
+    def scroll(self, area, event):
+        self.view.pointer = (event.x, event.y)
+        if event.direction == Gdk.ScrollDirection.SMOOTH:
+            dy = event.get_scroll_deltas()[2]
+        else:
+            dy = {Gdk.ScrollDirection.UP: -1, Gdk.ScrollDirection.DOWN: 1}.get(event.direction, 0)
+        if dy and hasattr(self.glade, "scroll"):
+            self.glade.scroll(dy)
         return True
 
     def draw(self, area, cr):

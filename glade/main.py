@@ -579,6 +579,12 @@ class Glade:
         if self.on_launch:
             self.on_launch()
 
+    def scroll(self, dy):
+        """The mouse wheel: only the Claude panel's cards scroll (his ask, 2026-10-30)."""
+        panel_view = self.bottom or self.top
+        if self.show_panel:
+            self.panel.scroll(panel_view, panel_view.mouse(), dy)
+
     def click(self, t):
         panel_view = self.bottom or self.top
         if self.show_panel and self.panel.click(panel_view, panel_view.mouse()):
@@ -1014,6 +1020,8 @@ def loop(glade):
                 glade.right_click(time.monotonic() - glade.t0)
             if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                 glade.release(time.monotonic() - glade.t0)
+            if e.type == pygame.MOUSEWHEEL and hasattr(glade, "scroll"):
+                glade.scroll(-e.y)
         glade.frame(min(dt, 0.1))
         loading.between_frames(frame_start + 1 / 30)  # the far places load in the time left over
 

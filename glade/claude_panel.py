@@ -1,7 +1,8 @@
-"""The Claude panel (his ask, 2026-10-27): a minimised way of talking to the Claude session
-he has open, in the lower screen's top-right corner.
+"""The Claude panel (his ask, 2026-10-27): a minimised way of talking to the Claude sessions
+he has open, in the lower screen's top-right corner: one card per chat (his ask, 2026-10-30),
+three in sight at once, the mouse wheel scrolling through the rest, each with a progress bar.
 
-It shows what claude_state.py records: the task's title, whether Claude is working or waiting,
+Each card shows what claude_state.py records: the task's title, whether Claude is working or waiting,
 a progress bar with what is being worked on now (when the task has steps), and Claude's
 latest message. Clicking it (anywhere but the reply box) brings up the terminal that chat is
 running in. Point at it and it opens out: the whole message, and a box to reply in that
@@ -32,7 +33,9 @@ ORANGE = (255, 156, 70)   # "Open terminal": Claude wants him there
 DIM = (170, 160, 200)
 W = 270          # its width, in canvas pixels
 LINE = 13
-SHORT = 4        # lines of the message shown while it is closed
+SHORT = 2        # lines of the message shown while a card is closed
+SHOWN = 3        # cards in sight at once (his pick, 2026-10-30); the wheel scrolls through the rest
+CARD_H = 72      # about how tall a closed card is
 DONE_FOR = 15.0  # seconds the "all done" line stays after a task's last step
 
 
@@ -76,80 +79,123 @@ def wrap(font, text, width):
     return lines
 
 
+class Card:
+    """One chat's card: what it is drawn from and where it was drawn."""
+
+    def __init__(self, st):
+        self.st = st
+        self.rect = None
+        self.box = None  # its reply box, while it is open
+
+
 class Panel:
     def __init__(self):
-        self.state, self.checked = None, -10.0
-        self.rect = None          # where it is on the canvas (for the pointer and clicks)
-        self.box = None           # the reply box's rect, while it is open
+        self.sessions, self.checked = [], -10.0
+        self.rect = None          # all of it, on the canvas (for the pointer and clicks)
+        self.cards = []           # the cards drawn last frame
+        self.hints = []           # (rect, -1 / +1): the "more above / below" lines
         self.view = None
-        self.typing = False
+        self.typing = None        # the pid of the chat a reply is being typed to
         self.draft = ""
-        self.sent = None          # (when, "Sent" / why not)
+        self.draft_for = None     # the pid that draft is for
+        self.sent = None          # (when, "Sent" / why not, pid)
         self.on_typing = None     # set by wayland.py: lets the panel have the keyboard, or not
         self.was_open = False
-        self.seen = False         # Claude's terminal is on one of his screens (then the panel stays away)
+        self.seen = {}            # pid: its terminal is on one of his screens (then its card stays away)
         self.looking = False
+        self.first = 0            # the first card shown (his ask, 2026-10-30: scroll through them)
+        self.wheel = 0.0
 
-    # --- the state file ----------------------------------------------------------------
+    # --- the state files ---------------------------------------------------------------
 
     def poll(self, t):
         if t - self.checked < 0.5:
             return
         self.checked = t
-        d = claude_state.load()
-        self.state = d if claude_state.running(d) else None
-        if self.state is None and self.typing:
+        self.sessions = claude_state.sessions()
+        pids = {d["pid"] for d in self.sessions}
+        if self.draft_for not in pids:
+            self.draft = ""
             self.stop_typing()
-        if self.state is not None and not self.looking:
+        if self.sessions and not self.looking:
             self.looking = True
-            threading.Thread(target=self._look, args=(d["pid"],), daemon=True).start()
+            threading.Thread(target=self._look, args=(sorted(pids),), daemon=True).start()
 
-    def _look(self, pid):
+    def _look(self, pids):
         try:
-            self.seen = terminal_seen(pid)
+            self.seen = {pid: terminal_seen(pid) for pid in pids}
         finally:
             self.looking = False
+
+    def shown(self):
+        """The chats with a card: his rule (2026-10-27), only while that chat's terminal is
+        minimised or on no screen (and always the one he is typing a reply to)."""
+        return [d for d in self.sessions if not self.seen.get(d["pid"]) or d["pid"] in (self.typing, self.draft_for)]
 
     # --- pointer and keys --------------------------------------------------------------
 
     def hovered(self, m):
         return bool(m and self.rect and self.rect.collidepoint(m))
 
-    def is_open(self, m):
-        return self.typing or self.hovered(m) or bool(self.draft)
+    def card_at(self, m):
+        return next((c for c in self.cards if m and c.rect.collidepoint(m)), None)
 
     def click(self, view, m):
         """A click on the panel is the panel's (True), never the glade's."""
-        if self.state is None or view is not self.view or not self.hovered(m):
-            if self.typing and view is self.view and not self.draft:
+        if not self.cards or view is not self.view or not self.hovered(m):
+            if self.typing is not None and view is self.view and not self.draft:
                 self.stop_typing()
             return False
-        if self.box and self.box.collidepoint(m):
-            self.start_typing()
-        else:  # anywhere else on it: go to Claude's terminal
+        for r, step in self.hints:
+            if r.collidepoint(m):
+                self.move(step)
+                return True
+        c = self.card_at(m)
+        if c is None:
+            return True
+        pid = c.st["pid"]
+        if c.box and c.box.collidepoint(m):
+            if self.typing not in (None, pid):
+                self.draft = ""
+            self.start_typing(pid)
+        else:  # anywhere else on it: go to that chat's terminal
             self.stop_typing()
-            threading.Thread(target=focus_terminal, args=(self.state.get("pid"),), daemon=True).start()
+            threading.Thread(target=focus_terminal, args=(pid,), daemon=True).start()
         return True
 
-    def start_typing(self):
-        if not self.typing:
-            self.typing = True
-            if self.on_typing:
-                self.on_typing(True)
+    def scroll(self, view, m, dy):
+        """The mouse wheel over the cards (his ask, 2026-10-30): one card up or down per notch."""
+        if view is not self.view or not self.hovered(m):
+            return False
+        self.wheel += dy
+        while abs(self.wheel) >= 1:
+            step = 1 if self.wheel > 0 else -1
+            self.wheel -= step
+            self.move(step)
+        return True
+
+    def move(self, step):
+        self.first = max(0, min(len(self.shown()) - SHOWN, self.first + step))
+
+    def start_typing(self, pid):
+        was = self.typing is not None
+        self.typing = self.draft_for = pid
+        if not was and self.on_typing:
+            self.on_typing(True)
 
     def stop_typing(self):
-        if self.typing:
-            self.typing = False
+        if self.typing is not None:
+            self.typing = None
             if self.on_typing:
                 self.on_typing(False)
 
     def key(self, name, text=""):
         """A key while typing: name is "return", "escape", "backspace" or "" (text: what it types)."""
-        if not self.typing:
+        if self.typing is None:
             return False
         if name == "return":
             if self.draft.strip():
-                self.send(self.draft.strip())
+                self.send(self.typing, self.draft.strip())
                 self.draft = ""
             self.stop_typing()
         elif name == "escape":
@@ -162,16 +208,15 @@ class Panel:
 
     # --- sending a reply into the terminal ---------------------------------------------
 
-    def send(self, text):
-        self.sent = (time.monotonic(), "Sending…")
-        pid = (self.state or {}).get("pid")
+    def send(self, pid, text):
+        self.sent = (time.monotonic(), "Sending…", pid)
         threading.Thread(target=self._send, args=(pid, text), daemon=True).start()
 
     def _send(self, pid, text):
         try:
             found = find_window(pid)
             if found is None:
-                self.sent = (time.monotonic(), "Couldn't find Claude's terminal; reply there instead")
+                self.sent = (time.monotonic(), "Couldn't find Claude's terminal; reply there instead", pid)
                 return
             kitty, sock, wid = found
             base = [kitty, "@", "--to", "unix:" + sock]
@@ -180,77 +225,116 @@ class Panel:
             time.sleep(0.35)
             subprocess.run(base + ["send-key", "--match", f"id:{wid}", "enter"], timeout=5, check=True,
                            capture_output=True)
-            self.sent = (time.monotonic(), "Sent")
+            self.sent = (time.monotonic(), "Sent", pid)
         except (OSError, subprocess.SubprocessError):
-            self.sent = (time.monotonic(), "Couldn't send it; reply in the terminal instead")
+            self.sent = (time.monotonic(), "Couldn't send it; reply in the terminal instead", pid)
 
     # --- drawing -------------------------------------------------------------------------
 
     def draw(self, s, view, font, t, below_storm):
         self.poll(t)
         self.view = view
-        st = self.state
-        # His rule (2026-10-27): only there while Claude's terminal is minimised or on no screen
-        # (it stays while he is typing a reply in it, so it never vanishes under his fingers).
-        if st is None or (self.seen and not self.typing and not self.draft):
-            self.rect = self.box = None
+        shown = self.shown()
+        m = view.mouse()
+        # The card under the pointer opens out; the one he types in (or left a draft in) stays
+        # open. It is picked from last frame's places, so the cards don't jump about under the pointer.
+        under = self.card_at(m)
+        if self.typing is not None:
+            opened = self.typing
+        elif self.draft:
+            opened = self.draft_for
+        else:
+            opened = under.st["pid"] if under else None
+        self.cards, self.hints = [], []
+        if not shown:
+            self.rect = None
             if self.was_open:
                 self.was_open = False
                 if self.on_typing:
                     self.on_typing(False)
             return
-        m = view.mouse()
-        is_open = self.is_open(m)
-        x0, y0 = view.w - W - 8, 34 if below_storm else 8
+        self.first = max(0, min(self.first, len(shown) - SHOWN))
+        if self.typing is not None or self.draft:  # the card being typed in stays in sight
+            i = next((i for i, d in enumerate(shown) if d["pid"] == opened), None)
+            if i is not None and not self.first <= i < self.first + SHOWN:
+                self.first = max(0, min(i, len(shown) - SHOWN))
+        x0, y = view.w - W - 8, 34 if below_storm else 8
+        top = y
+        above, below = shown[:self.first], shown[self.first + SHOWN:]
+        if above:
+            y = self.hint(s, font, x0, y, len(above), "above", any(d.get("attention") for d in above), -1)
+        room = view.h - y - 30 - (CARD_H + 4) * (min(SHOWN, len(shown) - self.first) - 1)
+        for d in shown[self.first:self.first + SHOWN]:
+            c = Card(d)
+            y = self.card(s, font, t, c, x0, y, d["pid"] == opened, room) + 4
+            self.cards.append(c)
+        if below:
+            y = self.hint(s, font, x0, y, len(below), "below", any(d.get("attention") for d in below), 1)
+        self.rect = pygame.Rect(x0, top, W, y - top)
+        # The keyboard is the panel's only while the pointer is on a reply box or he is typing in
+        # one, so a click on any window (his terminal above all) gets the keys straight back.
+        want = self.typing is not None or any(c.box and m and c.box.collidepoint(m) for c in self.cards)
+        if want != self.was_open:
+            self.was_open = want
+            if self.on_typing and self.typing is None:
+                self.on_typing(want)
+
+    def hint(self, s, font, x, y, n, where, needs, step):
+        """'2 more above' (orange when one of them needs him): click or scroll to see them."""
+        text = f"{n} more {where}" + (" · one needs you" if needs else "") + " · scroll"
+        r = pygame.Rect(x, y, W, LINE + 4)
+        cloth(s, r, ORANGE if needs else MINT, hot=False, alpha=200)
+        img = font.render(text, False, ORANGE if needs else DIM)
+        s.blit(img, (r.centerx - img.get_width() // 2, y + 2))
+        self.hints.append((r, step))
+        return r.bottom + 4
+
+    def card(self, s, font, t, c, x0, y0, is_open, room):
+        st = c.st
         inner = W - 20
-        rows = []  # (kind, payload)
-        rows.append(("title", st.get("title") or "Claude"))
+        rows = [("title", st.get("title") or "Claude")]
         if st.get("attention"):
             rows.append(("open", None))
             if is_open:
                 rows += [("attention", line) for line in wrap(font, st["attention"], inner)]
         p = st.get("progress")
-        if p and not (p.get("finished") and time.time() - p["finished"] > DONE_FOR):
-            rows.append(("bar", p))
-            if p.get("finished"):
-                rows.append(("done", f"All {p['total']} done!"))
-            elif p.get("now"):
-                rows.append(("now", p["now"]))
+        if p and p.get("finished") and time.time() - p["finished"] > DONE_FOR:
+            p = None
+        rows.append(("bar", p))  # his ask (2026-10-30): every card has a bar
+        if p and p.get("finished"):
+            rows.append(("done", f"All {p['total']} done!"))
+        elif p and p.get("now"):
+            rows.append(("now", p["now"]))
         msg = wrap(font, tidy(st.get("message") or ""), inner)
         if msg:
             if not is_open and len(msg) > SHORT:
                 msg = msg[:SHORT - 1] + [msg[SHORT - 1].rstrip() + " …"]
-            room = (view.h - y0 - 140) // LINE
-            if is_open and len(msg) > room:  # too long to show it all: its end is what matters most
-                msg = ["…"] + msg[-(room - 1):]
+            fit = max(SHORT, (room - 85) // LINE)
+            if is_open and len(msg) > fit:  # too long to show it all: its end is what matters most
+                msg = ["…"] + msg[-(fit - 1):]
             rows.append(("gap", None))
             rows += [("msg", line) for line in msg]
-        box_lines = []
+        mine = self.typing == st["pid"]
         if is_open:
-            box_lines = wrap(font, self.draft, inner - 10) if self.draft else []
-            rows.append(("gap", None))
-            rows.append(("box", box_lines))
-            rows.append(("hint", None))
+            draft = self.draft if self.draft_for == st["pid"] else ""
+            rows += [("gap", None), ("box", wrap(font, draft, inner - 10) if draft else []), ("hint", None)]
         h = 8
         for kind, v in rows:
             h += 8 + LINE * max(1, min(8, len(v))) if kind == "box" else {"bar": 14, "gap": 5}.get(kind, LINE)
         h += 4
-        r = self.rect = pygame.Rect(x0, y0, W, h)
-        attention = bool(st.get("attention"))
+        r = c.rect = pygame.Rect(x0, y0, W, h)
         tint = MINT
         cloth(s, r, tint, hot=is_open, alpha=235)
-        if attention:  # a calm orange rim: come to the terminal
+        if st.get("attention"):  # a calm orange rim: come to the terminal
             pygame.draw.rect(s, ORANGE, r.inflate(2, 2), 1, border_radius=5)
         y = r.y + 5
-        self.box = None
+        working = st.get("working")
         for kind, v in rows:
             x = r.x + 10
             if kind == "title":
-                working = st.get("working")
-                c = MINT if working else mix(MINT, (255, 255, 255), 0.5)
-                pygame.draw.circle(s, c, (x + 3, y + 6), 3)  # still: his ask, no working animation
-                state = "working" if working else "waiting for you"
-                tag = font.render(state, False, DIM)
+                col = MINT if working else mix(MINT, (255, 255, 255), 0.5)
+                pygame.draw.circle(s, col, (x + 3, y + 6), 3)  # still: his ask, no working animation
+                tag = font.render("working" if working else "waiting for you", False, DIM)
                 title = v
                 while title and font.size(title)[0] > inner - 14 - tag.get_width() - 8:
                     title = title[:-2] + "…"
@@ -264,17 +348,7 @@ class Panel:
                 s.blit(font.render(v, False, DIM), (x, y))
                 y += LINE
             elif kind == "bar":
-                bar = pygame.Rect(x, y + 3, inner - 44, 8)
-                pygame.draw.rect(s, (24, 40, 46), bar, border_radius=3)
-                f = v["done"] / max(1, v["total"])
-                if f > 0:
-                    fill = bar.inflate(-2, -2)
-                    fill.w = max(2, round(fill.w * f))
-                    pygame.draw.rect(s, MINT, fill, border_radius=2)
-                    gx = fill.right - 1 - ((t * 20) % max(1, fill.w))
-                    pygame.draw.line(s, (240, 255, 248), (gx, fill.y), (gx, fill.bottom - 1))
-                n = font.render(f"{v['done']}/{v['total']}", False, TEXT)
-                s.blit(n, (r.right - 10 - n.get_width(), y))
+                self.bar(s, font, t, pygame.Rect(x, y + 3, inner - 44, 8), v, working, r.right - 10, y)
                 y += 14
             elif kind == "now":
                 dots = "." * (1 + int(t * 2) % 3)
@@ -291,42 +365,66 @@ class Panel:
                 y += LINE
             elif kind == "box":
                 n = max(1, min(8, len(v)))
-                box = self.box = pygame.Rect(x, y, inner, 8 + LINE * n)
+                box = c.box = pygame.Rect(x, y, inner, 8 + LINE * n)
                 pygame.draw.rect(s, (18, 14, 34), box, border_radius=3)
-                rim = (255, 255, 255) if self.typing else mix(tint, (255, 255, 255), 0.3)
+                rim = (255, 255, 255) if mine else mix(tint, (255, 255, 255), 0.3)
                 pygame.draw.rect(s, rim, box, 1, border_radius=3)
                 if not v:
-                    hint = "Type here to reply to Claude" if self.typing else "Click here to reply to Claude"
+                    hint = "Type here to reply to Claude" if mine else "Click here to reply to Claude"
                     s.blit(font.render(hint, False, DIM), (box.x + 5, box.y + 4))
                     cx = box.x + 5
                 else:
-                    shown = v[-8:]
-                    for i, line in enumerate(shown):
+                    lines = v[-8:]
+                    for i, line in enumerate(lines):
                         s.blit(font.render(line, False, (255, 255, 255)), (box.x + 5, box.y + 4 + i * LINE))
-                    cx = box.x + 5 + font.size(shown[-1])[0]
-                if self.typing and int(t * 2) % 2 == 0:  # the caret
+                    cx = box.x + 5 + font.size(lines[-1])[0]
+                if mine and int(t * 2) % 2 == 0:  # the caret
                     cy = box.bottom - 4 - LINE + 2
                     pygame.draw.line(s, (255, 255, 255), (cx + 1, cy), (cx + 1, cy + LINE - 3))
                 y = box.bottom
             elif kind == "hint":
-                if self.sent and time.monotonic() - self.sent[0] < 6:
-                    hint, c = self.sent[1], MINT if self.sent[1] == "Sent" else GOLD
-                elif self.typing:
-                    hint, c = "Enter sends it · Esc stops typing", DIM
+                sent = self.sent if self.sent and self.sent[2] == st["pid"] else None
+                if sent and time.monotonic() - sent[0] < 6:
+                    hint, col = sent[1], MINT if sent[1] == "Sent" else GOLD
+                elif mine:
+                    hint, col = "Enter sends it · Esc stops typing", DIM
                 else:
-                    hint, c = "Your reply goes to Claude's terminal", DIM
-                s.blit(font.render(hint, False, c), (x, y + 1))
+                    hint, col = "Your reply goes to Claude's terminal", DIM
+                s.blit(font.render(hint, False, col), (x, y + 1))
                 y += LINE
-        # The keyboard is the panel's only while the pointer is on the reply box or he is typing
-        # in it, so a click on any window (his terminal above all) gets the keys straight back.
-        want = self.typing or bool(self.box and m and self.box.collidepoint(m))
-        if want != self.was_open:
-            self.was_open = want
-            if self.on_typing and not self.typing:
-                self.on_typing(want)
-        if not is_open and self.sent and time.monotonic() - self.sent[0] < 6:
-            img = font.render(self.sent[1], False, MINT if self.sent[1] == "Sent" else GOLD)
+        sent = self.sent if self.sent and self.sent[2] == st["pid"] else None
+        if not is_open and sent and time.monotonic() - sent[0] < 6:
+            img = font.render(sent[1], False, MINT if sent[1] == "Sent" else GOLD)
             s.blit(img, (r.right - 10 - img.get_width(), r.bottom + 2))
+            return r.bottom + LINE
+        return r.bottom
+
+    def bar(self, s, font, t, bar, p, working, right, y):
+        """Steps done (when Claude counted them), or else a soft glow drifting along it while
+        Claude works and lying still while it waits (his pick, 2026-10-30)."""
+        pygame.draw.rect(s, (24, 40, 46), bar, border_radius=3)
+        fill = bar.inflate(-2, -2)
+        if p:
+            f = p["done"] / max(1, p["total"])
+            if f > 0:
+                fill.w = max(2, round(fill.w * f))
+                pygame.draw.rect(s, MINT, fill, border_radius=2)
+                gx = fill.right - 1 - ((t * 20) % max(1, fill.w))
+                pygame.draw.line(s, (240, 255, 248), (gx, fill.y), (gx, fill.bottom - 1))
+            label = f"{p['done']}/{p['total']}"
+        else:
+            span = fill.w + 40
+            cx = fill.x - 20 + (t * 45) % span if working else fill.centerx
+            for x in range(fill.x, fill.right):
+                a = max(0.0, 1 - abs(x - cx) / 20)
+                if not working:
+                    a *= 0.35
+                if a > 0:
+                    pygame.draw.line(s, mix((24, 40, 46), MINT, a * 0.8), (x, fill.y), (x, fill.bottom - 1))
+            label = "…" if working else ""
+        if label:
+            n = font.render(label, False, TEXT)
+            s.blit(n, (right - n.get_width(), y))
 
 
 def _ancestors(pid):

@@ -1,11 +1,13 @@
-"""What the Claude session he is talking to is up to, for the Claude panel (claude_panel.py).
+"""What each Claude session he is talking to is up to, for the Claude panel (claude_panel.py).
 
 His ask (2026-10-27): a small panel on the lower screen that is a minimised way of talking to
 Claude: the task's title, a progress bar when there is one, Claude's latest message, a box to
 reply in, and a gold glow when Claude needs him at the terminal (to pick options, say).
 
-The session writes ~/.local/state/glade/claude.json through this file, run as a command
-(`glade-status`, see the config's pkgs/glade). Plain Python only: it runs on every hook.
+His ask (2026-10-30): several chats at once, each with its own card and progress bar. Each
+session writes ~/.local/state/glade/claude/<its pid>.json through this file, run as a command
+(`glade-status`, see the config's pkgs/glade); the commands below act on the chat they are run
+from. Plain Python only: it runs on every hook.
 
     glade-status hook             (Claude Code hooks: reads the hook's JSON on stdin)
     glade-status title TEXT       what the task is called on the panel
@@ -37,31 +39,90 @@ def home():
         return os.path.expanduser("~")
 
 
-PATH = os.path.join(home(), ".local/state/glade/claude.json")
+FOLDER = os.path.join(home(), ".local/state/glade/claude")
+OLD = os.path.join(home(), ".local/state/glade/claude.json")  # (from when there was only one chat)
 
 
-def load():
+def path(pid):
+    return os.path.join(FOLDER, f"{pid}.json")
+
+
+def load(pid):
     try:
-        with open(PATH) as f:
+        with open(path(pid)) as f:
             return json.load(f)
     except (OSError, ValueError):
         return {}
 
 
+def forget(pid):
+    try:
+        os.remove(path(pid))
+    except OSError:
+        pass
+
+
 def save(d):
     d["updated"] = time.time()
-    folder = os.path.dirname(PATH)
-    os.makedirs(folder, exist_ok=True)
-    tmp = PATH + ".tmp"
+    os.makedirs(FOLDER, exist_ok=True)
+    target = path(d["pid"])
+    tmp = target + ".tmp"
     with open(tmp, "w") as f:
         json.dump(d, f)
     try:  # written as root: hand it to him, like the folder it is in
-        st = os.stat(folder)
+        st = os.stat(os.path.dirname(FOLDER))
+        os.chown(FOLDER, st.st_uid, st.st_gid)
         os.chown(tmp, st.st_uid, st.st_gid)
     except OSError:
         pass
     os.chmod(tmp, 0o644)
-    os.replace(tmp, PATH)
+    os.replace(tmp, target)
+
+
+def adopt():
+    """Chats started before the cards came (2026-10-30) still run the old glade-status, which keeps
+    one shared claude.json that each of them overwrites in turn: give each one its own record
+    as it passes through there."""
+    try:
+        with open(OLD) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return
+    pid = d.get("pid")
+    if not pid or not running(d):
+        return
+    mine = load(pid)
+    if mine.get("updated", 0) >= d.get("updated", 0):
+        return
+    d.setdefault("started", mine.get("started") or os.path.getctime(OLD))
+    try:
+        save(d)
+    except OSError:
+        pass
+
+
+def sessions():
+    """Every chat that is still open, oldest first (so the cards keep their places)."""
+    adopt()
+    out = []
+    try:
+        names = os.listdir(FOLDER)
+    except OSError:
+        names = []
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(FOLDER, name)) as f:
+                d = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if d.get("pid") and running(d):
+            out.append(d)
+        elif d.get("pid"):  # that chat has been closed
+            forget(d["pid"])
+    out.sort(key=lambda d: (d.get("started") or 0, d["pid"]))
+    return out
 
 
 def claude_pid():
@@ -142,24 +203,21 @@ def running(d):
     return not d.get("term") or d["term"] in ancestors(pid)
 
 
-def watch():
+def watch(pid):
     """His ask: the panel shows Claude's newest message within 5 seconds, even mid-turn (the hooks
-    only fire around tool calls), and goes away once the chat is closed."""
+    only fire around tool calls), and the card goes away once the chat is closed."""
     me = os.getpid()
     time.sleep(1)  # the hook that started it records it first
     while True:
-        d = load()
+        d = load(pid)
         if not d or d.get("watcher") != me:
             return  # gone, or another watcher took over
         if not running(d):
-            try:
-                os.remove(PATH)
-            except OSError:
-                pass
+            forget(pid)
             return
         text = last_text(d.get("transcript") or "")
         if text and text != d.get("message"):
-            d = load()  # as fresh as can be, so a hook's change in between is not lost
+            d = load(pid)  # as fresh as can be, so a hook's change in between is not lost
             d["message"], d["message_at"] = text, time.time()
             save(d)
         time.sleep(5)
@@ -169,7 +227,7 @@ def ensure_watcher(d):
     if alive(d.get("watcher")):
         return
     try:
-        p = subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch"], start_new_session=True,
+        p = subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch", str(d["pid"])], start_new_session=True,
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         d["watcher"] = p.pid
     except OSError:
@@ -178,21 +236,14 @@ def ensure_watcher(d):
 
 def hook(event):
     name = event.get("hook_event_name", "")
-    d = load()
     pid = claude_pid()
-    if name == "SessionStart" or d.get("pid") != pid:
-        cwd = event.get("cwd") or os.getcwd()
-        d = dict(pid=pid, session=event.get("session_id"), cwd=cwd,
-                 title=d.get("title") if d.get("pid") == pid else None, message=d.get("message") if d.get("pid") == pid else None,
-                 working=False, attention=None, progress=None, term=terminal_of(pid))
-        if not d["title"]:
-            d["title"] = "Claude: " + os.path.basename(cwd.rstrip("/"))
+    d = load(pid)
     if name == "SessionEnd":
-        try:
-            os.remove(PATH)
-        except OSError:
-            pass
+        forget(pid)
         return
+    if name == "SessionStart" or not d:
+        d = fresh(pid, d, event.get("cwd"))
+        d["session"] = event.get("session_id")
     tool = event.get("tool_name", "")
     if name == "UserPromptSubmit":
         d["working"], d["attention"] = True, None
@@ -218,10 +269,19 @@ def hook(event):
     save(d)
 
 
+def fresh(pid, old, cwd=None):
+    cwd = cwd or os.getcwd()
+    d = dict(pid=pid, cwd=cwd, started=old.get("started") or time.time(), title=old.get("title"),
+             message=old.get("message"), working=False, attention=None, progress=None, term=terminal_of(pid))
+    if not d["title"]:
+        d["title"] = "Claude: " + os.path.basename(cwd.rstrip("/"))
+    return d
+
+
 def main(args):
     cmd, rest = (args[0], args[1:]) if args else ("", [])
     if cmd == "watch":
-        watch()
+        watch(int(args[1]))
         return
     if cmd == "hook":
         try:
@@ -229,7 +289,8 @@ def main(args):
         except Exception:  # never get in Claude's way
             pass
         return
-    d = load()
+    pid = claude_pid()
+    d = load(pid) or fresh(pid, {})
     if cmd == "title":
         d["title"] = " ".join(rest)
     elif cmd == "progress":
