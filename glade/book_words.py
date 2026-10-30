@@ -98,8 +98,15 @@ BATTLES = [
     ("Status", [
         "Burned: hurt each turn, and its physical hits are halved. Poisoned: hurt each turn; badly "
         "poisoned hurts more every turn. Paralysed: much slower, and sometimes can't move. Asleep: "
-        "can't move for a few turns. Frozen: can't move until it thaws. Confused: may hurt itself instead.",
-        "A creature holding Leftovers heals a little at the end of every turn."], []),
+        "can't move for a few turns. Frozen: can't move until it thaws. Confused: may hurt itself instead."], []),
+    ("Items", [
+        "There is no shop and no money: items only exist inside a battle. Some trainer battles draw a few "
+        "items, never more than four, and the harder the battle the more there may be. Early on there is "
+        "usually none. Wild animals carry nothing.",
+        "Both sides get exactly the same items, so it is fair. Before the first turn, click an item and then "
+        "the creature who will carry it; the trainer chooses for their side too. You see theirs once it is used.",
+        "Berries and potions are used up when their moment comes: at half HP, or when a status lands. Others, "
+        "like Leftovers, Quick Claw or Shell Bell, work all battle. Point at an item to read what it does."], []),
     ("Switching", [
         "Switch to bring in a better match. The one coming in takes the foe's move that turn, so switch "
         "to one that shrugs that move off. When one of yours faints, you choose who comes out next."], []),

@@ -6,7 +6,7 @@ random moves that suit them and fight it out in a battle box in that corner. You
 your moves; the opponent chooses its own.
 
 All the numbers follow Gen 3 (Ruby/Sapphire/Emerald): levels (levels.py), perfect IVs, 84 EVs
-in every stat, neutral natures, Leftovers. The stat and damage formulas, the critical
+in every stat, neutral natures, and items only when a battle draws some (items.py). The stat and damage formulas, the critical
 hit chances, accuracy stages, the type chart, whether a move is physical or special (by
 its type, as in Gen 3), sleep/freeze/paralysis/poison/confusion, Protect, multi-hit,
 recoil and drain all work the way they do in those games.
@@ -800,7 +800,8 @@ class Mon:
         self.boosts = dict.fromkeys(STATS + ("acc", "eva"), 0)
         self.flinch, self.protected, self.protect_run = False, False, 0
         self.seeded = False
-        self.item = "Leftovers"
+        self.item = None        # what it carries this battle (items.py; chosen before turn 1)
+        self.revealed = False   # the foe's item shows on its panel once it has been used or seen
 
     def speed(self):
         s = staged(self.stats["spe"], self.boosts["spe"])
@@ -859,6 +860,7 @@ class Battle:
         self.faced = {0: {0}}  # each of theirs -> which of yours have been out against it (they share its experience)
         self.leveled = set()   # which of yours grew a level in this battle (they may evolve after it)
         self.wild = wild
+        self.items = []  # this battle's items, the same for both sides (items.py)
         self.need = None
         self.caught = None
         self.events = []
@@ -871,6 +873,42 @@ class Battle:
     @property
     def mons(self):
         return [self.teams[0][self.active[0]], self.teams[1][self.active[1]]]
+
+    def give(self, side, carried):
+        """Hand out items before turn 1: {place in team: item}."""
+        for i, item in carried.items():
+            if 0 <= i < len(self.teams[side]):
+                self.teams[side][i].item = item
+
+    # --- items at work (items.py) ---
+    def used(self, mon, text):
+        """A berry or potion is used up."""
+        self.say(text)
+        mon.item, mon.revealed = None, True
+
+    def item_check(self, mon):
+        """After its HP or status changes: a berry or potion whose moment has come."""
+        from items import CURE, HEAL, PINCH
+        item = mon.item
+        if not item or mon.hp <= 0:
+            return
+        if item in HEAL and mon.hp * 2 <= mon.maxhp:
+            mon.hp = min(mon.maxhp, mon.hp + HEAL[item])
+            verb = "drank" if "Potion" in item else "ate"
+            self.used(mon, f"{mon.name} {verb} its {item}! It regained HP!")
+        elif item in PINCH and mon.hp * 4 <= mon.maxhp:
+            k = PINCH[item]
+            self.used(mon, f"{mon.name} ate its {item}!")
+            self.boost(mon, k, 1)
+        elif item in CURE:
+            if mon.status in CURE[item]:
+                was = mon.status
+                mon.status, mon.sleep, mon.toxic = None, 0, 0
+                word = dict(par="paralysis", slp="sleep", psn="poison", tox="poison", brn="burn", frz="ice")[was]
+                self.used(mon, f"{mon.name} ate its {item}! It was cured of {word}!")
+            elif "confuse" in CURE[item] and mon.confused:
+                mon.confused = 0
+                self.used(mon, f"{mon.name} ate its {item}! It snapped out of confusion!")
 
     def left(self, side):
         """How many on that side can still fight."""
@@ -907,9 +945,14 @@ class Battle:
                 return
         foe_pick = self.move_of(self.mons[1], self.choose())
         picks = [None if acted[0] else self.move_of(self.mons[0], action), foe_pick]
+        claw = [self.mons[s].item == "Quick Claw" and self.rng.random() < 0.2 for s in range(2)]
         order = sorted((s for s in range(2) if picks[s]),
-                       key=lambda s: (MOVES[picks[s]].get("prio", 0), self.mons[s].speed(), self.rng.random()),
+                       key=lambda s: (MOVES[picks[s]].get("prio", 0), claw[s], self.mons[s].speed(), self.rng.random()),
                        reverse=True)
+        for s in order:
+            if claw[s] and picks[s] and order[0] == s and len(order) > 1:
+                self.mons[s].revealed = True
+                self.say(f"{self.mons[s].name}'s Quick Claw let it move first!")
         for n, s in enumerate(order):
             if any(m.hp <= 0 for m in self.mons):
                 break  # someone is down: the rest of the turn has nobody to aim at
@@ -1042,6 +1085,8 @@ class Battle:
         if at_foe and m["a"] is not None:
             stage = max(-6, min(6, u.boosts["acc"] - f.boosts["eva"]))
             num, den = ACC[stage + 6]
+            if f.item == "Bright Powder":  # the foe's moves miss it a little more often
+                num = num * 9 // 10
             if self.rng.randint(1, 100) > m["a"] * num // den:
                 self.say(f"{u.name}'s attack missed!")
                 return
@@ -1106,14 +1151,24 @@ class Battle:
                 break
             crit = False
             if f.ability != "Shell Armor":
-                crit = rng.random() < CRIT[1 if m.get("highcrit") else 0]
+                crit = rng.random() < CRIT[(1 if m.get("highcrit") else 0) + (u.item == "Scope Lens")]
             dmg = min(f.hp, self.damage(u, f, m, crit))
+            if dmg >= f.hp and f.item == "Focus Band" and rng.random() < 0.1:
+                dmg = f.hp - 1
+                f.revealed = True
+                self.say(f"{f.name} hung on using its Focus Band!")
             f.hp -= dmg
             total += dmg
             n += 1
             self.say("A critical hit!" if crit else "", hit=self.side(f))
         if hits > 1:
             self.say(f"Hit {n} time{'s' if n > 1 else ''}!")
+        if u.item == "Shell Bell" and total > 0 and 0 < u.hp < u.maxhp:
+            u.hp = min(u.maxhp, u.hp + max(1, total // 8))
+            u.revealed = True
+            self.say(f"{u.name} restored a little HP using its Shell Bell!")
+        if u.item == "King's Rock" and first and f.hp > 0 and rng.random() < 0.1:
+            f.flinch = True
         if e > 1:
             self.say("It's super effective!")
         elif e < 1:
@@ -1183,6 +1238,7 @@ class Battle:
             else:
                 u.status, u.sleep, u.toxic, u.hp = "slp", 3, 0, u.maxhp
                 self.say(f"{u.name} slept and became healthy!")
+                self.item_check(u)
         elif st == "painsplit":
             avg = (u.hp + f.hp) // 2
             u.hp, f.hp = min(u.maxhp, avg), min(f.maxhp, avg)
@@ -1213,6 +1269,7 @@ class Battle:
             return
         f.confused = self.rng.randint(2, 5)
         self.say(f"{f.name} became confused!")
+        self.item_check(f)
 
     def inflict(self, f, st, cause=None):
         """Give `f` a status; False if it can't have it."""
@@ -1232,6 +1289,7 @@ class Battle:
         text = dict(par="is paralyzed! It may be unable to move!", psn="was poisoned!", tox="was badly poisoned!",
                     slp="fell asleep!", frz="was frozen solid!", brn="was burned!")[st]
         self.say(f"{cause}! {f.name} {text}" if cause else f"{f.name} {text}")
+        self.item_check(f)
         return True
 
     def boost(self, mon, k, v):
@@ -1249,6 +1307,7 @@ class Battle:
         self.say(f"{mon.name}'s {nm} {word}")
 
     def check_faint(self, mon):
+        self.item_check(mon)
         if mon.hp <= 0 and not getattr(mon, "down", False):
             mon.hp = 0
             mon.down = True
@@ -1282,8 +1341,9 @@ class Battle:
             m = self.mons[s]
             if m.hp <= 0:
                 continue
-            if m.hp < m.maxhp:
+            if m.item == "Leftovers" and m.hp < m.maxhp:
                 m.hp = min(m.maxhp, m.hp + max(1, m.maxhp // 16))
+                m.revealed = True
                 self.say(f"{m.name} restored a little HP using its Leftovers!")
             if m.seeded and m.hp > 0:  # Leech Seed: it feeds the other one every turn
                 other = self.mons[1 - s]
@@ -1773,7 +1833,88 @@ class Arena:
         else:
             self.battle = Battle(self.mine, self.foes, intro=self.intro)
         self.caught = None
+        if not self.choose_items(t):
+            self.begin(t)
+
+    # --- items: the same for both sides, handed out before turn 1 (items.py) ---
+    def choose_items(self, t):
+        """A trainer battle may draw a few items. Then the board first asks who of yours carries
+        which; True while that is being chosen."""
+        import items
+        if self.mode != "tower":
+            return False
+        drawn = items.roll(self.battle.teams[1], self.battle.teams[0])
+        if not drawn:
+            return False
+        self.battle.items = drawn
+        self.carry = {}        # place in your team -> item
+        self.holding = None    # the item picked up, to give to someone
+        self.phase = "items"
+        return True
+
+    def pick_item(self, item):
+        def f(t):
+            self.holding = None if self.holding == item else item
+        return f
+
+    def give_to(self, i):
+        def f(t):
+            if self.holding is not None:
+                for k, v in list(self.carry.items()):
+                    if v == self.holding:
+                        del self.carry[k]
+                self.carry[i] = self.holding  # whatever it had goes back on the table
+                self.holding = None
+            elif i in self.carry:
+                self.holding = self.carry.pop(i)  # pick it back up
+        return f
+
+    def items_ready(self, t):
+        import items
+        b = self.battle
+        b.give(0, self.carry)
+        b.give(1, items.foe_assign(b.items, b.teams[1]))
         self.begin(t)
+
+    def items_board(self, s, r, t):
+        import items
+        b = self.battle
+        free = [k for k in b.items if k not in self.carry.values()]
+        m = self.mouse() if self.mouse else None
+        pointed = self.holding
+        n = len(b.items)
+        w = (r.w - 12 - 6 * (n - 1)) // n
+        for i, item in enumerate(b.items):
+            br = pygame.Rect(r.x + 6 + i * (w + 6), r.y + 22, w, 18)
+            if m and br.collidepoint(m):
+                pointed = item
+            given = item not in free
+            self.button(s, br, self.fit(item, w - 8), self.pick_item(item), t, small=True, gold=item == self.holding)
+            if given and item != self.holding:
+                pygame.draw.line(s, DIM, (br.x + 4, br.centery), (br.right - 4, br.centery))
+        team = b.teams[0]
+        bw = (r.w - 24) // 3
+        for i, mon in enumerate(team):
+            br = pygame.Rect(r.x + 6 + (i % 3) * (bw + 6), r.y + 44 + (i // 3) * 34, bw, 30)
+            hot = self.hot(br)
+            if hot and i in self.carry:
+                pointed = pointed or self.carry[i]
+            self.cloth(s, br, MINE if hot else mix(CLOTH, EDGE, 0.2), hot=hot, alpha=215)
+            thumb = small_picture(mon.species)
+            s.blit(thumb, (br.x + 2, br.y + 2))
+            tx = br.x + 2 + thumb.get_width() + 3
+            self.text(s, self.fit(mon.species, br.right - 4 - tx), tx, br.y + 3, (255, 255, 255) if hot else TEXT)
+            held = self.carry.get(i)
+            self.text(s, self.fit(held or "-", br.right - 4 - tx), tx, br.y + 16, (255, 214, 120) if held else DIM)
+            self.buttons.append((br, self.give_to(i)))
+        if pointed:
+            self.text(s, self.fit(f"{pointed}: {items.ITEMS[pointed][1]}", r.w - 16), r.x + 8, r.y + 5, (255, 236, 170))
+        else:
+            self.text(s, self.fit(f"Items this battle: the same {'one' if n == 1 else str(n)} for them too.", r.w - 16),
+                      r.x + 8, r.y + 5, (255, 255, 255))
+        hint = "Now click who carries it" if self.holding else "Click an item, then who carries it"
+        self.text(s, self.fit(hint, r.w - 110), r.x + 8, r.bottom - 16, DIM)
+        self.button(s, pygame.Rect(r.right - 86, r.bottom - 18, 80, 14), "Ready!", self.items_ready, t, small=True)
 
     def begin(self, t):
         a, b = self.battle.mons
@@ -1800,8 +1941,9 @@ class Arena:
                 old.going_home = t
                 self.leavers.append(old)
         self.bodies = {}
-        self.begin(t)
-        self.next_at = t + WALK
+        if not self.choose_items(t):
+            self.begin(t)
+            self.next_at = t + WALK
 
     def animal(self, side, i):
         """What to draw for that side's i-th: a real animal of the glade, or a body made for it."""
@@ -2016,6 +2158,8 @@ class Arena:
         st = self.status[side]
         if st:
             nx += self.badge(s, STATUS_TAG[st], nx + 6, y + 25)
+        if mon.item and (side == 0 or mon.revealed):
+            self.text(s, self.fit(mon.item, x + w - 60 - nx), nx + 8, y + 24, (255, 214, 120))
         self.orbs(s, side, x + w - 10, y + 31)
 
     def draw(self, s, low, t):
@@ -2052,6 +2196,10 @@ class Arena:
             self.button(s, pygame.Rect(box.right - 66, box.y + 8, 58, 18), "Cancel", self.run, t)
             return
         b = self.battle
+        if self.phase == "items":  # before turn 1: who carries which item
+            self.cloth(s, r, CLOTH, alpha=245)
+            self.items_board(s, r, t)
+            return
         # the two sides' panels on opposite sides of the screen, each above its own fighter
         self.cloth(s, pygame.Rect(10 - 4, 26, self.PANEL_W + 8, 48), MINE, alpha=200)
         self.panel(s, 0, 10, 30, self.PANEL_W, MINE)

@@ -384,6 +384,13 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Beaten, they want a rematch the next calendar day (his pick) and are stronger each time (his pick): level = the
   next gym's level - 2 + 4 per win (cap 70), 2 creatures + 1 per win (max 6), the place's own creatures, ace last.
   Saved in `~/.local/state/glade/trainers.json`. Never on the desktop (`gyms.SHOW`, kind "trainer" in home_only).
+- **Battle items** (`glade/items.py`, 2026-10-30, his design): **no shop, no money, no items outside a battle.** A trainer
+  battle (Arena mode "tower": Tower, trainers, gyms, Elite 4) may draw 0-4 random items (his pick: random each battle;
+  `items.roll`, more for stronger foes, early usually none, never more than either team's size); **both sides get the
+  same items**. Before turn 1 the board's "items" phase (`Arena.choose_items` / `items_board`): click an item, then who
+  carries it; Ready → the foe picks (`items.foe_assign`) → turn 1. Wild battles: none. Nobody holds Leftovers by
+  default any more. Effects in `Battle` (`item_check` after every HP/status change; Quick Claw, Bright Powder, Scope
+  Lens, Focus Band, Shell Bell, King's Rock inline). The foe's item shows on its panel once used (`Mon.revealed`).
 - **Type review** (2026-10-30, his ask: "make sure its type actually thematically makes sense"; he approved all 21):
   plants and fruit got Grass (Dandelet Grass/Flying, Thistlume Grass/Psychic, Burrlet, Zingle, Stumplet, Lampip, Rindle,
   Pricklet, Banelet, Clovelet, Zestlet, Caplet, Kelplet Grass/Water with Kelpleviathan Grass/Dragon), sea creatures got
