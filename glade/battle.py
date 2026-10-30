@@ -272,9 +272,9 @@ SPECIES = {
     "Bramblit": dict(num=79, types=("Grass", "Dark"), base=(50, 62, 55, 40, 45, 58), ability="Poison Point",
                      pool=["Absorb", "Mega Drain", "Leech Seed", "Bite", "Faint Attack", "Crunch", "Pin Missile",
                            "Swords Dance", "Fury Swipes"]),
-    "Thistlume": dict(num=82, types=("Psychic", "Flying"), base=(45, 35, 40, 72, 63, 60), ability="Keen Eye",
-                      pool=["Gust", "Confusion", "Psybeam", "Psychic", "Hypnosis", "Calm Mind", "Air Cutter",
-                            "Magical Leaf", "Aerial Ace"]),
+    "Thistlume": dict(num=82, types=("Grass", "Psychic"), base=(45, 35, 40, 72, 63, 60), ability="Keen Eye",
+                      pool=["Absorb", "Confusion", "Psybeam", "Psychic", "Hypnosis", "Calm Mind", "Mega Drain",
+                            "Magical Leaf", "Leech Seed"]),
     "Runelet": dict(num=85, types=("Rock", "Ghost"), base=(50, 55, 72, 50, 55, 28), ability="Sturdy",
                     pool=["Rock Tomb", "Rock Slide", "Ancient Power", "Astonish", "Night Shade", "Shadow Ball",
                           "Curse", "Harden", "Confuse Ray"]),
@@ -432,8 +432,8 @@ _PAGE2 = [
     ("Stormbloom", "Vaporbell", 78, ("Water", "Electric"), (90, 50, 75, 120, 115, 80), "Static", ["Hydro Pump", "Calm Mind", "Thunder Wave"]),
     ("Bramblesnare", "Bramblit", 80, ("Grass", "Dark"), None, "Poison Point", ["Giga Drain", "Crunch", "Leech Seed"]),
     ("Thornregent", "Bramblesnare", 81, ("Grass", "Dark"), (90, 115, 95, 75, 75, 80), "Poison Point", ["Swords Dance", "Slash", "Sludge Bomb"]),
-    ("Thistlegaze", "Thistlume", 83, ("Psychic", "Flying"), None, "Keen Eye", ["Psychic", "Air Cutter", "Hypnosis"]),
-    ("Thistleseer", "Thistlegaze", 84, ("Psychic", "Flying"), (70, 50, 65, 125, 110, 110), "Keen Eye", ["Calm Mind", "Shadow Ball", "Silver Wind"]),
+    ("Thistlegaze", "Thistlume", 83, ("Grass", "Psychic"), None, "Keen Eye", ["Psychic", "Giga Drain", "Hypnosis"]),
+    ("Thistleseer", "Thistlegaze", 84, ("Grass", "Psychic"), (70, 50, 65, 125, 110, 110), "Keen Eye", ["Calm Mind", "Shadow Ball", "Sleep Powder"]),
     ("Runestand", "Runelet", 86, ("Rock", "Ghost"), None, "Sturdy", ["Shadow Ball", "Rock Slide", "Curse"]),
     ("Runewarden", "Runestand", 87, ("Rock", "Ghost"), (90, 100, 130, 90, 90, 30), "Sturdy", ["Earthquake", "Pain Split", "Calm Mind"]),
     ("Arcfly", "Sparkfly", 89, ("Electric", "Bug"), None, "Static", ["Thunderbolt", "Signal Beam", "Agility"]),
@@ -451,8 +451,8 @@ _PAGE3 = [
      ["Rock Tomb", "Confusion", "Harden", "Ancient Power", "Psybeam", "Rock Slide", "Calm Mind", "Psychic", "Iron Defense"]),
     ("Humlet", "Humchime", "Resonarch", ("Steel", "Psychic"), None, (60, 45, 85, 95, 85, 60), "Levitate",
      ["Confusion", "Metal Claw", "Supersonic", "Psybeam", "Iron Defense", "Hypnosis", "Psychic", "Screech", "Calm Mind"]),
-    ("Dripling", "Dripspire", "Stalagdeep", ("Water", "Ground"), None, (85, 80, 85, 60, 70, 50), "Water Absorb",
-     ["Water Gun", "Mud-Slap", "Mud Shot", "Water Pulse", "Rock Tomb", "Surf", "Earthquake", "Amnesia", "Rest"]),
+    ("Dripling", "Dripspire", "Stalagdeep", ("Water", "Rock"), None, (85, 80, 85, 60, 70, 50), "Water Absorb",
+     ["Water Gun", "Harden", "Rock Tomb", "Water Pulse", "Ancient Power", "Surf", "Rock Slide", "Amnesia", "Rest"]),
     ("Lumicrawl", "Lumitrek", "Lumicaravan", ("Bug", "Rock"), None, (70, 90, 105, 50, 70, 45), "Shell Armor",
      ["Leech Life", "Harden", "Rock Tomb", "Signal Beam", "Pin Missile", "Rock Slide", "Flash", "Ancient Power", "Iron Defense"]),
     ("Umbrit", "Umbrage", "Umbravast", ("Dark", "Ghost"), None, (55, 85, 60, 85, 65, 95), "Levitate",
@@ -464,7 +464,7 @@ _PAGE3 = [
     ("Pebblefist", "Cobblefist", "Quarryfist", ("Fighting", "Rock"), None, (85, 120, 100, 40, 75, 60), "Guts",
      ["Karate Chop", "Rock Tomb", "Mach Punch", "Harden", "Brick Break", "Rock Slide", "Bulk Up", "Cross Chop", "Fire Punch"]),
     # the Starfall Meadow (beside the Waterfall)
-    ("Twinklet", "Twinkstride", "Celestide", ("Normal",), ("Normal", "Psychic"), (90, 70, 75, 95, 95, 75), "Keen Eye",
+    ("Twinklet", "Twinkstride", "Celestide", ("Psychic",), None, (90, 70, 75, 95, 95, 75), "Keen Eye",
      ["Quick Attack", "Flash", "Confusion", "Return", "Psybeam", "Calm Mind", "Body Slam", "Psychic", "Morning Sun"]),
     ("Tufflet", "Tuftrot", "Meadowmane", ("Grass", "Normal"), None, (95, 95, 80, 70, 80, 80), "Overgrow",
      ["Absorb", "Quick Attack", "Magical Leaf", "Headbutt", "Leech Seed", "Body Slam", "Giga Drain", "Synthesis", "Double-Edge"]),
@@ -615,16 +615,16 @@ LEGEND_NUMS = {d["num"] for d in LEGENDARY.values()}
 # one for each place, mostly for the types there were fewest of (Electric, Poison, Dark,
 # Fighting); Dragon, Ghost and Steel stay rare, as in Pokémon, with one line each. Drawn in wave6.py.
 _PAGE6 = [
-    ("Burrlet", "Burrclasp", "Burrthorn", ("Bug", "Dark"), None, (75, 105, 95, 55, 70, 90), "Shield Dust",
-     ["Leech Life", "Bite", "Harden", "Pin Missile", "Faint Attack", "Fury Swipes", "Signal Beam", "Crunch", "Swords Dance"]),
-    ("Zingle", "Zingwing", "Zingswarm", ("Electric", "Bug"), None, (65, 60, 60, 110, 75, 130), "Static",
-     ["Spark", "Leech Life", "Thunder Wave", "Silver Wind", "Shock Wave", "Agility", "Thunderbolt", "Signal Beam", "Double Team"]),
+    ("Burrlet", "Burrclasp", "Burrthorn", ("Grass", "Dark"), None, (75, 105, 95, 55, 70, 90), "Shield Dust",
+     ["Absorb", "Bite", "Harden", "Leech Seed", "Faint Attack", "Fury Swipes", "Mega Drain", "Crunch", "Swords Dance"]),
+    ("Zingle", "Zingwing", "Zingswarm", ("Grass", "Electric"), None, (65, 60, 60, 110, 75, 130), "Static",
+     ["Spark", "Absorb", "Thunder Wave", "Magical Leaf", "Shock Wave", "Agility", "Thunderbolt", "Giga Drain", "Stun Spore"]),
     ("Mirelet", "Mirelamp", "Mirelantern", ("Poison", "Ghost"), None, (75, 55, 70, 110, 95, 95), "Levitate",
      ["Astonish", "Sludge", "Confuse Ray", "Night Shade", "Poison Powder", "Will-O-Wisp", "Shadow Ball", "Sludge Bomb", "Pain Split"]),
     ("Smudgit", "Smudgeon", "Smudgemire", ("Dark",), ("Dark", "Normal"), (105, 90, 80, 85, 80, 60), "Suction Cups",
      ["Bite", "Headbutt", "Screech", "Faint Attack", "Octazooka", "Double Team", "Crunch", "Body Slam", "Return"]),
-    ("Stumplet", "Stumpstomp", "Stumpquake", ("Fighting", "Ground"), None, (105, 120, 100, 45, 70, 60), "Guts",
-     ["Karate Chop", "Mud-Slap", "Harden", "Mach Punch", "Mud Shot", "Bulk Up", "Earthquake", "Cross Chop", "Brick Break"]),
+    ("Stumplet", "Stumpstomp", "Stumpquake", ("Grass", "Ground"), None, (105, 120, 100, 45, 70, 60), "Guts",
+     ["Absorb", "Mud-Slap", "Harden", "Leech Seed", "Mud Shot", "Bulk Up", "Earthquake", "Giga Drain", "Magical Leaf"]),
     ("Fizzlet", "Fizzcoil", "Fizzdynamo", ("Electric",), None, (70, 65, 75, 115, 85, 105), "Static",
      ["Spark", "Quick Attack", "Thunder Wave", "Shock Wave", "Flash", "Agility", "Thunderbolt", "Calm Mind", "Double Team"]),
     ("Fumelet", "Fumepot", "Fumecauldron", ("Poison",), None, (95, 70, 90, 105, 95, 50), "Liquid Ooze",
@@ -675,6 +675,8 @@ for _i, (_k, (_a, _b, _c), _types, _shape, *_r) in enumerate(_L8):
                        pool=_pool[:6])
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _AB8[_types[0]], _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _types, _spread(_shape, 530), _AB8[_types[0]], _pool[8:])
+SPECIES["Kelpleviathan"]["types"] = ("Grass", "Dragon")  # (2026-10-30, his approved type review)
+SPECIES["Kelpleviathan"]["pool"] = list(dict.fromkeys(SPECIES["Kelpleviathan"]["pool"] + ["Dragon Claw", "Dragon Dance"]))
 
 
 def line_start(num):

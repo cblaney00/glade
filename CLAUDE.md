@@ -384,6 +384,12 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Beaten, they want a rematch the next calendar day (his pick) and are stronger each time (his pick): level = the
   next gym's level - 2 + 4 per win (cap 70), 2 creatures + 1 per win (max 6), the place's own creatures, ace last.
   Saved in `~/.local/state/glade/trainers.json`. Never on the desktop (`gyms.SHOW`, kind "trainer" in home_only).
+- **Type review** (2026-10-30, his ask: "make sure its type actually thematically makes sense"; he approved all 21):
+  plants and fruit got Grass (Dandelet Grass/Flying, Thistlume Grass/Psychic, Burrlet, Zingle, Stumplet, Lampip, Rindle,
+  Pricklet, Banelet, Clovelet, Zestlet, Caplet, Kelplet Grass/Water with Kelpleviathan Grass/Dragon), sea creatures got
+  Water (Pearlet, Lurelet, Buoylet, Lurklet), Thrumlet Electric/Dark, Dripling and Spoutlet Water/Rock, Twinklet Psychic.
+  Moves follow (lines8 lines rebuild their pool from type; battle.py lists edited by hand). Lines per type now 10
+  (Normal) to 32 (Grass). **A new creature's type must fit what it is.**
 - **Trainers keep their creatures** (2026-10-30, his rule: "consistent pokemon that will only evolve and get stronger
   ... it gives trainer a bit of personality"): gym leaders and route trainers have a fixed roster (`gyms.roster`,
   seeded by who they are; ace last, the line of their type that grows strongest) fielded by `gyms.fielded` (fixed IVs
