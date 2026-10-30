@@ -17,7 +17,6 @@ import datetime
 import json
 import math
 import os
-import random
 
 import pygame
 
@@ -125,21 +124,12 @@ def strength(key):
 
 
 def team(key):
-    """The same team all day for the same rematch (seeded by place and rematch)."""
-    from gyms import grown, locals_of
-    from team import roll_ivs
+    """Their own creatures, always the same lines (his rule: trainers keep their creatures, which
+    only evolve and grow stronger): one more and a few levels up each rematch, the ace last."""
+    from gyms import fielded, locals_of, roster
     level, size = strength(key)
-    rng = random.Random(f"{key}/{wins(key)}")
-    firsts = locals_of(key)
-    rng.shuffle(firsts)
-    picks = firsts[:size]
-    while len(picks) < size and firsts:  # a place with few kinds: some twice
-        picks.append(rng.choice(firsts))
-    out = [(grown(f, level), roll_ivs(rng), None, None, level) for f in picks]
-    if out:
-        sp, ivs, *_ = out[-1]
-        out[-1] = (sp, tuple(max(v, 18) for v in ivs), None, None, min(LEVEL_CAP, level + 2))
-    return out
+    return fielded(roster(key, f"trainer/{key}", locals_of(key), []), size, min(LEVEL_CAP - 2, level),
+                   f"trainer/{key}")
 
 
 # --- the figure ---------------------------------------------------------------------------------------

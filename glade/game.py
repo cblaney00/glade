@@ -432,7 +432,7 @@ class Game(Glade):
                 return True
             if self.minimap.rect and book.icon_rect(view, self.minimap.rect).collidepoint(m):
                 self.popup, self.card = None, None
-                self.board = book.Book(self.signs.font, t, self.here.key)  # the Glade Book
+                self.board = book.Book(self.signs.font, t, self.here.key, self.scenes)  # the Glade Book
                 return True
         if self.zoomed(view):  # zoomed in on a battle: only its path signs are there to click
             sp = view.hovered([sp for sp in content.spots if sp.kind == "go"])

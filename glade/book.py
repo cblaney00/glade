@@ -5,10 +5,13 @@ A little book on a wooden plaque beside the minimap (`icon_rect`, drawn by `draw
 it over the top screen, like the Forest Dex. It is an open book: chapter ribbons along the top,
 the chapter's topics down the left page, the chosen topic on the right page.
 
-Chapters: Start here (how to play), Places (every place: what it is like, the ways out, who
-lives there, its gym, and "Go there"), Types (each type's strengths and weaknesses, and the
-whole chart), Battles (the rules), and Gyms & the Elite 4. Creatures are the Forest Dex's job,
-so its button opens the Dex. Animals not yet found in the Dex are shown as "???".
+Chapters: Start here (how to play), Places (a picture of every place, what it is like, the ways
+out, who lives there, its gym and trainer, and "Go there"), Types (each type's strengths and
+weaknesses with some of its creatures, and the whole chart), Battles (the rules), Gyms & the Elite 4
+(each leader, their story and their team as it stands for you now), and Trainers (every trainer's
+figure, story and team). His ask (2026-10-30): pictures and a bit more writing. Pointing at a
+picture names it. The words are in book_words.py. Creatures are the Forest Dex's job, so its
+button opens the Dex.
 """
 
 import math
@@ -27,168 +30,85 @@ INK = (56, 36, 84)         # dark plum words (his ask for the badge case: dark w
 FADED = (124, 104, 150)
 HOT = (170, 70, 150)
 GOLD = (220, 170, 70)
-RIBBONS = [(255, 150, 200), (140, 210, 255), (170, 230, 140), (255, 190, 120), (200, 170, 255)]
+RIBBONS = [(255, 150, 200), (140, 210, 255), (170, 230, 140), (255, 190, 120), (200, 170, 255),
+           (150, 222, 196)]
 
 TYPES = list(CHART)
 
-# --- the words ---------------------------------------------------------------------------------
+# --- pictures ------------------------------------------------------------------------------------
 
-START = [
-    ("Welcome", [
-        "This is the Glade: a forest clearing that is always night, lit by glowing moss, mushrooms, "
-        "lanterns and fireflies. Thirty-one places lie around it, joined by paths.",
-        "Creatures live in every place. Find them, catch them, raise them, and battle gym leaders, "
-        "the Battle Tower and, at last, the Elite 4.",
-        "This book tells you how. Pick a chapter on the ribbons above."]),
-    ("Getting around", [
-        "Click a path's name board to walk that way. Left always goes left on the map, up always up.",
-        "The minimap in the lower screen's corner shows every place; the one you are in glows. "
-        "Point at a place to see its name, and click it to go straight there.",
-        "The Home key takes you back to the Glade. Rest closes the game."]),
-    ("Your first creature", [
-        "Walk down past the Mossy Rocks to the Battle Tower and click its door. The first time, you "
-        "choose your starter: Mossprance (Grass), Kindlet (Fire) or Pippalotl (Water).",
-        "Starters are never found in the wild."]),
-    ("Looking at animals", [
-        "Right-click any animal to see its stats card: its types, base stats, and its own IVs drawn "
-        "as a six-sided web. The card can open its Forest Dex page.",
-        "Animals come and go like wild creatures do: each stays out a while, then slips away, and a "
-        "new one comes out in its place. Now and then one is already evolved."]),
-    ("Catching", [
-        "On an animal's stats card, press Battle it! to fight it with your party.",
-        "Glow jars catch it. They open up once you have tried a run at the Battle Tower. The weaker "
-        "it is, the likelier it stays in the jar; asleep or frozen helps a lot, and paralysed, "
-        "poisoned or burned helps a little.",
-        "What you catch goes into your party of six, or your boxes when the party is full."]),
-    ("Your party and boxes", [
-        "Your party is the six you take into battle. Open it with the Your party board, or at the "
-        "shrine by the Tower's door.",
-        "Click a creature to pick it up and click a slot to put it down or swap. Pointing at one shows "
-        "its full summary, and Change moves lets it learn any move its kind can learn."]),
-    ("Trainers", [
-        "A trainer in a cloak stands on the lower screen of every place, dressed for where they live. "
-        "A gold ! over their hood means they want to battle: click them.",
-        "Their creatures are their place's own. Beat one and they want a rematch the next day, a little "
-        "stronger every time, with one more creature, up to six.",
-        "The Glade Nav, under your badge case, maps every trainer: a gold dot wants to battle. Click a "
-        "dot to go there."]),
-    ("Predator vision", [
-        "The golden button in the lower screen's corner turns the world grey for a few seconds, and "
-        "only the animals keep their colour, outlined in gold.",
-        "One with a thick, pulsing electric-blue outline has very good IVs: top five in a hundred. "
-        "Worth catching."]),
-    ("Thunderstorm", [
-        "The Thunderstorm button brings rain and lightning. Everyone in sight shelters, and when it "
-        "passes, a fresh mix of the animals who live there comes out.",
-        "When a new version of the Glade is ready, it shows a gold notice: press Thunderstorm to load it."]),
-    ("Hiding", [
-        "When a game or film fills the screen, after a while the animals hide; when you come back they "
-        "come out again, one by one. Keep animals out stops that."]),
-    ("Secrets", [
-        "The moon is listening. Click it, and it shines while it listens.",
-        "Some say it answers to the right word."]),
-]
-
-BATTLES = [
-    ("The rules", [
-        "Battles follow Pokemon's third generation (Gen 3 OU): six against six at most, one out at "
-        "a time. Each turn you pick a move or switch; the foe picks its own.",
-        "A creature faints at 0 HP. When all of one side's have fainted, the other side wins."]),
-    ("Moves", [
-        "Each creature knows four moves. A move has a type, a power, an accuracy and a number of "
-        "uses (PP). Status moves do no damage but change things: lowering stats, putting to sleep, "
-        "Protect, and so on.",
-        "In Gen 3 a move is physical or special because of its type: Normal, Fighting, Flying, "
-        "Poison, Ground, Rock, Bug, Ghost and Steel moves are physical; the rest are special."]),
-    ("Damage", [
-        "Damage comes from the move's power, the attacker's Attack or Sp. Atk, the defender's Defense "
-        "or Sp. Def, and the level.",
-        "A move of the attacker's own type hits 1.5 times as hard. Type matchups multiply it by 2 "
-        "(super effective), 0.5 (not very effective) or 0 (no effect); see the Types chapter.",
-        "Now and then a hit is critical and does double."]),
-    ("Status", [
-        "Burned: hurt each turn, and physical hits are halved. Poisoned: hurt each turn (badly "
-        "poisoned hurts more every turn). Paralysed: slower, and sometimes can't move. Asleep: can't "
-        "move for a few turns. Frozen: can't move until it thaws. Confused: may hurt itself."]),
-    ("Switching", [
-        "Switch to bring in a better match. The one coming in takes the foe's move that turn. When "
-        "one of yours faints, you choose who comes out next."]),
-    ("Levels and experience", [
-        "Wild creatures are Lv5 as a first stage, Lv16 as a middle stage, Lv32 as a final one.",
-        "Beating a foe gives experience to yours who faced it and are still standing. Trainers' "
-        "creatures give half again as much. Catching gives none."]),
-    ("Evolving", [
-        "Every line has three stages. Yours evolve at Lv16 and Lv32, after the battle they reach it "
-        "in. You can press Stop to keep it as it is."]),
-    ("IVs, EVs and natures", [
-        "IVs are each creature's own strengths, 0 to 31 in each stat, rolled once when it is born. "
-        "The web on its card shows them.",
-        "Each creature has a nature, which raises one stat a little and lowers another. EVs are the "
-        "same for everyone here."]),
-    ("The Battle Tower", [
-        "At the Tower's door: Begin the challenge for trainer after trainer, healed before each, "
-        "until you lose. Your best streak is kept.",
-        "Trainer battle for just one trainer. Trainers bring as many creatures as you, each matched "
-        "to one of yours, at its level. Every trainer has an ace: their last, and a little stronger."]),
-]
+_pics = {}
+_thumbs = {}
 
 
-def place_words():
-    """One line about each place, by its key."""
-    return dict(
-        glade="Home, in the middle of everything: the blossom tree, the signpost and the lily pond.",
-        waterfall="A tall fall into a glowing pool, with a crystal-lit cave mouth in the cliff.",
-        river="A slow river, a little boat, and lilyfin under the water.",
-        forest="Tall dark trees hung with glowing vines.",
-        rocks="Mossy boulders and standing stones; the Battle Tower is further down.",
-        ridge="Pines, deep snow, a frozen lake and the aurora overhead.",
-        springs="A sleeping volcano above steaming turquoise pools.",
-        tower="The Battle Tower: trainer after trainer, and your starter's first home.",
-        caverns="A cave full of glowing crystals and a still pool.",
-        meadow="Wide grass where stars fall all night.",
-        hollow="Giant glowing mushrooms, tall as trees.",
-        bog="Misty water, dead trees and drifting lights.",
-        ruins="Broken pillars and an old stone arch.",
-        bridge="A rope bridge across the clouds, between two cliffs.",
-        shore="A beach of glowing sand by a dark sea.",
-        falls="A waterfall frozen in mid-fall.",
-        peak="Tall stones under the brightest aurora.",
-        gully="A deep green gully of ferns.",
-        orchard="Fruit trees hung with little lanterns.",
-        temple="An old temple, half sunk in the water.",
-        dunes="Pale sand dunes under a huge moon.",
-        lava="A lake of glowing lava under a dark cliff.",
-        grotto="A sea cave with coral trees round a glowing pool.",
-        kelp="Under the sea, among tall kelp and light from far above.",
-        lighthouse="A striped lighthouse on a headland.",
-        comet="A crater where a comet fell; it still glows.",
-        garden="A walled garden of moonflowers round a fountain.",
-        isles="Little islands floating in the night sky.",
-        storm="Jagged peaks under constant lightning.",
-        thorn="A dark wood of brambles and berries.",
-        hall="The Moonlit Hall, where the Elite 4 wait.",
-    )
+def pic(species, size):
+    """A creature's Dex picture scaled to `size` wide, framed (kept once made)."""
+    key = (species, size)
+    if key not in _pics:
+        from dex import PH, PW, picture
+        full = picture(species)
+        # zoom in on the creature: the part that isn't the plain background, in the tile's shape
+        bg = full.get_at((0, 0))
+        mask = pygame.mask.from_threshold(full, bg, (14, 14, 14, 255))
+        mask.invert()
+        boxes = mask.get_bounding_rects()
+        area = boxes[0].unionall(boxes[1:]) if boxes else full.get_rect()
+        area = area.inflate(8, 8)
+        w = max(area.w, round(area.h * PW / PH), 24)
+        area = pygame.Rect(0, 0, w, round(w * PH / PW))
+        area.center = boxes[0].unionall(boxes[1:]).center if boxes else full.get_rect().center
+        crop = pygame.Surface(area.size)
+        crop.fill(bg)
+        crop.blit(full, (0, 0), area)
+        h = round(size * PH / PW)
+        s = pygame.Surface((size + 2, h + 2))
+        s.fill(INK)
+        s.blit(pygame.transform.smoothscale(crop, (size, h)), (1, 1))
+        _pics[key] = s
+    return _pics[key]
+
+
+def figure(key, scale):
+    """A trainer's figure (trainers.Trainer), drawn `scale` times as big, standing still."""
+    from trainers import Trainer
+    small = pygame.Surface((48, 72), pygame.SRCALPHA)
+    fig = Trainer(key, 22, 64)
+    fig.draw(small, 2.0)
+    fig.shine(small, 2.0)
+    return pygame.transform.scale(small, (48 * scale, 72 * scale))
+
+
+def thumb(scene, w, h):
+    """A picture of a place (its top screen), drawn once and kept."""
+    if scene.key not in _thumbs:
+        from art import solid
+        full = solid()
+        scene.draw(full, 5.0)
+        _thumbs[scene.key] = pygame.transform.smoothscale(full, (w, h))
+    return _thumbs[scene.key]
 
 
 # --- the book itself -------------------------------------------------------------------------------
 
 class Book:
-    CHAPTERS = ["Start here", "Places", "Types", "Battles", "Gyms & Elite 4"]
+    CHAPTERS = ["Start here", "Places", "Types", "Battles", "Gyms & Elite 4", "Trainers"]
 
-    def __init__(self, font, t, here=None):
+    def __init__(self, font, t, here=None, scenes=None):
         self.font, self.t = font, t
         self.rect = pygame.Rect(30, 18, 900, 504)
         self.chapter = 0
         self.topic = {c: 0 for c in self.CHAPTERS}
         self.here = here
-        if here:  # Places opens on the place you are in
-            keys = self.places()
+        self.scenes = scenes if scenes is not None else {}  # the places built so far (for their pictures)
+        for chapter in ("Places", "Trainers"):  # these open on the place you are in
+            keys = self.places() if chapter == "Places" else self.trainer_keys()
             if here in keys:
-                self.topic["Places"] = keys.index(here)
+                self.topic[chapter] = keys.index(here)
         self.buttons = []
         self.closed = False
         self.go_to = None      # a place to walk to as the book closes (game.after_board)
         self.open_dex = False  # open the Forest Dex as it closes
+        self.named = None      # what the pointer is on, written under the picture rows
         self._texts = {}
 
     # --- what is in each chapter ---
@@ -197,16 +117,25 @@ class Book:
         from scenes import MAP
         return list(MAP)
 
+    @staticmethod
+    def trainer_keys():
+        from trainers import TRAINERS
+        return list(TRAINERS)
+
     def topics(self, chapter):
+        from book_words import BATTLES, START
         if chapter == "Start here":
-            return [t for t, _ in START]
+            return [t for t, *_ in START]
         if chapter == "Places":
             from game import Minimap
             return [Minimap.NAMES.get(k, k) for k in self.places()]
         if chapter == "Types":
             return ["The whole chart"] + TYPES
         if chapter == "Battles":
-            return [t for t, _ in BATTLES]
+            return [t for t, *_ in BATTLES]
+        if chapter == "Trainers":
+            from trainers import TRAINERS
+            return [TRAINERS[k][0] for k in self.trainer_keys()]
         from gyms import GYMS, TITLES
         return ["How gyms work"] + [TITLES[k] for k in GYMS] + ["The Elite 4"]
 
@@ -280,9 +209,41 @@ class Book:
         s.blit(img, img.get_rect(center=r.center))
         self.buttons.append((r, action))
 
+    def row(self, s, things, x, y, width, m, size=44, levels=None):
+        """A row of pictures (species, or "trainer:<place>"), wrapping; pointing at one names it.
+        Returns the y under them."""
+        gap = 6
+        x0, h = x, 0
+        for i, thing in enumerate(things):
+            if thing.startswith("trainer:"):
+                img = figure(thing.split(":")[1], 1)
+                from trainers import TRAINERS
+                name = TRAINERS[thing.split(":")[1]][0]
+            else:
+                img = pic(thing, size)
+                name = thing
+            if x + img.get_width() > x0 + width:
+                x, y, h = x0, y + h + gap + (12 if levels else 0), 0
+            s.blit(img, (x, y))
+            if levels:
+                self.text(s, f"Lv{levels[i]}", x + img.get_width() // 2, y + img.get_height() + 1, FADED, center=True)
+            r = pygame.Rect(x, y, img.get_width(), img.get_height())
+            if m and r.collidepoint(m):
+                self.named = name
+                pygame.draw.rect(s, HOT, r.inflate(2, 2), 1)
+            h = max(h, img.get_height())
+            x += img.get_width() + gap
+        return y + h + gap + (12 if levels else 0)
+
+    def caption(self, s, page):
+        """The name of whatever picture the pointer is on, at the foot of the page."""
+        if self.named:
+            self.text(s, self.named, page.x, page.bottom - 14, HOT)
+
     # --- the whole book ---
     def draw(self, s, m, t):
         self.buttons = []
+        self.named = None
         r = self.rect
         k = ease((t - self.t) / 0.2)
         if k < 1:  # it opens out from the spine
@@ -304,9 +265,9 @@ class Book:
         pygame.draw.line(s, (40, 24, 56), (r.centerx, left.y), (r.centerx, left.bottom), 2)
         # the title and the chapter ribbons
         self.text(s, "THE GLADE BOOK", r.x + 20, r.y + 10, (255, 236, 200))
-        x = r.x + 150
+        x = r.x + 140
         for i, name in enumerate(self.CHAPTERS):
-            w = self.font.size(name)[0] + 18
+            w = self.font.size(name)[0] + 14
             rr = pygame.Rect(x, r.y + 6, w, 22 if i == self.chapter else 18)
             c = RIBBONS[i]
             hot = bool(m) and rr.collidepoint(m)
@@ -315,17 +276,18 @@ class Book:
                 pygame.draw.polygon(s, c, [(rr.x, rr.bottom - 2), (rr.right, rr.bottom - 2), (rr.centerx, rr.bottom + 4)])
             self.text(s, name, rr.centerx, rr.y + 3, INK, center=True)
             self.buttons.append((rr, self.chooser(i)))
-            x += w + 6
-        self.button(s, pygame.Rect(r.right - 196, r.y + 7, 110, 18), "Forest Dex", self.to_dex, m,
+            x += w + 5
+        self.button(s, pygame.Rect(r.right - 168, r.y + 7, 90, 18), "Forest Dex", self.to_dex, m,
                     color=(170, 230, 190))
-        self.button(s, pygame.Rect(r.right - 80, r.y + 7, 60, 18), "Close", self.close, m)
+        self.button(s, pygame.Rect(r.right - 72, r.y + 7, 56, 18), "Close", self.close, m)
         name = self.CHAPTERS[self.chapter]
         self.contents(s, left, m, name)
         page = right.inflate(-28, -24)
+        from book_words import BATTLES, START
         if name == "Start here":
-            self.words(s, page, START[self.topic[name]])
+            self.words(s, page, m, START[self.topic[name]])
         elif name == "Battles":
-            self.words(s, page, BATTLES[self.topic[name]])
+            self.words(s, page, m, BATTLES[self.topic[name]])
         elif name == "Places":
             self.place(s, page, m, self.places()[self.topic[name]])
         elif name == "Types":
@@ -333,9 +295,12 @@ class Book:
             if i == 0:
                 self.chart(s, page, m)
             else:
-                self.type_page(s, page, TYPES[i - 1])
+                self.type_page(s, page, m, TYPES[i - 1])
+        elif name == "Trainers":
+            self.trainer_page(s, page, m, self.trainer_keys()[self.topic[name]])
         else:
             self.gym_page(s, page, m)
+        self.caption(s, page)
 
     def chooser(self, i):
         def f():
@@ -350,6 +315,18 @@ class Book:
     def to_dex(self):
         self.open_dex, self.closed = True, True
 
+    def goer(self, key):
+        def f():
+            self.go_to, self.closed = key, True
+        return f
+
+    def go_button(self, s, page, m, key):
+        if key != self.here:
+            self.button(s, pygame.Rect(page.right - 96, page.y - 2, 96, 18), "Go there", self.goer(key), m,
+                        color=(255, 220, 160))
+        else:
+            self.text(s, "you are here", page.right, page.y, FADED, right=True)
+
     def contents(self, s, page, m, chapter):
         """The left page: the chapter's topics, in one or two columns."""
         names = self.topics(chapter)
@@ -359,6 +336,7 @@ class Book:
         rows = (page.bottom - 10 - top) // lh
         cols = 1 if len(names) <= rows else 2
         cw = (page.w - 32) // cols
+        keys = self.places() if chapter == "Places" else self.trainer_keys() if chapter == "Trainers" else []
         for i, name in enumerate(names):
             x = page.x + 16 + (i // rows) * cw
             y = top + (i % rows) * lh
@@ -367,102 +345,99 @@ class Book:
             hot = bool(m) and rr.collidepoint(m)
             if on:
                 pygame.draw.rect(s, mix(RIBBONS[self.chapter], PAGE, 0.35), rr, border_radius=3)
-            elif chapter == "Places" and self.places()[i] == self.here:
+            elif keys and keys[i] == self.here:
                 pygame.draw.rect(s, mix(GOLD, PAGE, 0.6), rr, border_radius=3)
             label = name
             if chapter == "Types" and i > 0:
                 pygame.draw.rect(s, TYPE_COLOR[name], (x, y + 2, 8, lh - 6), border_radius=2)
                 label = "   " + name
+            if chapter == "Trainers":
+                from trainers import ready
+                if ready(keys[i]):
+                    pygame.draw.circle(s, GOLD, (x + cw - 16, y + lh // 2 - 1), 3)
             self.text(s, label, x + 2, y, HOT if hot and not on else INK)
             self.buttons.append((rr, self.picker(chapter, i)))
 
-    def words(self, s, page, topic):
-        title, paras = topic
+    def words(self, s, page, m, topic):
+        title, paras, pics = topic
         self.text(s, title, page.x, page.y, INK)
         pygame.draw.line(s, FADED, (page.x, page.y + 16), (page.x + self.font.size(title)[0], page.y + 16))
         y = page.y + 26
         for p in paras:
             y = self.para(s, p, page.x, y, page.w)
+        if pics:
+            self.row(s, pics, page.x, y + 4, page.w, m, size=96)
 
     # --- a place ---
     def place(self, s, page, m, key):
+        from book_words import PLACES
         from game import Minimap
-        from gyms import GYMS, TITLES, locals_of
+        from gyms import GYMS, locals_of
         from scenes import LINKS, MAP, heading
         from team import Collection
         lh = self.font.get_height() + 2
         name = Minimap.NAMES.get(key, key)
         pygame.draw.rect(s, Minimap.COLORS.get(key, (200, 200, 200)), (page.x, page.y + 2, 10, 10), border_radius=2)
         self.text(s, name, page.x + 16, page.y, INK)
-        if key == self.here:
-            self.text(s, "you are here", page.right, page.y, FADED, right=True)
-        y = self.para(s, place_words().get(key, ""), page.x, page.y + 22, page.w)
-        self.text(s, "Paths", page.x, y, FADED)
-        y += lh
-        ways = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}
-        for a, b in LINKS:
-            other = b if a == key else a if b == key else None
-            if other:
-                self.text(s, f"{ways[heading(key, other)]}: {Minimap.NAMES.get(other, other)}", page.x + 10, y)
-                y += lh
-        y += 6
-        self.text(s, "Lives here", page.x, y, FADED)
-        y += lh
-        from dex import by_number
-        known = set(by_number().values())
+        self.go_button(s, page, m, key)
+        # its picture, once it has been built (Wander builds every place, nearest first)
+        tw, th = page.w, page.w * 9 // 16
+        box = pygame.Rect(page.x, page.y + 22, tw, th)
+        sc = self.scenes.get(key)
+        if sc is not None:
+            s.blit(thumb(sc, tw, th), box)
+        else:
+            pygame.draw.rect(s, PAGE_SH, box)
+            self.text(s, "(its picture comes once the place has loaded)", box.centerx, box.centery - 6, FADED,
+                      center=True)
+        pygame.draw.rect(s, INK, box.inflate(2, 2), 1)
+        y = self.para(s, PLACES.get(key, ""), page.x, box.bottom + 8, page.w)
+        ways = {(0, -1): "up", (0, 1): "down", (-1, 0): "left", (1, 0): "right"}
+        paths = [f"{Minimap.NAMES.get(o, o)} ({ways[heading(key, o)]})" for a, b in LINKS
+                 for o in ((b,) if a == key else (a,) if b == key else ())]
+        y = self.para(s, "Paths: " + ", ".join(paths), page.x, y - 2, page.w, FADED)
         lives = locals_of(key) if key in MAP else []
         if lives:
-            line = ", ".join(sp if sp in known else "???" for sp in lives)
-            y = self.para(s, line, page.x + 10, y, page.w - 10)
-        else:
-            y = self.para(s, "Only animals that wander in from elsewhere.", page.x + 10, y, page.w - 10, FADED)
+            size = min(48, (page.w - 6 * len(lives)) // len(lives) - 2)  # all on one line
+            y = self.row(s, lives, page.x, y, page.w, m, size=size)
+        notes = []
         if key in GYMS:
-            leader, types, _, col = GYMS[key]
-            won = key in Collection().badges
-            self.text(s, TITLES[key], page.x, y, FADED)
+            leader, types, _, _ = GYMS[key]
+            notes.append(f"Gym: {leader} ({' and '.join(types)})" + (", badge won" if key in Collection().badges else ""))
+        from trainers import TRAINERS, ready
+        if key in TRAINERS:
+            notes.append(f"Trainer: {TRAINERS[key][0]}" + (", wants to battle" if ready(key) else ""))
+        for n in notes:
+            self.text(s, n, page.x, y, INK)
             y += lh
-            pygame.draw.circle(s, col, (page.x + 15, y + 7), 6)
-            pygame.draw.circle(s, INK, (page.x + 15, y + 7), 6, 1)
-            x = page.x + 26 + self.text(s, leader, page.x + 26, y) + 8
-            for kind in types:
-                x += self.chip(s, kind, x, y)
-            y += lh + 2
-            self.text(s, "Badge won!" if won else "Badge not won yet", page.x + 26, y, HOT if won else FADED)
-            y += lh
-        if key != self.here:
-            self.button(s, pygame.Rect(page.right - 120, page.bottom - 24, 120, 22), "Go there", self.goer(key), m,
-                        color=(255, 220, 160))
-
-    def goer(self, key):
-        def f():
-            self.go_to, self.closed = key, True
-        return f
 
     # --- types ---
-    def type_page(self, s, page, kind):
+    def type_page(self, s, page, m, kind):
+        from battle import SPECIES, LEGENDARY
+        from book_words import TYPES as WORDS
+        from evolve import stage_of
         lh = self.font.get_height() + 2
         self.chip(s, kind, page.x, page.y)
         self.text(s, "physical moves" if kind in PHYSICAL else "special moves", page.right, page.y, FADED, right=True)
-        y = page.y + 26
+        y = self.para(s, WORDS.get(kind, ""), page.x, page.y + 22, page.w)
         groups = [
-            ("Its moves hit hard against", [d for d in TYPES if CHART[kind].get(d, 1) == 2]),
-            ("Its moves are weak against", [d for d in TYPES if CHART[kind].get(d, 1) == 0.5]),
-            ("Its moves do nothing to", [d for d in TYPES if CHART[kind].get(d, 1) == 0]),
-            ("It is hurt most by", [a for a in TYPES if effectiveness(a, (kind,)) == 2]),
-            ("It shrugs off", [a for a in TYPES if effectiveness(a, (kind,)) == 0.5]),
-            ("It takes nothing from", [a for a in TYPES if effectiveness(a, (kind,)) == 0]),
+            ("Hits hard against", [d for d in TYPES if CHART[kind].get(d, 1) == 2]),
+            ("Weak against", [d for d in TYPES if CHART[kind].get(d, 1) == 0.5]),
+            ("Does nothing to", [d for d in TYPES if CHART[kind].get(d, 1) == 0]),
+            ("Hurt most by", [a for a in TYPES if effectiveness(a, (kind,)) == 2]),
+            ("Shrugs off", [a for a in TYPES if effectiveness(a, (kind,)) == 0.5]),
+            ("Takes nothing from", [a for a in TYPES if effectiveness(a, (kind,)) == 0]),
         ]
         for title, kinds in groups:
+            if not kinds:
+                continue
             self.text(s, title, page.x, y, FADED)
-            y += lh
-            if kinds:
-                y = self.chips(s, kinds, page.x + 10, y, page.w - 10)
-            else:
-                self.text(s, "nothing", page.x + 10, y)
-                y += lh + 6
+            y = self.chips(s, kinds, page.x + 130, y, page.w - 130) - 2
         y += 4
-        self.para(s, "A creature with two types takes both into account: hard against both is four times, "
-                     "and hard against one but weak against the other cancels out.", page.x, y, page.w, FADED)
+        self.text(s, f"Some {kind} creatures", page.x, y, FADED)
+        firsts = sorted((sp for sp, d in SPECIES.items() if kind in d["types"] and sp not in LEGENDARY
+                         and stage_of(sp)[1] == 1), key=lambda sp: SPECIES[sp]["num"])
+        self.row(s, firsts[:14], page.x, y + lh + 2, page.w, m, size=44)
 
     def chart(self, s, page, m):
         """Every attacking type (rows) against every defending type (columns)."""
@@ -497,7 +472,8 @@ class Book:
 
     # --- gyms and the Elite 4 ---
     def gym_page(self, s, page, m):
-        from gyms import GYMS, TITLES, level_for, size_for
+        from book_words import LEADERS
+        from gyms import GYMS, TITLES, leader_team, level_for, size_for
         from team import Collection
         lh = self.font.get_height() + 2
         i = self.topic["Gyms & Elite 4"]
@@ -507,24 +483,26 @@ class Book:
             n = len(badges) + 1
             y = self.words_at(s, page, "How gyms work", [
                 f"There is a gym in every place but the Tower: {len(GYMS)} in all. Click a gym's banner stone "
-                "to meet its leader. Each leader brings creatures that live in their place, of their own type.",
+                "to meet its leader. Each leader trains creatures that live in their place, of their own type.",
                 "Take them on in any order. What makes a gym hard is how many you have already beaten: the "
                 "first is Lv7 with 3 creatures, and they climb slowly to Lv55 with 6.",
-                "Every leader has an ace: their last creature, a little stronger and two levels up.",
+                "Every leader keeps their own creatures. The more badges you have, the more of them they bring, "
+                "and the further they have evolved. Their ace is always last, two levels up.",
                 "A badge won shows as a gem in your badge case. Beaten leaders can be fought again for practice."])
             self.text(s, f"Badges won: {len(badges)} of {len(GYMS)}", page.x, y, HOT)
             if n <= len(GYMS):
                 self.text(s, f"Your next gym: {size_for(n)} creatures at Lv{level_for(n)}", page.x, y + lh, FADED)
             return
         if i == len(keys) + 1:
-            from elite import CHAMP_LEVEL, LEVELS, LINEUPS
+            from elite import LINEUPS, levels
+            lvls, champ = levels()
             y = self.words_at(s, page, "The Elite 4", [
                 "Up the moonlight stair from the Floating Isles is the Moonlit Hall. Its great door opens "
                 "once you hold every gym badge.",
-                f"Inside, four specialists wait, one after another, at Lv{LEVELS[0]} to Lv{LEVELS[-1]}, and then "
-                f"the champion at Lv{CHAMP_LEVEL}. Your team is healed before each battle; a loss ends it.",
-                "There are four line-ups, and which one is in the hall is chosen each time. Who the champion "
-                "is, you find out when you get there."])
+                f"Inside, four specialists wait, one after another, at Lv{lvls[0]} to Lv{lvls[-1]}, and then "
+                f"the champion at Lv{champ}. Your team is healed before each battle; a loss ends it.",
+                "There are four line-ups, and which one is in the hall is chosen each time. Every member keeps "
+                "their own six. Each time you become champion, they all come back three levels stronger."])
             for name, members in LINEUPS.items():
                 self.text(s, name, page.x, y, INK)
                 y += lh
@@ -535,34 +513,56 @@ class Book:
             return
         key = keys[i - 1]
         leader, types, _, col = GYMS[key]
-        from game import Minimap
         pygame.draw.circle(s, col, (page.x + 7, page.y + 8), 7)
         pygame.draw.circle(s, INK, (page.x + 7, page.y + 8), 7, 1)
         self.text(s, TITLES[key], page.x + 20, page.y, INK)
-        y = page.y + 26
-        self.text(s, leader, page.x, y)
-        y += lh
-        x = page.x
+        self.go_button(s, page, m, key)
+        y = page.y + 24
+        x = page.x + self.text(s, leader, page.x, y) + 8
         for kind in types:
             x += self.chip(s, kind, x, y)
-        y += lh + 8
-        self.text(s, f"In {Minimap.NAMES.get(key, key)}", page.x, y, FADED)
-        y += lh + 6
+        y = self.para(s, LEADERS.get(key, ""), page.x, y + lh + 6, page.w)
         if key in badges:
-            self.text(s, f"Badge won (your gym number {badges.index(key) + 1}).", page.x, y, HOT)
+            n = badges.index(key) + 1
+            self.text(s, f"Badge won (your gym number {n}). A rematch is at that level:", page.x, y, HOT)
         else:
             n = len(badges) + 1
-            self.text(s, f"Not beaten yet. Now it would be {size_for(n)} creatures at Lv{level_for(n)},", page.x, y)
-            self.text(s, f"their ace at Lv{level_for(n) + 2}.", page.x, y + lh)
-        self.button(s, pygame.Rect(page.right - 120, page.bottom - 24, 120, 22), "Go there", self.goer(key), m,
-                    color=(255, 220, 160))
+            self.text(s, f"Not beaten yet. Their team for you now, Lv{level_for(n)}:", page.x, y)
+        team = leader_team(key, n)
+        self.row(s, [t_[0] for t_ in team], page.x, y + lh + 4, page.w, m, size=58, levels=[t_[4] for t_ in team])
+        self.text(s, "Their ace is last.", page.x, page.bottom - 30, FADED)
 
     def words_at(self, s, page, title, paras):
-        self.words(s, page, (title, paras))
+        self.words(s, page, None, (title, paras, []))
         y = page.y + 26
         for p in paras:
             y += (self.font.get_height() + 2) * len(self.wrap(p, page.w)) + 6
         return y + 4
+
+    # --- the trainers in every place ---
+    def trainer_page(self, s, page, m, key):
+        from book_words import TRAINERS as STORIES
+        from trainers import TRAINERS, ready, team, where, wins
+        lh = self.font.get_height() + 2
+        name = TRAINERS[key][0]
+        self.text(s, name, page.x, page.y, INK)
+        self.go_button(s, page, m, key)
+        s.blit(figure(key, 3), (page.x - 10, page.y + 10))
+        x = page.x + 140
+        y = page.y + 30
+        self.text(s, f"Of {where(key)}", x, y, FADED)
+        y = self.para(s, STORIES.get(key, ""), x, y + lh + 4, page.w - 140)
+        n = wins(key)
+        self.text(s, f"Beaten {n} time{'s' if n != 1 else ''}" if n else "Not beaten yet", x, y, INK)
+        y += lh
+        self.text(s, "Wants to battle!" if ready(key) else "Beaten today: a rematch tomorrow", x, y,
+                  HOT if ready(key) else FADED)
+        y = max(y + lh + 10, page.y + 230)
+        self.text(s, "Their creatures, as they are now:", page.x, y, FADED)
+        fielded = team(key)
+        self.row(s, [t_[0] for t_ in fielded], page.x, y + lh + 4, page.w, m, size=58, levels=[t_[4] for t_ in fielded])
+        self.para(s, "Always the same lines: they evolve, and one more joins at each rematch.", page.x,
+                  page.bottom - 44, page.w, FADED)
 
 
 # --- the icon by the minimap -----------------------------------------------------------------------

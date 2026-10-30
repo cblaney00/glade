@@ -384,6 +384,12 @@ started at login under Hyprland. Changing the installed copy is a config change 
   Beaten, they want a rematch the next calendar day (his pick) and are stronger each time (his pick): level = the
   next gym's level - 2 + 4 per win (cap 70), 2 creatures + 1 per win (max 6), the place's own creatures, ace last.
   Saved in `~/.local/state/glade/trainers.json`. Never on the desktop (`gyms.SHOW`, kind "trainer" in home_only).
+- **Trainers keep their creatures** (2026-10-30, his rule: "consistent pokemon that will only evolve and get stronger
+  ... it gives trainer a bit of personality"): gym leaders and route trainers have a fixed roster (`gyms.roster`,
+  seeded by who they are; ace last, the line of their type that grows strongest) fielded by `gyms.fielded` (fixed IVs
+  per line, evolved as the level allows): leaders bring more as you hold more badges, route trainers one more per
+  rematch. Elite 4 members and champions were already fixed; they gain 3 levels each time you become champion
+  (`elite.levels`, cap 80). Tower trainers stay random, matched to your party (his earlier Tower rule).
 - **Glade Nav** (`glade/nav.py`, his ask: "a device accesible underneath the badges icon"): a mint handheld drop-down
   under the badge case (corner ORDER "nav", both programs) with a dark screen mapping every trainer: gold pulsing
   dot = wants to battle, dim = beaten today; point names them, click goes there. Only one of badge case / Nav open
@@ -392,8 +398,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   icon in the bottom right corner of the bottom screen"): a little book on a wooden plaque just left of the minimap
   (game only) opens an open book over the top screen (a `board`): chapter ribbons Start here / Places / Types /
   Battles / Gyms & Elite 4, topics on the left page, the topic on the right. Places has "Go there" (`go_to`), its
-  Forest Dex button opens the Dex (`open_dex`; both handled in `Game.after_board`). Keep its words current when
-  the game changes (`START`, `BATTLES`, `place_words`).
+  Forest Dex button opens the Dex (`open_dex`; both handled in `Game.after_board`). (2026-10-30, his ask: pictures
+  and more writing) A sixth chapter, Trainers. Pictures: each place's top screen (`thumb`, from the game's built
+  scenes), its creatures, a type's creatures, a leader's and a trainer's team as it stands now, trainer figures;
+  pointing at one names it. All the words are in `glade/book_words.py`: keep them true when the game changes.
 - **The Elite 4 and champion** (`glade/elite.py`, `glade/hall.py`, 2026-10-30, his design): in **The Moonlit Hall**, a
   new place (MAP (0,-5), up a stair of moonlight from the Floating Isles; pale stone and glass, four banners, a gold
   door). The door (`Spot` kind "elite", `EliteBoard`) opens only with every gym badge. His picks: a few **fixed

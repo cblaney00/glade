@@ -5,7 +5,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
-(nothing waiting: ask him what's next)
+- "look over each creature and make sure its type actually thematically makes sense, there is a
+  dandilion one that is a bug type but not a grass type" (asked 2026-10-30).
 
 ## Done
 

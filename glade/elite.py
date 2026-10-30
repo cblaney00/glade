@@ -37,8 +37,21 @@ LINEUPS = {
 }
 CHAMPIONS = [("Champion Solenne", (255, 236, 170)), ("Champion Orrick", (200, 230, 255)),
              ("Champion Vael", (230, 200, 255))]
-LEVELS = [57, 58, 59, 60]
-CHAMP_LEVEL = 62
+BASE_LEVELS = [57, 58, 59, 60]
+BASE_CHAMP = 62
+GROWTH = 3   # levels they all gain each time you become champion (his rule: trainers grow stronger)
+CAP = 80
+
+
+def boost():
+    return min(CAP - BASE_CHAMP - 2, GROWTH * Collection().champion)
+
+
+def levels():
+    return [lv + boost() for lv in BASE_LEVELS], BASE_CHAMP + boost()
+
+
+LEVELS, CHAMP_LEVEL = BASE_LEVELS, BASE_CHAMP  # before any championship (the book reads levels())
 TEAM_SIZE = 6
 
 
@@ -82,9 +95,10 @@ def champion_team(name):
             break
     best = max(picks, key=total)
     picks = [sp for sp in picks if sp != best] + [best]
-    team = [(sp, tuple(rng.randint(20, 31) for _ in range(6)), None, None, CHAMP_LEVEL) for sp in picks]
+    champ = levels()[1]
+    team = [(sp, tuple(rng.randint(20, 31) for _ in range(6)), None, None, champ) for sp in picks]
     sp, ivs, *_ = team[-1]
-    team[-1] = (sp, tuple(max(v, 26) for v in ivs), None, None, CHAMP_LEVEL + 2)
+    team[-1] = (sp, tuple(max(v, 26) for v in ivs), None, None, champ + 2)
     return team
 
 
@@ -172,7 +186,8 @@ class EliteBoard:
             return
         self.text(s, "The Elite 4 are waiting. Tonight it is", r.centerx, r.y + 36, TEXT, center=True)
         self.text(s, self.lineup, r.centerx, r.y + 52, WHITE, center=True)
-        for i, ((name, types, col), level) in enumerate(zip(LINEUPS[self.lineup], LEVELS)):
+        lvls, champ = levels()
+        for i, ((name, types, col), level) in enumerate(zip(LINEUPS[self.lineup], lvls)):
             y = r.y + 80 + i * 30
             pygame.draw.circle(s, col, (r.x + 60, y + 7), 7)
             pygame.draw.circle(s, (255, 250, 230), (r.x + 60, y + 7), 7, 1)
@@ -184,7 +199,7 @@ class EliteBoard:
         y = r.y + 80 + 4 * 30
         pygame.draw.circle(s, (255, 236, 170), (r.x + 60, y + 7), 7)
         self.text(s, "5.  The Champion: whoever is in the hall tonight", r.x + 80, y, WHITE)
-        self.text(s, f"Lv{CHAMP_LEVEL} (ace Lv{CHAMP_LEVEL + 2})", r.x + 420, y, DIM)
+        self.text(s, f"Lv{champ} (ace Lv{champ + 2})", r.x + 420, y, DIM)
         self.text(s, "One after another; your team is healed before each. A loss ends the challenge.",
                   r.centerx, r.y + 236, DIM, center=True)
         if self.champion:
@@ -207,7 +222,7 @@ def run(board, glade):
             members = LINEUPS[board.lineup]
             if self.streak < len(members):
                 name, types, _ = members[self.streak]
-                level = LEVELS[self.streak]
+                level = levels()[0][self.streak]
                 return (member_team(name, types, level),
                         f"Elite 4 {name} wants to battle! ({self.streak + 1} of 4, {' and '.join(types)})")
             name, _ = self.champ

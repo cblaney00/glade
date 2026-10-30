@@ -135,20 +135,41 @@ def with_ace(team, rng, stronger=None):
     return team
 
 
-def leader_team(key, n, rng):
-    """The leader's creatures for the n-th gym: the place's own, of their type where it can."""
-    level = level_for(n)
-    typed, others = themed(key)
+def roster(key, seed, typed, others):
+    """A trainer's own creatures, the same lines in the same order every time (his rule,
+    2026-10-30: they only evolve and grow stronger, which gives each trainer a personality).
+    The ace is last: the line of their type that grows strongest. Returns [first stages], ace last."""
+    rng = random.Random(seed)
+    typed, others = sorted(typed), sorted(others)
     rng.shuffle(typed)
     rng.shuffle(others)
-    picks = (typed + others)[:size_for(n)]
-    # the ace is the strongest of their type, at the stage the level allows
-    best = max(typed or picks, key=lambda f: total(grown(f, level)))
-    picks = [f for f in picks if f != best][:size_for(n) - 1] + [best]
-    team = [(grown(f, level), roll_ivs(rng), None, None, level) for f in picks]
-    ace = team[-1]
-    team[-1] = (ace[0], tuple(max(v, 20) for v in ace[1]), None, None, level + 2)
+    pool = typed + others
+    if not pool:
+        return []
+    ace = max(typed or pool, key=lambda f: total(grown(f, 100)))
+    return [f for f in pool if f != ace][:5] + [ace]
+
+
+def fielded(order, size, level, seed):
+    """The first `size - 1` of a roster and its ace, at `level` (the ace two up), each line with its
+    own IVs that never change, evolved as far as the level allows."""
+    if not order:
+        return []
+    picks = order[:-1][:size - 1] + [order[-1]]
+    team = []
+    for i, f in enumerate(picks):
+        ivs = roll_ivs(random.Random(f"{seed}/{f}"))
+        ace = i == len(picks) - 1
+        lv = level + 2 if ace else level
+        team.append((grown(f, lv), tuple(max(v, 20) for v in ivs) if ace else ivs, None, None, lv))
     return team
+
+
+def leader_team(key, n, rng=None):
+    """The leader's creatures for the n-th gym: always their own lines (the place's own, of their type
+    first), more of them and stronger the more gyms you have beaten."""
+    typed, others = themed(key)
+    return fielded(roster(key, f"gym/{key}", typed, others), size_for(n), level_for(n), f"gym/{key}")
 
 
 # --- where the gym stands ------------------------------------------------------------------------
