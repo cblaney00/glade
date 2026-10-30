@@ -261,6 +261,9 @@ class Lower(art.Lighting):
         self.creatures = [c for c in self.parts if hasattr(c, "poke")]
         if self.pond:
             self.creatures.append(self.pond)
+        from trainers import place
+        self.spec_paths = paths
+        place(self, clear)  # this place's trainer, where there is one
         for path in spec.get("paths", []):
             rect, label, target, mark = path["spot"]
             sx, sy = path["sign"]

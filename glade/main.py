@@ -24,6 +24,7 @@ from battle import Perched, animal_under, cloth
 import storm
 import hiding
 import badges
+import nav
 import loading
 import resume
 from art import H, W, mix
@@ -601,9 +602,18 @@ class Glade:
             if badges.rect(view).collidepoint(m):
                 if badges.lid(view).collidepoint(m):
                     badges.toggle(t)  # the badge case drops down, or shuts
+                    nav.close_for_badges(t)  # (one of the two open at a time)
                     return
                 place = badges.at(view, m)
                 if place is not None:  # a gem or an empty slot: go there, like the minimap
+                    self.to_place(place, t)
+                return
+            if nav.rect(view).collidepoint(m):
+                if nav.lid(view).collidepoint(m):
+                    nav.toggle(t)  # the Glade Nav drops down, or shuts
+                    return
+                place = nav.at(view, m)
+                if place is not None:  # a trainer's dot: go there
                     self.to_place(place, t)
                 return
             if self.corner_click(view, m, t):

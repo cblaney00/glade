@@ -65,6 +65,13 @@ START = [
         "shrine by the Tower's door.",
         "Click a creature to pick it up and click a slot to put it down or swap. Pointing at one shows "
         "its full summary, and Change moves lets it learn any move its kind can learn."]),
+    ("Trainers", [
+        "A trainer in a cloak stands on the lower screen of every place, dressed for where they live. "
+        "A gold ! over their hood means they want to battle: click them.",
+        "Their creatures are their place's own. Beat one and they want a rematch the next day, a little "
+        "stronger every time, with one more creature, up to six.",
+        "The Glade Nav, under your badge case, maps every trainer: a gold dot wants to battle. Click a "
+        "dot to go there."]),
     ("Predator vision", [
         "The golden button in the lower screen's corner turns the world grey for a few seconds, and "
         "only the animals keep their colour, outlined in gold.",

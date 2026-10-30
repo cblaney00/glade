@@ -12,6 +12,7 @@ import random
 import badges
 import corner
 import gyms
+import nav
 import hiding
 import storm
 import world
@@ -20,7 +21,7 @@ from main import Glade
 
 class Desktop(Glade):
     def __init__(self, screen, rect, lower=None):
-        corner.ORDER = ["dex", "keep", "party", "badges", "world"]  # no Predator vision here (his pick)
+        corner.ORDER = ["dex", "keep", "party", "badges", "nav", "world"]  # no Predator vision here (his pick)
         gyms.SHOW = False  # the Glade's gym stone is the game's
         super().__init__(screen, rect, lower)
         storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
@@ -32,14 +33,15 @@ class Desktop(Glade):
 
     def home_only(self, content):
         """The paths lead nowhere here: the far places, the Tower and gyms are the game's."""
-        content.paths = [sp for sp in content.spots if sp.kind in ("go", "tower", "gym")]
-        content.spots[:] = [sp for sp in content.spots if sp.kind not in ("go", "tower", "gym")]
+        content.paths = [sp for sp in content.spots if sp.kind in ("go", "tower", "gym", "trainer")]
+        content.spots[:] = [sp for sp in content.spots if sp.kind not in ("go", "tower", "gym", "trainer")]
         return content
 
     def corner(self, view, t):
         hiding.draw_dex_button(view.canvas, view, self.signs.font)
         hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
         badges.draw(view.canvas, view, self.signs.font, t)
+        nav.draw(view.canvas, view, self.signs.font, t)
         world.draw_button(view.canvas, view, self.signs.font, False)
 
     def corner_click(self, view, m, t):

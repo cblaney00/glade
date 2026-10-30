@@ -377,6 +377,17 @@ started at login under Hyprland. Changing the installed copy is a config change 
   follow who lives there; repeats are fine, two-type gyms take creatures of either type (Bog Poison, Cloud Bridge
   Fighting/Flying, Comet Crater Dragon/Rock, Lava Lake Fire/Dragon, ...). The desktop never draws the Glade's stone
   (`gyms.SHOW`). The gym board shows badges in two rows of 15.
+- **Trainers in every place** (`glade/trainers.py`, 2026-10-30, his design: like Gen 3's route trainers): one per
+  place but the Tower and the Hall (his pick), standing on the lower screen (`place`, from `Lower.__init__`; clear of
+  paths, the pond and path signs, `HERE` overrides), cloaked people dressed for their place (his pick; `TRAINERS`:
+  cloak, trim, glow, charm on a staff). A gold "!" bobs over one who wants to battle. Click → `TrainerBoard`.
+  Beaten, they want a rematch the next calendar day (his pick) and are stronger each time (his pick): level = the
+  next gym's level - 2 + 4 per win (cap 70), 2 creatures + 1 per win (max 6), the place's own creatures, ace last.
+  Saved in `~/.local/state/glade/trainers.json`. Never on the desktop (`gyms.SHOW`, kind "trainer" in home_only).
+- **Glade Nav** (`glade/nav.py`, his ask: "a device accesible underneath the badges icon"): a mint handheld drop-down
+  under the badge case (corner ORDER "nav", both programs) with a dark screen mapping every trainer: gold pulsing
+  dot = wants to battle, dim = beaten today; point names them, click goes there. Only one of badge case / Nav open
+  at a time. The badge case's height now follows the map's rows (`badges.FULL`).
 - **The Glade Book** (`glade/book.py`, 2026-10-30, his ask: "an encyclopedia for this game that can be opened in an
   icon in the bottom right corner of the bottom screen"): a little book on a wooden plaque just left of the minimap
   (game only) opens an open book over the top screen (a `board`): chapter ribbons Start here / Places / Types /

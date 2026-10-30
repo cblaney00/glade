@@ -39,7 +39,6 @@ CELL = 15   # velvet pixels between neighbouring places
 LID = 18    # the lid strip at the top, where "Badges" is written
 
 
-FULL = 154  # the open case's height; closed it is just the lid, as tall as the boards above
 
 
 class State:
@@ -105,6 +104,7 @@ _xs = [x for x, _ in MAP.values()]
 _ys = [y for _, y in MAP.values()]
 X0, Y0 = min(_xs), min(_ys)
 COLS, ROWS = max(_xs) - X0 + 1, max(_ys) - Y0 + 1
+FULL = LID + 5 + ROWS * CELL + 8 + 20  # the open case's height (grows with the map); shut it is just the lid
 
 
 def tray(r):

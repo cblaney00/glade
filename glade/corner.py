@@ -9,7 +9,7 @@ registers it in HEIGHT); the rest are 22 pixels tall.
 import pygame
 
 X, TOP, W, GAP = 8, 8, 150, 4
-ORDER = ["vision", "dex", "keep", "party", "badges", "world"]
+ORDER = ["vision", "dex", "keep", "party", "badges", "nav", "world"]
 HEIGHT = {}  # name -> a function giving its height now
 
 

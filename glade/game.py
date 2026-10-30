@@ -21,6 +21,7 @@ import art
 import hiding
 import badges
 import book
+import nav
 import loading
 import resume
 import storm
@@ -324,6 +325,11 @@ class Game(Glade):
                 from gyms import GymBoard
                 self.board = GymBoard(self.signs.font, t, sp.target)
             return True
+        if sp.kind == "trainer":  # a trainer standing on the lower screen (trainers.py)
+            if self.arena is None:
+                from trainers import TrainerBoard
+                self.board = TrainerBoard(self.signs.font, t, sp.target)
+            return True
         if sp.kind == "elite":  # the Moonlit Hall's great door (elite.py)
             if self.arena is None:
                 from elite import EliteBoard
@@ -342,6 +348,7 @@ class Game(Glade):
         hiding.draw_dex_button(view.canvas, view, self.signs.font)
         hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
         badges.draw(view.canvas, view, self.signs.font, t)
+        nav.draw(view.canvas, view, self.signs.font, t)
         world.draw_button(view.canvas, view, self.signs.font, True)
         world.draw_loading(view.canvas, view, self.signs.font, *self.loading(), self.loaded_at, t)
 
