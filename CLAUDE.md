@@ -377,6 +377,12 @@ started at login under Hyprland. Changing the installed copy is a config change 
   follow who lives there; repeats are fine, two-type gyms take creatures of either type (Bog Poison, Cloud Bridge
   Fighting/Flying, Comet Crater Dragon/Rock, Lava Lake Fire/Dragon, ...). The desktop never draws the Glade's stone
   (`gyms.SHOW`). The gym board shows badges in two rows of 15.
+- **The Glade Book** (`glade/book.py`, 2026-10-30, his ask: "an encyclopedia for this game that can be opened in an
+  icon in the bottom right corner of the bottom screen"): a little book on a wooden plaque just left of the minimap
+  (game only) opens an open book over the top screen (a `board`): chapter ribbons Start here / Places / Types /
+  Battles / Gyms & Elite 4, topics on the left page, the topic on the right. Places has "Go there" (`go_to`), its
+  Forest Dex button opens the Dex (`open_dex`; both handled in `Game.after_board`). Keep its words current when
+  the game changes (`START`, `BATTLES`, `place_words`).
 - **The Elite 4 and champion** (`glade/elite.py`, `glade/hall.py`, 2026-10-30, his design): in **The Moonlit Hall**, a
   new place (MAP (0,-5), up a stair of moonlight from the Floating Isles; pale stone and glass, four banners, a gold
   door). The door (`Spot` kind "elite", `EliteBoard`) opens only with every gym badge. His picks: a few **fixed

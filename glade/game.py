@@ -20,6 +20,7 @@ import pygame
 import art
 import hiding
 import badges
+import book
 import loading
 import resume
 import storm
@@ -304,6 +305,10 @@ class Game(Glade):
             self.arena = self.run.open(t)
         elif getattr(board, "boxes", False):
             self.board = Storage(self.signs.font, t)
+        elif getattr(board, "go_to", None):  # the Glade Book's "Go there"
+            self.go(board.go_to)
+        elif getattr(board, "open_dex", False):  # the Glade Book's Forest Dex button
+            self.dex = Dex(self.signs.font, None, t)
 
     def activate_play(self, view, content, sp, t):
         if sp.kind == "tower":  # the Battle Tower's door
@@ -417,6 +422,10 @@ class Game(Glade):
                 self.go(place)
                 return True
             if self.minimap.rect and self.minimap.rect.collidepoint(m):
+                return True
+            if self.minimap.rect and book.icon_rect(view, self.minimap.rect).collidepoint(m):
+                self.popup, self.card = None, None
+                self.board = book.Book(self.signs.font, t, self.here.key)  # the Glade Book
                 return True
         if self.zoomed(view):  # zoomed in on a battle: only its path signs are there to click
             sp = view.hovered([sp for sp in content.spots if sp.kind == "go"])
@@ -536,6 +545,7 @@ class Game(Glade):
         if view is self.map_view():
             pointed = None if self.fade_to else self.minimap.at(view.mouse())
             self.minimap.draw(view.canvas, view, self.here.key, pointed, t)
+            book.draw_icon(view.canvas, view, self.signs.font, self.minimap.rect, view.mouse(), t)
 
     def above(self, view, content, t):
         if self.arena is not None:
