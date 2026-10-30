@@ -13,7 +13,7 @@ Beaten gyms are kept as badges (`Collection.badges`, in the order won). A beaten
 be fought again at the level they were won at, for practice.
 
 Part one has three gyms (the Forest, the River, the Mossy Rocks); part two adds eight more
-(eleven in all). Badges won are shown in the badge case (badges.py). The Elite 4 come once
+(eleven in all); part three the other eighteen: a gym in every place but the Tower, 29 in all. Badges won are shown in the badge case (badges.py). The Elite 4 come once
 every gym is beaten (not made yet).
 """
 
@@ -28,7 +28,6 @@ from battle import CLOTH, DIM, EDGE, LEGENDARY, SPECIES, TEXT, TYPE_COLOR, Arena
 from dex import MINT, WHITE, picture
 from team import Collection, roll_ivs
 
-PLACES = 30      # every place in the glade (scenes.MAP): the climb is spread over all of them
 FIRST, LAST = 7, 55
 
 # key: (leader's name, their types, the stone's spot (x, y) in that place, banner colour)
@@ -45,11 +44,36 @@ GYMS = {
     "thorn": ("Leader Nocta", ("Dark",), (560, 500), (150, 100, 170)),
     "gully": ("Leader Fernwick", ("Bug",), (620, 500), (180, 225, 90)),
     "caverns": ("Leader Argenta", ("Steel",), (260, 488), (205, 215, 230)),
+    # part three (2026-10-30, his ask: the rest), one in every place but the Tower
+    "glade": ("Leader Hazel", ('Normal',), (780, 475), (250, 205, 230)),
+    "waterfall": ("Leader Cascadia", ('Water',), (620, 482), (110, 220, 230)),
+    "meadow": ("Leader Astrelle", ('Psychic',), (400, 478), (225, 195, 255)),
+    "hollow": ("Leader Morrel", ('Grass', 'Dark'), (300, 495), (200, 150, 235)),
+    "bog": ("Leader Brackis", ('Poison',), (640, 495), (185, 115, 220)),
+    "ruins": ("Leader Ostrum", ('Rock',), (300, 470), (205, 185, 150)),
+    "bridge": ("Leader Tanwen", ('Fighting', 'Flying'), (250, 485), (245, 170, 120)),
+    "shore": ("Leader Pearla", ('Water',), (340, 480), (160, 245, 230)),
+    "falls": ("Leader Glacia", ('Ice',), (260, 495), (175, 215, 255)),
+    "peak": ("Leader Aurelis", ('Ice', 'Ghost'), (400, 492), (140, 255, 200)),
+    "orchard": ("Leader Lumen", ('Fire',), (320, 492), (255, 200, 110)),
+    "dunes": ("Leader Sahrin", ('Ground',), (600, 490), (235, 205, 150)),
+    "lava": ("Leader Pyrrha", ('Fire', 'Dragon'), (680, 490), (255, 110, 70)),
+    "grotto": ("Leader Coralie", ('Water', 'Poison'), (560, 495), (255, 160, 175)),
+    "kelp": ("Leader Undine", ('Electric', 'Water'), (260, 495), (90, 205, 185)),
+    "lighthouse": ("Leader Halden", ('Normal', 'Flying'), (300, 495), (255, 238, 165)),
+    "comet": ("Leader Vesper", ('Dragon', 'Rock'), (680, 492), (150, 130, 255)),
+    "garden": ("Leader Lunetta", ('Grass', 'Ghost'), (320, 492), (215, 210, 255)),
 }
+PLACES = len(GYMS)  # the climb from FIRST to LAST runs over every gym
 TITLES = dict(forest="Forest Gym", river="River Gym", rocks="Mossy Rocks Gym", springs="Hot Springs Gym",
               ridge="Snowy Ridge Gym", storm="Storm Peaks Gym", temple="Sunken Temple Gym",
               isles="Floating Isles Gym", thorn="Thornwood Gym", gully="Fern Gully Gym",
-              caverns="Crystal Caverns Gym")
+              caverns="Crystal Caverns Gym", glade="Glade Gym", waterfall="Waterfall Gym",
+              meadow="Starfall Meadow Gym", hollow="Mushroom Hollow Gym", bog="Misty Bog Gym",
+              ruins="Old Ruins Gym", bridge="Cloud Bridge Gym", shore="Glow Shore Gym", falls="Frozen Falls Gym",
+              peak="Aurora Peak Gym", orchard="Lantern Orchard Gym", dunes="Moon Dunes Gym", lava="Lava Lake Gym",
+              grotto="Coral Grotto Gym", kelp="Kelp Deep Gym", lighthouse="Lighthouse Point Gym",
+              comet="Comet Crater Gym", garden="Moonpetal Garden Gym")
 
 
 def level_for(n):
@@ -129,9 +153,12 @@ def leader_team(key, n, rng):
 
 # --- where the gym stands ------------------------------------------------------------------------
 
+SHOW = True  # the desktop sets this False: gyms are the game's, so no stone in its home clearing
+
+
 def place(sc):
     """A carved banner stone with the gym's colour, and its clickable spot (Scene.done calls this)."""
-    if sc.key not in GYMS:
+    if sc.key not in GYMS or not SHOW:
         return
     from scenes import Spot
     name, types, (x, y), col = GYMS[sc.key]
@@ -225,12 +252,14 @@ class GymBoard:
         self.text(s, f"{size} creatures at Lv{level}, their ace at Lv{level + 2}", r.centerx, r.y + 102, WHITE,
                   center=True)
         self.text(s, f"Badges: {len(self.badges)}", r.centerx, r.y + 130, TEXT, center=True)
-        bx = r.centerx - 14 * len(self.badges)
-        for b in self.badges:
+        row = 15  # 29 badges: two rows of up to 15
+        for i, b in enumerate(self.badges):
+            n = min(row, len(self.badges) - i // row * row)
+            bx = r.centerx - 11 * n + 11 + (i % row) * 22
+            by = r.y + 154 + (i // row) * 20
             c = GYMS.get(b, (0, 0, 0, (200, 200, 200)))[3]
-            pygame.draw.circle(s, c, (bx + 14, r.y + 160), 9)
-            pygame.draw.circle(s, (255, 250, 230), (bx + 14, r.y + 160), 9, 1)
-            bx += 28
+            pygame.draw.circle(s, c, (bx, by), 7)
+            pygame.draw.circle(s, (255, 250, 230), (bx, by), 7, 1)
         if not self.party:
             self.text(s, "Your party is empty: get a starter at the Battle Tower first!", r.centerx, r.bottom - 70,
                       DIM, center=True)

@@ -11,6 +11,7 @@ import random
 
 import badges
 import corner
+import gyms
 import hiding
 import storm
 import world
@@ -20,6 +21,7 @@ from main import Glade
 class Desktop(Glade):
     def __init__(self, screen, rect, lower=None):
         corner.ORDER = ["dex", "keep", "party", "badges", "world"]  # no Predator vision here (his pick)
+        gyms.SHOW = False  # the Glade's gym stone is the game's
         super().__init__(screen, rect, lower)
         storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
         self.pausable = False  # set by wayland.py: there the game takes the desktop's place
