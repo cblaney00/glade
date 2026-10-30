@@ -97,8 +97,7 @@ class Panel:
             return
         self.checked = t
         d = claude_state.load()
-        alive = d.get("pid") and os.path.exists(f"/proc/{d['pid']}")
-        self.state = d if alive else None
+        self.state = d if claude_state.running(d) else None
         if self.state is None and self.typing:
             self.stop_typing()
         if self.state is not None and not self.looking:

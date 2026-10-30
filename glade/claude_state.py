@@ -106,6 +106,42 @@ def alive(pid):
     return bool(pid) and os.path.exists(f"/proc/{pid}")
 
 
+def ancestors(pid):
+    chain = []
+    for _ in range(12):
+        if not pid or pid <= 1:
+            break
+        chain.append(pid)
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                pid = int(f.read().rsplit(")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            break
+    return chain
+
+
+def terminal_of(pid):
+    """The kitty process Claude (process `pid`) runs under, if any."""
+    for p in ancestors(pid):
+        try:
+            with open(f"/proc/{p}/comm") as f:
+                if "kitty" in f.read():
+                    return p
+        except OSError:
+            continue
+    return None
+
+
+def running(d):
+    """Is the chat in `d` still open? Claude started with sudo can outlive its closed terminal
+    window (it is handed to init and lingers), and the panel stayed up for it (2026-10-29), so
+    the chat also counts as closed once Claude is no longer under the kitty it started in."""
+    pid = d.get("pid")
+    if not alive(pid):
+        return False
+    return not d.get("term") or d["term"] in ancestors(pid)
+
+
 def watch():
     """His ask: the panel shows Claude's newest message within 5 seconds, even mid-turn (the hooks
     only fire around tool calls), and goes away once the chat is closed."""
@@ -115,7 +151,7 @@ def watch():
         d = load()
         if not d or d.get("watcher") != me:
             return  # gone, or another watcher took over
-        if not alive(d.get("pid")):
+        if not running(d):
             try:
                 os.remove(PATH)
             except OSError:
@@ -148,7 +184,7 @@ def hook(event):
         cwd = event.get("cwd") or os.getcwd()
         d = dict(pid=pid, session=event.get("session_id"), cwd=cwd,
                  title=d.get("title") if d.get("pid") == pid else None, message=d.get("message") if d.get("pid") == pid else None,
-                 working=False, attention=None, progress=None)
+                 working=False, attention=None, progress=None, term=terminal_of(pid))
         if not d["title"]:
             d["title"] = "Claude: " + os.path.basename(cwd.rstrip("/"))
     if name == "SessionEnd":
