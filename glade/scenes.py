@@ -47,6 +47,7 @@ MAP = {
     "falls": (-2, -1), "peak": (-3, 0), "gully": (-2, 1), "orchard": (-1, 2), "temple": (1, 2),
     "dunes": (2, 1), "lava": (2, -1), "grotto": (4, 0), "kelp": (3, 1), "lighthouse": (3, -1),
     "comet": (1, -2), "garden": (-1, -2), "isles": (0, -4), "storm": (1, -3), "thorn": (-3, 1),
+    "hall": (0, -5),  # the Moonlit Hall, the Elite 4's (2026-10-30, hall.py)
 }
 LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glade", "river"),
          ("forest", "ridge"), ("river", "springs"), ("rocks", "tower"),
@@ -54,7 +55,8 @@ LINKS = [("glade", "waterfall"), ("glade", "rocks"), ("glade", "forest"), ("glad
          ("forest", "hollow"), ("river", "bog"), ("forest", "ruins"), ("caverns", "bridge"), ("springs", "shore"),
          ("ridge", "falls"), ("ridge", "peak"), ("hollow", "gully"), ("hollow", "orchard"), ("bog", "temple"),
          ("bog", "dunes"), ("springs", "lava"), ("shore", "grotto"), ("shore", "kelp"), ("shore", "lighthouse"),
-         ("meadow", "comet"), ("ruins", "garden"), ("bridge", "isles"), ("bridge", "storm"), ("gully", "thorn")]
+         ("meadow", "comet"), ("ruins", "garden"), ("bridge", "isles"), ("bridge", "storm"), ("gully", "thorn"),
+         ("isles", "hall")]
 
 
 def heading(here, there):
@@ -1704,3 +1706,5 @@ from faraway3 import BUILD as _ROUND2  # noqa: E402
 BUILDERS.update(_ROUND2)
 from faraway4 import BUILD as _ROUND3  # noqa: E402
 BUILDERS.update(_ROUND3)
+from hall import BUILD as _HALL  # noqa: E402
+BUILDERS.update(_HALL)

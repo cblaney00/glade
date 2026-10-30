@@ -166,6 +166,8 @@ def isles_near(sc, lay, rng):
     """We stand on an island too: its grass ends in a broken edge with cloud below."""
     art.grass_bed(lay, rng, (0, 452, W, 88), sc.col("leaf", 0.18), 1200, 6)
     art.flowers(lay, rng, (0, 460, W, 80), sc.pal["flowers"], 60)
+    from hall import stair
+    stair(sc, lay)  # up to the Moonlit Hall
 
 
 def build_isles():
@@ -174,7 +176,7 @@ def build_isles():
                      shade=(12, 12, 40), ambient=((240, 240, 255), (110, 110, 180)), leaf=(110, 190, 160),
                      leaf2=(150, 210, 170), leaf3=(70, 120, 140), stone=(140, 120, 180),
                      flowers=[(255, 255, 255), (200, 220, 255), (255, 220, 240)]),
-                exits=[("down", "Back to the Cloud Bridge", "bridge")], gy=452, stars=300, star_floor=360,
+                exits=[("down", "Back to the Cloud Bridge", "bridge"), ("up", "The Moonlit Hall", "hall", 700)], gy=452, stars=300, star_floor=360,
                 moon_at=(560, 60, 20), mid=isles_mid, near=isles_near, fly=(255, 240, 220),
                 squid=[GLOW["violet"], GLOW["white"]], motes=((230, 230, 255), -2), slug=((220, 230, 255), GLOW["moss"]),
                 fliers=("breeze", "wish", "drake", "finch", "dream"), walkers=("tuft", "goat", "kick", "starb"),

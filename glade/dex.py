@@ -29,7 +29,7 @@ TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", f
               tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow",
               hollow="The Mushroom Hollow", bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge",
               shore="The Glow Shore")
-TITLES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood"))
+TITLES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood", hall="The Moonlit Hall"))
 PER_PAGE = 48          # 8 x 6 slots
 STATS = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LONG = ("HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed")

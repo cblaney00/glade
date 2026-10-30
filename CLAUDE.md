@@ -77,6 +77,8 @@ somewhere not yet loaded builds it at once (`loading.Rush`, ~1.5 s pause). Build
 (they share art's path state). `art.bounds` replaces pygame's slow `get_bounding_rect` (same answer).
 Any new drawing helper that loops a lot should call `breathe()`.
 
+**To-do list:** `docs/todo.md` holds his wishes for later; add to it whenever he says "add ... to the list".
+
 ## How it is built
 
 Python + pygame (dev shell `vibe-python`; no numpy there, so everything is plain
@@ -333,7 +335,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   two `faraway3.py`: Moon Dunes (right of Bog), Lava Lake (up from Springs), Coral Grotto (right of Shore), Kelp
   Deep (down the Shore's lower screen; under the sea), Lighthouse Point (up the Shore's headland). Round three
   `faraway4.py`: Comet Crater (up from Meadow), Moonpetal Garden (through the Ruins' arch), Floating Isles
-  (stepping stones up from the Bridge), Storm Peaks (right of Bridge), Thornwood (left of Gully). All 30 places
+  (stepping stones up from the Bridge), Storm Peaks (right of Bridge), Thornwood (left of Gully). All 30 places (31 with the Moonlit Hall)
   are in `scenes.MAP`; the minimap's CELL went 22 → 18 to fit. All built, they take ~0.7 GB.
 - **Fifty more lines, Dex to 450** (2026-10-27, his ask: two per far place plus twenty spread over every place
   by theme, "good type distribution"): data in `glade/lines8.py` (kind, names, types, stat shape, final height,
@@ -375,4 +377,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   follow who lives there; repeats are fine, two-type gyms take creatures of either type (Bog Poison, Cloud Bridge
   Fighting/Flying, Comet Crater Dragon/Rock, Lava Lake Fire/Dragon, ...). The desktop never draws the Glade's stone
   (`gyms.SHOW`). The gym board shows badges in two rows of 15.
-  Next: the Elite 4 and champion.
+- **The Elite 4 and champion** (`glade/elite.py`, `glade/hall.py`, 2026-10-30, his design): in **The Moonlit Hall**, a
+  new place (MAP (0,-5), up a stair of moonlight from the Floating Isles; pale stone and glass, four banners, a gold
+  door). The door (`Spot` kind "elite", `EliteBoard`) opens only with every gym badge. His picks: a few **fixed
+  line-ups** (`elite.LINEUPS`, four of four members, each with their own types and order), one picked at random per
+  challenge; the champion picked separately (`CHAMPIONS`) and only shown when reached. Members' teams are fixed (seeded
+  by name), middle/final stages of their type, ace last; Lv 57-60, champion Lv 62 (aces +2). Healed before each
+  battle (Claude's call: there are no items); a loss or "Give up" ends it; wins counted in `Collection.champion`.

@@ -48,12 +48,12 @@ class Minimap:
                  rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs", tower="The Battle Tower",
                  caverns="The Crystal Caverns", meadow="The Starfall Meadow", hollow="The Mushroom Hollow",
                  bog="The Misty Bog", ruins="The Old Ruins", bridge="The Cloud Bridge", shore="The Glow Shore")
-    NAMES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood"))
+    NAMES.update(dict(falls="The Frozen Falls", peak="Aurora Peak", gully="Fern Gully", orchard="The Lantern Orchard", temple="The Sunken Temple", dunes="The Moon Dunes", lava="The Lava Lake", grotto="The Coral Grotto", kelp="The Kelp Deep", lighthouse="Lighthouse Point", comet="The Comet Crater", garden="The Moonpetal Garden", isles="The Floating Isles", storm="The Storm Peaks", thorn="Thornwood", hall="The Moonlit Hall"))
     COLORS = dict(glade=(255, 150, 214), waterfall=(140, 226, 255), river=(110, 170, 255),
                   forest=(160, 236, 140), rocks=(196, 160, 255), ridge=(214, 240, 255), springs=(255, 160, 110),
                   tower=(255, 214, 236), caverns=(190, 140, 255), meadow=(255, 236, 160), hollow=(200, 255, 170),
                   bog=(190, 255, 210), ruins=(150, 230, 255), bridge=(220, 214, 255), shore=(90, 240, 230))
-    COLORS.update(dict(falls=(170, 230, 255), peak=(190, 255, 220), gully=(110, 220, 150), orchard=(255, 196, 120), temple=(110, 230, 190), dunes=(240, 210, 160), lava=(255, 120, 80), grotto=(255, 150, 170), kelp=(70, 170, 160), lighthouse=(255, 240, 180), comet=(200, 170, 255), garden=(230, 220, 255), isles=(160, 220, 255), storm=(250, 250, 140), thorn=(170, 90, 150)))
+    COLORS.update(dict(falls=(170, 230, 255), peak=(190, 255, 220), gully=(110, 220, 150), orchard=(255, 196, 120), temple=(110, 230, 190), dunes=(240, 210, 160), lava=(255, 120, 80), grotto=(255, 150, 170), kelp=(70, 170, 160), lighthouse=(255, 240, 180), comet=(200, 170, 255), garden=(230, 220, 255), isles=(160, 220, 255), storm=(250, 250, 140), thorn=(170, 90, 150), hall=(255, 236, 170)))
     CELL = 18  # canvas pixels between neighbouring places (22 until the map grew to thirty places)
 
     def __init__(self, font):
@@ -318,6 +318,11 @@ class Game(Glade):
             if self.arena is None:
                 from gyms import GymBoard
                 self.board = GymBoard(self.signs.font, t, sp.target)
+            return True
+        if sp.kind == "elite":  # the Moonlit Hall's great door (elite.py)
+            if self.arena is None:
+                from elite import EliteBoard
+                self.board = EliteBoard(self.signs.font, t)
             return True
         if sp.kind == "boxes":  # the shrine where your creatures are kept
             self.board = Storage(self.signs.font, t)
