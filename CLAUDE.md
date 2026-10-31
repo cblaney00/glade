@@ -391,6 +391,10 @@ started at login under Hyprland. Changing the installed copy is a config change 
   carries it; Ready → the foe picks (`items.foe_assign`) → turn 1. Wild battles: none. Nobody holds Leftovers by
   default any more. Effects in `Battle` (`item_check` after every HP/status change; Quick Claw, Bright Powder, Scope
   Lens, Focus Band, Shell Bell, King's Rock inline). The foe's item shows on its panel once used (`Mon.revealed`).
+- **Every creature can be battled** (2026-10-30, his ask): the stats card always offers Battle it!, tree squids
+  holding his apps included (`Perched`; caught, a copy joins the party and the tree one stays, `Arena.finish`).
+  Right-click looks through an app's area for an animal (`Glade.unless_animal(..., right=True)`), so fish in the
+  Waterfall pool or by the River's boat can be looked at; left-click still opens the app.
 - **Type review** (2026-10-30, his ask: "make sure its type actually thematically makes sense"; he approved all 21):
   plants and fruit got Grass (Dandelet Grass/Flying, Thistlume Grass/Psychic, Burrlet, Zingle, Stumplet, Lampip, Rindle,
   Pricklet, Banelet, Clovelet, Zestlet, Caplet, Kelplet Grass/Water with Kelpleviathan Grass/Dragon), sea creatures got

@@ -1979,9 +1979,11 @@ class Arena:
             f.going_home = t
 
     def finish(self):
-        """Every animal back where it lives, and seen again — except one caught in a jar."""
+        """Every animal back where it lives, and seen again — except one caught in a jar. A tree
+        squid or owlet holding one of his apps stays in its tree even when caught (a copy of it
+        joins the party), so the app is never lost (2026-10-30)."""
         for f in self.fighters:
-            if self.caught is not None and f.a.obj is self.caught:
+            if self.caught is not None and f.a.obj is self.caught and not perched(f.a):
                 f.saved = None
                 f.a.obj.gone = True
                 f.a.obj.caught = True  # it lives in your boxes now (storm.py leaves it be)

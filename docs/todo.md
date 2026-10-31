@@ -5,10 +5,10 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
-(nothing waiting: ask him what's next)
 
 ## Done
 
+- 2026-10-30: every creature can be battled: tree Canopods and Moonhoots (catching one copies it; the tree one keeps its app), and right-clicking a Lilyfin inside an app's area (Waterfall pool, River boat) now opens its card.
 - 2026-10-30: type review: 21 lines retyped to fit what they are (he approved all).
 - 2026-10-30: trainers in every place (rematch the next day, stronger each time) and the Glade Nav.
 - 2026-10-30: the Glade Book, the game's encyclopedia, from a book icon by the minimap.

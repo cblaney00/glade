@@ -28,7 +28,7 @@ import storm
 import vision
 import world
 from apex import OFFSET, Hunt, Listener
-from battle import Arena, Card, Perched
+from battle import Arena, Card
 from dex import Dex
 from evolve import EVOLVES, Evolution
 from lower import Lower
@@ -476,7 +476,7 @@ class Game(Glade):
             body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
             at = body.center
         self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
-                         fight=animal is not None and self.arena is None and not isinstance(animal, Perched), avoid=body)
+                         fight=animal is not None and self.arena is None, avoid=body)  # every creature can be battled
         self.card.locked = not Collection().members()
 
     def typed(self, ch, t):

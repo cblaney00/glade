@@ -682,7 +682,7 @@ class Glade:
             colony = getattr(content, "colony", None)
             for sp in content.spots:
                 self.signs.prepare(sp, view.w, view.h)
-            sp = self.unless_animal(view, view.hovered(content.spots), m, t)
+            sp = self.unless_animal(view, view.hovered(content.spots), m, t, right=True)
             choices = []
             if sp is not None and getattr(sp, "squid", None) and colony is not None:
                 sq = sp.squid
@@ -705,10 +705,15 @@ class Glade:
                 self.popup = Popup(self.signs.font, view, m, choices, t)
             return
 
-    def unless_animal(self, view, sp, m, t):
+    def unless_animal(self, view, sp, m, t, right=False):
         """A path's wide clickable area gives way to an animal drawn right under the
-        pointer (the Mossdelve lives inside the Mossy Rocks path's); its sign never does."""
-        if sp is None or sp.kind != "go" or sp.boards[2].collidepoint(m):
+        pointer (the Mossdelve lives inside the Mossy Rocks path's); its sign never does.
+        A right-click (`right`) also sees an animal inside an app's area, so a Lilyfin in the
+        Waterfall pool (Music) or by the River's boat can still be looked at and battled (2026-10-30)."""
+        if sp is None or getattr(sp, "squid", None) or (sp.kind != "go" and not right):
+            return sp
+        boards = getattr(sp, "boards", None)
+        if boards and boards[2].collidepoint(m):
             return sp
         low = self.lower() if self.bottom else None
         return None if animal_under(self.here, low, m, view is self.bottom, t, exact=True) else sp
