@@ -9,6 +9,11 @@ His ask (2026-10-29): the ones worth catching stand out too. An animal whose IVs
 `STRONG` or more (the top 5% of all rolls) is traced in shimmering pink-white instead of gold,
 with a little four-pointed star twinkling over it. Then (same day, his ask) no star: a thicker,
 pulsing electric-blue rim instead, a colour far from the gold so it is obvious.
+
+Speed (2026-11-01, his ask: "everything lags when i click predator vision"): finding a body and
+tracing its outline is the slow part, so each animal's is worked out only every `EVERY` frames
+and moved along with it in between (`Vision.traced`), and the outline is one mask convolution
+instead of dozens of separate draws (`ring`).
 """
 
 import math
@@ -30,6 +35,21 @@ R = 44  # how far round an animal to look for its body at first
 RMAX = 352  # and at most
 STRONG = 131  # an IV total this high or more is the top 5% (of 186; worked out from the 32**6 rolls)
 SHINE = (40, 230, 255)  # electric blue: nothing like the gold, so they jump out
+EVERY = 4  # frames between tracing each animal afresh (it is moved along with it in between)
+GREY_EVERY = 6  # frames between greying the world afresh (5 times a second; the two screens take turns)
+_DISKS = {}
+
+
+def disk(n):
+    """A small diamond-ish brush `n` pixels out, for growing a body into its outline."""
+    if n not in _DISKS:
+        m = pygame.mask.Mask((2 * n + 1, 2 * n + 1))
+        for dx in range(-n, n + 1):
+            for dy in range(-n, n + 1):
+                if abs(dx) + abs(dy) <= n + 1:
+                    m.set_at((dx + n, dy + n))
+        _DISKS[n] = m
+    return _DISKS[n]
 
 
 def strong(obj):
@@ -59,6 +79,8 @@ class Vision:
     def __init__(self, t):
         self.t0 = t
         self.scratch = art.solid()
+        self.frame = {False: 0, True: 0}  # frames drawn, per screen
+        self.traces = {}  # id(animal) -> (frame, x, y, box, body, outline, centre, strong)
 
     def strength(self, t):
         a = t - self.t0
@@ -87,12 +109,11 @@ class Vision:
 
     @staticmethod
     def ring(body, n):
-        """The `n`-pixel band just outside the body."""
-        ring = pygame.mask.Mask(body.get_size())
-        for dx in range(-n, n + 1):
-            for dy in range(-n, n + 1):
-                if abs(dx) + abs(dy) <= n + 1:
-                    ring.draw(body, (dx, dy))
+        """The `n`-pixel band just outside the body (one convolution with a small brush)."""
+        w, h = body.get_size()
+        grown = body.convolve(disk(n))  # (w + 2n) x (h + 2n), shifted n down and right
+        ring = pygame.mask.Mask((w, h))
+        ring.draw(grown, (-n, -n))
         ring.erase(body, (0, 0))
         return ring
 
@@ -119,54 +140,89 @@ class Vision:
         k = self.strength(t)
         if k <= 0:
             return
+        self.frame[low] += 1
         area = pygame.Rect(0, 0, w, h)
         orig = s.subsurface(area).copy()
-        # grey at the picture's own pixel size (it is drawn at 2x), which is four times quicker
-        small = pygame.transform.scale(orig, (w // 2, h // 2))
-        small = pygame.transform.grayscale(small)
-        small.fill((150, 150, 170), special_flags=pygame.BLEND_RGB_MULT)  # a touch darker and cooler
-        gray = pygame.transform.scale(small, (w, h))
+        gray = self.greyed(orig, w, h, scene.key, low)
         if k < 1:  # fully grey: an opaque copy, much quicker than a see-through one
             gray.set_alpha(round(255 * k))
         s.blit(gray, (0, 0))
+        seen = set()
         for a, _ in animals(scene, lower):
             if a.low != low or getattr(a.obj, "gone", False):
                 continue
             x, y = a.pos()
             if low:
                 x, y = x - OFFSET[0], y - OFFSET[1]
-            # the animal's body: draw it alone onto a key colour and see what it covered. Big
-            # ones (evolved, close up) can be larger than the first guess, so while the body
-            # runs off the edge of the box (and not off the screen), look again in a bigger one
-            o = a.obj
-            r = R
-            while True:
-                box = pygame.Rect(round(x) - r, round(y) - r, 2 * r, 2 * r).clip(area)
-                if box.w <= 0 or box.h <= 0:
-                    body = None
-                    break
-                body = self.body(a, box, t)
-                if r >= RMAX or not self.cut(body, box, area):
-                    break
-                r *= 2
-            if body is None or body.count() == 0:
+            key = (id(a.obj), low)
+            seen.add(key)
+            got = self.traces.get(key)
+            if got is None or self.frame[low] - got[0] >= EVERY:
+                got = self.trace(a, x, y, area, low, t)
+                self.traces[key] = got
+            frame, x0, y0, box, body, outline, centre, is_strong = got
+            if body is None:
                 continue
-            # its true colours back, from the picture as it was
+            box = box.move(round(x - x0), round(y - y0))  # it has moved on a little since
+            if not box.colliderect(area):
+                continue
+            # its true colours back, from the picture as it is now
             piece = art.plane(box.size)
             piece.blit(orig, (0, 0), box)
             s.blit(body.to_surface(setsurface=piece, unsetcolor=(0, 0, 0, 0)), box.topleft)
-            rects = body.get_bounding_rects()
-            cx, cy = (box.x + rects[0].unionall(rects).centerx, box.y + rects[0].unionall(rects).centery) if rects else (x, y)
-            if strong(o):
-                # worth catching: a thicker electric-blue rim that pulses, and a stronger glow
-                ring = self.ring(body, 3)
+            cx, cy = centre[0] + box.x, centre[1] + box.y
+            if is_strong:  # worth catching: a thicker electric-blue rim that pulses, and a stronger glow
                 p = 0.5 + 0.5 * math.sin(t * 6)
-                tint = tuple(round(c + (w - c) * p * 0.6) for c, w in zip(SHINE, (255, 255, 255)))
-                outline = ring.to_surface(setcolor=(*tint, round(255 * k)), unsetcolor=(0, 0, 0, 0))
+                outline.set_alpha(round(255 * k * (0.7 + 0.3 * p)))
                 s.blit(outline, box.topleft)
                 art.glow(s, cx, cy, 36, SHINE, round(90 * k) // 10 * 10)
-            else:
-                # a golden outline, two pixels wide, round all of it
-                outline = self.ring(body, 2).to_surface(setcolor=(*GOLD, round(255 * k)), unsetcolor=(0, 0, 0, 0))
+            else:  # a golden outline, two pixels wide, round all of it
+                outline.set_alpha(round(255 * k))
                 s.blit(outline, box.topleft)
                 art.glow(s, cx, cy, 22, GOLD, round(40 * k) // 10 * 10)
+        for key in [k_ for k_ in self.traces if k_[1] == low and k_ not in seen]:
+            del self.traces[key]  # gone, or out of sight
+
+    def greyed(self, orig, w, h, place, low):
+        """The world in grey: made afresh only every `GREY_EVERY` frames, and at once when the place
+        changes (greying the whole picture was the slowest part). Grey at the picture's own pixel
+        size (it is drawn at 2x), a touch darker and cooler."""
+        got = getattr(self, "grey", {}).get(low)
+        if got is not None and got[1] == place and (self.frame[low] + 3 * low) % GREY_EVERY:
+            return got[2]
+        small = pygame.transform.scale(orig, (w // 2, h // 2))
+        small = pygame.transform.grayscale(small)
+        small.fill((150, 150, 170), special_flags=pygame.BLEND_RGB_MULT)
+        gray = pygame.transform.scale(small, (w, h))
+        if not hasattr(self, "grey"):
+            self.grey = {}
+        self.grey[low] = (self.frame[low], place, gray)
+        return gray
+
+    def trace(self, a, x, y, area, low, t):
+        """Find animal `a`'s body round (x, y) and make its outline: (frame, x, y, box, body,
+        outline surface, centre in the box, strong)."""
+        # draw it alone onto a key colour and see what it covered. Big ones (evolved, close
+        # up) can be larger than the first guess, so while the body runs off the edge of the
+        # box (and not off the screen), look again in a bigger one
+        r = R
+        while True:
+            box = pygame.Rect(round(x) - r, round(y) - r, 2 * r, 2 * r).clip(area)
+            if box.w <= 0 or box.h <= 0:
+                return (self.frame[low], x, y, box, None, None, None, False)
+            body = self.body(a, box, t)
+            if r >= RMAX or not self.cut(body, box, area):
+                break
+            r *= 2
+        if body.count() == 0:
+            return (self.frame[low], x, y, box, None, None, None, False)
+        rects = body.get_bounding_rects()
+        u = rects[0].unionall(rects)
+        is_strong = strong(a.obj)
+        if is_strong:
+            outline = self.ring(body, 3).to_surface(setcolor=(*SHINE, 255), unsetcolor=(0, 0, 0, 0))
+            light = self.ring(body, 1).to_surface(setcolor=(220, 250, 255, 255), unsetcolor=(0, 0, 0, 0))
+            outline.blit(light, (0, 0))  # a bright inner edge, for the shimmer
+        else:
+            outline = self.ring(body, 2).to_surface(setcolor=(*GOLD, 255), unsetcolor=(0, 0, 0, 0))
+        return (self.frame[low], x, y, box, body, outline, u.center, is_strong)

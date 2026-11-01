@@ -5,9 +5,11 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
+(nothing waiting: ask him what's next)
 
 ## Done
 
+- 2026-11-01: Predator vision no longer lags: the grey world is redrawn 5 times a second and each outline is reused for a few frames (a frame went from 33 ms to under 20 ms).
 - 2026-10-30: every creature can be battled: tree Canopods and Moonhoots (catching one copies it; the tree one keeps its app), and right-clicking a Lilyfin inside an app's area (Waterfall pool, River boat) now opens its card.
 - 2026-10-30: type review: 21 lines retyped to fit what they are (he approved all).
 - 2026-10-30: trainers in every place (rematch the next day, stronger each time) and the Glade Nav.
