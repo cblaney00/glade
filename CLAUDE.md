@@ -52,8 +52,8 @@ explains it). `main.Glade` is everything both share (views, places, name boards,
 and going, Thunderstorm, hiding, squid trees, Claude panel, updates) and plays nothing; it has hooks
 (end of the class). `desktop.Desktop` (`glade`) adds only looks: the home clearing, no paths, `storm.CAP`
 (20) families, boards Forest Dex / Hide animals / Your party / badge case / **Wander** (no Predator
-vision: his pick). Those boards, a badge gem, right-clicking an animal and the moon all open the game
-straight at that thing (`world.open_world`, handed over in `$XDG_RUNTIME_DIR/glade-world.ask`).
+vision: his pick). Those boards, a badge gem, the Nav and a stats card's Battle it!/Forest Dex buttons open the game (2026-11-02, his ask: right-clicking an animal shows its card on the desktop itself, `Glade.make_card`; the moon does nothing there)
+straight at that thing (`world.open_world`, handed over in `$XDG_RUNTIME_DIR/glade-world.ask`; "battle" carries the animal's IVs, nature and level, `world.who`/`become`).
 `game.Game` (`glade --game`) adds all the play: every place, paths, minimap, far places loading,
 Predator vision, cards, battles, eggs, Dex, party, Tower, gyms; its **Rest** board closes it. **Never put
 gameplay in desktop.py or main.Glade; anything both need goes in main.Glade.** On his desktop (Wayland and

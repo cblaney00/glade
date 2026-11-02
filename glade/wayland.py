@@ -532,10 +532,10 @@ def run(make):
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
 
-    fronts = []
-    if is_game:  # the stats card, the Dex and the boards, in front of the windows
-        fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None),
-                  Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
+    # the stats card (the desktop's too), the Dex and the boards, in front of the windows
+    fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None)]
+    if is_game:
+        fronts += [Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
                   Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
     hidden, shown = [False], [False]
     last = [time.monotonic()]

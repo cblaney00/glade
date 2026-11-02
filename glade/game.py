@@ -11,7 +11,6 @@ anywhere else it is an ordinary window with both screens in it, one above the ot
 
 import math
 import os
-import random
 import sys
 import threading
 
@@ -27,8 +26,8 @@ import resume
 import storm
 import vision
 import world
-from apex import OFFSET, Hunt, Listener
-from battle import Arena, Card
+from apex import Hunt, Listener
+from battle import Arena
 from dex import Dex
 from evolve import EVOLVES, Evolution
 from lower import Lower
@@ -36,7 +35,7 @@ from main import EDGE, HOME, HOT, TEXT, WOOD, WOOD_HI, WOOD_LO, Glade
 from scenes import BUILDERS, LINKS, MAP
 from starter import StarterBoard
 from storage import Storage
-from team import Collection, ivs_of, nature_of
+from team import Collection
 from tower import Run, TowerBoard
 from art import H, W, mix
 
@@ -253,10 +252,10 @@ class Game(Glade):
             return
         do, species = req.get("do"), req.get("species")
         self.popup = None
-        if do in ("dex", "party", "card") and self.board is not None:
+        if do in ("dex", "party", "card", "battle") and self.board is not None:
             self.board.close()
             self.board = None
-        if do in ("dex", "party", "card"):
+        if do in ("dex", "party", "card", "battle"):
             self.dex = self.card = None
         if do == "dex":
             self.dex = Dex(self.signs.font, species, t)
@@ -266,14 +265,22 @@ class Game(Glade):
             self.moon_clicked(t)
         elif do == "go" and req.get("place") in BUILDERS:
             self.go(req["place"])
-        elif do == "card" and species:
+        elif do in ("card", "battle") and species:
             if self.here.key != HOME:  # the animal was at home
                 self.here, self.fade = self.scene(HOME), 1.0
             found = world.find_animal(self.here, species)
             if found is None or found[1] != species:
                 self.dex = Dex(self.signs.font, species, t)  # nobody just like it here: its Dex page
+                return
+            a = found[0]
+            if do == "battle" and self.arena is None and Collection().members():
+                world.become(a.obj, req)  # the very one clicked on the desktop: its IVs, nature, level
+                low = self.lower() if self.bottom else None
+                self.arena = Arena(self.here, low, self.signs.font, t, mode="wild",
+                                   foe=(a, species, self.here), mine=Collection().members())
+                self.arena.mouse = self.top.mouse
             else:
-                self.show_card(self.top, found[0].pos(), found[1], t, found[0])
+                self.show_card(self.top, a.pos(), species, t, a)
 
     def rest(self, t):
         """Rest: the game closes and the desktop comes back."""
@@ -459,25 +466,8 @@ class Game(Glade):
 
     def show_card(self, view, m, species, t, animal=None):
         evolves = EVOLVES.get(species) if animal is not None and self.evolution is None else None
-        ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
-        if animal is not None:
-            animal.nature = nature_of(animal.obj)  # its own nature, shown on the card
-            leave = getattr(animal.obj, "leave_at", None)  # looked at, and about to go: it stays a little
-            if leave is not None and leave < t + 15:        # longer, 10-45 seconds more (his numbers)
-                animal.obj.leave_at = t + random.uniform(10, 45)
-        at, body = m, None
-        if animal is not None:  # the card goes beside the animal itself, clear of all of it
-            ax, ay = animal.pos()
-            if getattr(animal, "low", False):
-                ax, ay = ax - OFFSET[0], ay - OFFSET[1]
-            z = getattr(animal.obj, "size", 1.0)
-            body = pygame.Rect(0, 0, round(44 * z), round(40 * z))
-            body.center = (round(ax), round(ay - 6 * z))
-            body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
-            at = body.center
-        self.card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs,
-                         fight=animal is not None and self.arena is None, avoid=body)  # every creature can be battled
-        self.card.locked = not Collection().members()
+        self.card = self.make_card(view, m, species, t, animal, evolves,
+                                   fight=animal is not None and self.arena is None)  # every creature can be battled
 
     def typed(self, ch, t):
         """A letter typed while the moon is listening."""

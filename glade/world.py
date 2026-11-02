@@ -72,12 +72,14 @@ def mark_ready():
         pass
 
 
-def open_world(do=None, species=None, place=None):
+def open_world(do=None, species=None, place=None, mon=None):
     """Open the game at `do`: "dex" (at `species`' page), "party", "card" (`species`' stats),
-    "moon" (listening for a word), "go" (to `place`), or just open it. Already open: it does that."""
+    "battle" (a wild battle with `species`; `mon`: the desktop animal's own IVs, nature and level,
+    from `who`), "moon" (listening for a word), "go" (to `place`), or just open it. Already open: it
+    does that."""
     try:
         with open(ASK, "w") as f:
-            json.dump(dict(do=do, species=species, place=place), f)
+            json.dump(dict(do=do, species=species, place=place, mon=mon), f)
     except OSError:
         pass
     if _pid() is not None:
@@ -155,6 +157,30 @@ def find_animal(scene, species):
             a.obj.gone = False
             return a, sp
     return None
+
+
+def who(animal, species):
+    """The desktop animal's own self (its IVs, nature and level), to hand to the game."""
+    import levels
+    from team import ivs_of, nature_of
+    obj = getattr(animal, "obj", None)
+    if obj is None:
+        return None
+    return dict(ivs=list(ivs_of(obj)), nature=nature_of(obj), level=levels.level_of(obj, species))
+
+
+def become(obj, req):
+    """In the game: the animal found stands for the desktop's one, so it takes on its self."""
+    mon = req.get("mon") or {}
+    try:
+        if mon.get("ivs"):
+            obj.ivs = tuple(mon["ivs"])
+        if mon.get("nature"):
+            obj.nature = mon["nature"]
+        if mon.get("level"):
+            obj.wild_level = (req.get("species"), mon["level"])
+    except AttributeError:
+        pass
 
 
 # --- the board, under the badge case ----------------------------------------------------

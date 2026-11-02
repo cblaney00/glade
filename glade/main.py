@@ -10,6 +10,7 @@ This module is what the two share: the name boards, the views, and main.Glade.
 import glob
 import math
 import os
+import random
 import re
 import shlex
 import subprocess
@@ -947,6 +948,31 @@ class Glade:
 
     def show_card(self, view, m, species, t, animal=None):
         pass
+
+    def make_card(self, view, m, species, t, animal=None, evolves=None, fight=True):
+        """An animal's stats card (battle.Card), beside it and clear of all of it."""
+        from battle import Card
+        from team import Collection, ivs_of, nature_of
+        ivs = ivs_of(getattr(animal, "obj", None)) if animal is not None else None
+        if animal is not None:
+            animal.nature = nature_of(animal.obj)  # its own nature, shown on the card
+            leave = getattr(animal.obj, "leave_at", None)  # looked at, and about to go: it stays a little
+            if leave is not None and leave < t + 15:        # longer, 10-45 seconds more (his numbers)
+                animal.obj.leave_at = t + random.uniform(10, 45)
+        at, body = m, None
+        if animal is not None:  # the card goes beside the animal itself, clear of all of it
+            from apex import OFFSET
+            ax, ay = animal.pos()
+            if getattr(animal, "low", False):
+                ax, ay = ax - OFFSET[0], ay - OFFSET[1]
+            z = getattr(animal.obj, "size", 1.0)
+            body = pygame.Rect(0, 0, round(44 * z), round(40 * z))
+            body.center = (round(ax), round(ay - 6 * z))
+            body.union_ip(pygame.Rect(round(m[0]) - 4, round(m[1]) - 4, 8, 8))
+            at = body.center
+        card = Card(self.signs.font, view, at, species, t, animal, evolves, ivs, fight=fight, avoid=body)
+        card.locked = not Collection().members()
+        return card
 
     def typed(self, ch, t):
         pass

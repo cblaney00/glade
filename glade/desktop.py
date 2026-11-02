@@ -2,8 +2,10 @@
 
 The home clearing alone: its apps, its animals coming and going (only storm.CAP families, new
 ones each Thunderstorm), Hide animals, the badge case and the Claude panel. Its play boards —
-Forest Dex, Your party, a badge-case gem, Wander, right-clicking an animal, the moon — open the
-game (game.py) straight at that thing; while the game is open the desktop steps aside for it.
+Forest Dex, Your party, a badge-case gem, the Glade Nav, Wander and a stats card's Battle it! /
+Forest Dex buttons — open the game (game.py) straight at that thing; while the game is open the
+desktop steps aside for it. Right-clicking an animal shows its card here, and the moon does nothing
+(2026-11-02, his ask: the game starting by accident made the screen jitter).
 It is built on the same Glade as the game (main.Glade) and adds only this.
 """
 
@@ -26,6 +28,7 @@ class Desktop(Glade):
         super().__init__(screen, rect, lower)
         storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
         self.pausable = False  # set by wayland.py: there the game takes the desktop's place
+        self.card = None  # an animal's stats card, from a right-click (only its buttons open the game)
 
     def paused(self):
         """The game is open in the desktop's place: the desktop steps aside and waits."""
@@ -59,8 +62,21 @@ class Desktop(Glade):
     def to_place(self, key, t):
         world.open_world("go", place=key)
 
-    def moon_clicked(self, t):
-        world.open_world("moon")
-
     def show_card(self, view, m, species, t, animal=None):
-        world.open_world("card", species)
+        self.card = self.make_card(view, m, species, t, animal)
+
+    def above(self, view, content, t):
+        if self.card is not None and self.card.view is view:
+            self.card.draw(view.canvas, t)
+
+    def play_click(self, t):
+        """A click while the card is open closes it; its buttons open the game at that animal."""
+        if self.card is None:
+            return False
+        card, self.card = self.card, None
+        m = card.view.mouse()
+        if m and card.button.collidepoint(m):
+            world.open_world("dex", card.species)
+        elif m and card.fight is not None and card.fight.collidepoint(m) and not card.locked:
+            world.open_world("battle", card.species, mon=world.who(card.animal, card.species))
+        return True
