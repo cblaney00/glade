@@ -68,11 +68,11 @@ the desktop itself into the game; before that a separate window was tried, which
 inherited `SDL_VIDEODRIVER=dummy`; `game.window` removes that.)
 
 **Loading while wandering** (`glade/loading.py`, 2026-10-28, his ask: Wander stuttered for ~20 s and he
-wanted to know when it is all loaded): Wander loads **every** place, nearest first, on a side thread
+wanted to know when it is all loaded): the game loads the places within `game.NEAR` (2) paths, nearest first, and lets go of any more than `FORGET` (3) away (`Game.forget`; 2026-11-02, his pick: much less memory), on a side thread
 that only works in the gaps between frames (`loading.between_frames` after each frame in both loops;
 `breathe()` pause points all through `art.py`, with `breathe(need)` before a long single step). A bar
-under the Wander board (`world.draw_loading`) reads "Loading places N/30", then "Every place is ready"
-for 4 s. All 30 take ~31 s; no frame over ~42 ms; ~0.8 GB once all are in, let go on Rest. Walking
+under the Wander board (`world.draw_loading`) reads "Loading places N/M", then "Places nearby are ready"
+for 4 s. No frame over ~42 ms; ~0.5 GB with the 13 around home in, let go on Rest. Walking
 somewhere not yet loaded builds it at once (`loading.Rush`, ~1.5 s pause). Builds hold `Glade.building`
 (they share art's path state). `art.bounds` replaces pygame's slow `get_bounding_rect` (same answer).
 Any new drawing helper that loops a lot should call `breathe()`.
@@ -215,6 +215,11 @@ for the game; `--game --window` forces the window)
 (Ctrl+Q quits, Home key jumps home). Review the art without a display:
 `python glade/main.py --shots DIR` writes a PNG of every place.
 
+**Lighter running** (2026-11-02, his picks): half as many animals out (`storm.FEWER` 0.635); a screen that
+windows cover completely is not drawn (`Glade.unseen`, `wayland.covers`, checked on window events and every
+3 s); after `main.CALM_AFTER` (10 min) without the pointer over the glade it is calm (`Glade.calm`): animals at
+half speed, every other frame skipped, until the pointer moves; the game keeps only nearby places loaded.
+
 Performance matters (it runs all day): keep surfaces 32-bit (`art.solid`), and see-through
 layers trimmed to what is on them (`art.trimmed`). `--shots` prints ms per frame; keep it
 around 10 ms for both screens. Anything drawn every frame that rarely changes is made once and kept:
@@ -309,7 +314,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   borrow from Pokémon's cover legendaries (no antlered deer, no dark bird, no sky-serpent).
   Elderglow is a drifting wreath of roots with a seed of light; Moonward a crescent of night-glass
   with one eye and seven moons in their phases. He counts 525+ as a strong total.
-- Dex names split onto two lines at a natural break (`dex.fit_name`); 27% fewer animals out at once
+- Dex names split onto two lines at a natural break (`dex.fit_name`); 27% fewer animals out at once, then half as many again (2026-11-02)
   (`storm.FEWER`); scenes a little brighter (`art.LIFT`, `art.THIN`); the floating lantern strings
   are gone; the open stats card is shown again in an overlay-layer window (`wayland.CardFront`) so it
   sits in front of windows, the bar and notifications.

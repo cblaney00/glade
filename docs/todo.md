@@ -7,7 +7,6 @@ each off (move it to Done with the date) when it is finished.
 
 (nothing waiting: ask him what's next)
 
-
 ## Done
 
 - 2026-11-02: lighter running: half as many animals out, screens fully covered by windows aren't drawn, after 10 idle minutes the glade calms down (half speed, half the frames), and the game only keeps nearby places loaded (about half the memory).
