@@ -144,6 +144,10 @@ class Minimap:
 
 
 
+NEAR = 2    # places this many paths away or less are kept ready (loaded on the side)
+FORGET = 3  # places further away than this are let go of
+
+
 class Game(Glade):
     def __init__(self, screen, rect, lower=None):
         # the far places, built on the side while he plays, so the game never freezes (warm)
@@ -176,23 +180,38 @@ class Game(Glade):
         self.take_ready(self.here.key)
         return super().lower()
 
-    def nearest(self):
-        """Every place, nearest first (by paths) from where he is."""
-        order, seen = [self.here.key], {self.here.key}
+    def steps(self):
+        """How many paths away each place is from where he is."""
+        far, order = {self.here.key: 0}, [self.here.key]
         for key in order:
             for a, b in LINKS:
                 if key in (a, b):
                     other = b if a == key else a
-                    if other not in seen and other in BUILDERS:
-                        seen.add(other)
+                    if other not in far and other in BUILDERS:
+                        far[other] = far[key] + 1
                         order.append(other)
-        return order + [k for k in BUILDERS if k not in seen]
+        return far
+
+    def nearest(self):
+        """The places kept ready (NEAR paths away or less), nearest first."""
+        far = self.steps()
+        return sorted((k for k in far if far[k] <= NEAR), key=far.get)
 
     def loading(self):
-        """(places loaded, all places) for the bar under Rest."""
+        """(nearby places loaded, nearby places) for the bar under Rest."""
         with self.ready_lock:
             ready = set(self.ready)
-        return len((set(self.scenes) | ready) & set(BUILDERS)), len(BUILDERS)
+        near = set(self.nearest())
+        return len((set(self.scenes) | ready) & near), len(near)
+
+    def forget(self):
+        """Let go of places more than FORGET paths away (his pick, 2026-11-02: much less memory;
+        walking back to one builds it again, a short pause). Never one something is happening in."""
+        far = self.steps()
+        busy = {getattr(getattr(x, "scene", None), "key", None) for x in (self.arena, self.storm, self.hiding, self.hunt)}
+        for key in [k for k in self.scenes if far.get(k, FORGET + 1) > FORGET and k != self.here.key and k not in busy]:
+            del self.scenes[key]
+            self.lowers.pop(key, None)
 
     def idle_work(self, t):
         self.warm()
@@ -205,6 +224,11 @@ class Game(Glade):
             self.take_ready(key)
         if self.warmer is not None and self.warmer.is_alive():
             return True
+        if self.building.acquire(blocking=False):
+            try:
+                self.forget()
+            finally:
+                self.building.release()
         todo = [k for k in self.nearest() if k not in self.scenes]
         if not todo:
             if self.loaded_at is None:

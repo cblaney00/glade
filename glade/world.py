@@ -219,7 +219,7 @@ def draw_loading(s, view, font, done, total, since, t):
     r = loading_rect(view)
     full = since is not None
     cloth(s, r, (150, 236, 190) if full else WANDER, hot=full, alpha=215)
-    msg = "Every place is ready" if full else f"Loading places {done}/{total}"
+    msg = "Places nearby are ready" if full else f"Loading places {done}/{total}"
     img = font.render(msg, False, (255, 255, 255) if full else TEXT)
     s.blit(img, (r.x + 7, r.y + 2))
     bar = pygame.Rect(r.x + 7, r.bottom - 6, r.w - 14, 3)

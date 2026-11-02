@@ -457,6 +457,9 @@ class View:
         screen.blit(pygame.transform.scale(shown, self.rect.size), self.rect.topleft)
 
 
+CALM_AFTER = 600  # seconds without the pointer over the glade before it calms down
+
+
 class Glade:
     """What the desktop and the game share (world.py): the views, the places and their lower
     screens, the name boards and opening apps, the animals coming and going, Thunderstorm,
@@ -497,6 +500,8 @@ class Glade:
         self.hiding = None  # the animals hiding while he plays a game (hiding.py)
         self.hide = hiding.load_hide()  # his "Hide animals" switch
         self.covered = set()  # the views a full-screen window is hiding: not drawn (set by wayland.py)
+        self.unseen = set()  # the views ordinary windows cover completely: not drawn either (wayland.py)
+        self.stirred, self.pointer_was = 0.0, None  # when he last moved the pointer over the glade
         self.game_since = None  # when a full-screen window last came up
         self.updater = resume.Updater()  # after a rebuild: Thunderstorm switches to the new glade
         if self.bottom:
@@ -508,6 +513,19 @@ class Glade:
         if views and not self.covered:
             self.game_since = self.now()
         self.covered = views
+
+    def set_unseen(self, views):
+        """Which screens ordinary windows cover completely (his pick, 2026-11-02): not drawn."""
+        self.unseen = set(views)
+
+    def hidden(self, view):
+        """Nobody can see this screen just now, so it is not drawn."""
+        return view in self.covered or view in self.unseen
+
+    def calm(self):
+        """Not touched for CALM_AFTER seconds (his pick, 2026-11-02): the animals slow to half
+        speed and the picture is drawn half as often, until the pointer moves over the glade."""
+        return self.now() - self.stirred > CALM_AFTER
 
     def hide_for_games(self, t):
         """A game full screen for half a minute, or his "Hide animals" switch: everyone hides; when
@@ -811,6 +829,11 @@ class Glade:
     def render(self, dt):
         """Advance everything by dt and paint each view's canvas (without showing it)."""
         t = time.monotonic() - self.t0
+        pointer = tuple(view.mouse() for view, _ in self.views())
+        if pointer != self.pointer_was:
+            self.pointer_was, self.stirred = pointer, t
+        if self.calm():
+            dt *= 0.5
         self.updater.tick(self, t)
         # a quick fade, so clicking through the places never feels slow
         if self.fade_to:
@@ -849,7 +872,7 @@ class Glade:
         for view, content in self.views():
             if content is not self.here:
                 content.update(dt, t)
-            if view in self.covered:  # under a full-screen game: nobody can see it, so it waits
+            if self.hidden(view):  # under a full-screen game or windows: nobody can see it, so it waits
                 continue
             content.draw(view.canvas, t)
             self.under(view, content, t)
@@ -1033,7 +1056,7 @@ def shots(out):
 def loop(glade):
     clock = pygame.time.Clock()
     while getattr(glade, "running", True):
-        dt = clock.tick(30) / 1000
+        dt = clock.tick(15 if glade.calm() else 30) / 1000
         frame_start = time.monotonic()
         for e in pygame.event.get():
             if e.type == pygame.QUIT:

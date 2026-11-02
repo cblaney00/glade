@@ -107,9 +107,17 @@ def at(view, m):
     return None
 
 
+_counted = [-1.0, (0, 0)]
+
+
 def counts():
+    """(how many trainers want to battle, how many there are), worked out once a second."""
+    import time
     from trainers import TRAINERS, ready
-    return sum(1 for k in TRAINERS if ready(k)), len(TRAINERS)
+    now = time.monotonic()
+    if now - _counted[0] > 1.0:
+        _counted[:] = [now, (sum(1 for k in TRAINERS if ready(k)), len(TRAINERS))]
+    return _counted[1]
 
 
 def shell(s, box, hot=False):

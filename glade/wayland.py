@@ -465,19 +465,45 @@ class Keyboard:
             clients = json.loads(subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, timeout=3).stdout)
         except (OSError, subprocess.SubprocessError, ValueError):
             return False
-        full = set()
+        full, hid = set(), set()
         for m in mons:
             ws = m.get("activeWorkspace", {}).get("id")
-            if any(c.get("fullscreen", 0) >= 2 and c.get("workspace", {}).get("id") == ws and not c.get("hidden")
-                   and not not_a_game(c) for c in clients):
+            here = [c for c in clients if c.get("workspace", {}).get("id") == ws and not c.get("hidden")
+                    and c.get("mapped", True)]
+            if any(c.get("fullscreen", 0) >= 2 and not not_a_game(c) for c in here):
                 full.add((m.get("x"), m.get("y")))
-        covered = []
+            if covers(m, here):
+                hid.add((m.get("x"), m.get("y")))
+        covered, unseen = [], []
         for s in self.surfaces:
             g = s.monitor.get_geometry()
             if (g.x, g.y) in full:
                 covered.append(s.view)
+            if (g.x, g.y) in hid:
+                unseen.append(s.view)
         self.glade.set_covered(covered)
+        self.glade.set_unseen(unseen)
         return False
+
+
+def covers(mon, clients):
+    """Whether these windows hide the whole monitor (a grid of points, every one under a window)."""
+    scale = mon.get("scale", 1.0) or 1.0
+    x0, y0 = mon.get("x", 0), mon.get("y", 0)
+    w, h = mon.get("width", 0) / scale, mon.get("height", 0) / scale
+    if not clients or w <= 0 or h <= 0:
+        return False
+    if any(c.get("fullscreen", 0) >= 1 for c in clients):
+        return True
+    rects = [(c["at"][0], c["at"][1], c["at"][0] + c["size"][0], c["at"][1] + c["size"][1])
+             for c in clients if c.get("at") and c.get("size")]
+    n = 24
+    for i in range(n + 1):
+        for j in range(n + 1):
+            px, py = x0 + 2 + (w - 4) * i / n, y0 + 2 + (h - 4) * j / n
+            if not any(a <= px < c and b <= py < d for a, b, c, d in rects):
+                return False
+    return True
 
 
 # full-screen windows that are not games: the glade keeps going behind them (his rule, 2026-10-27)
@@ -528,6 +554,8 @@ def run(make):
     KEYBOARD.surfaces = surfaces
     if KEYBOARD.sig:
         KEYBOARD.check_fullscreen()  # a game may already be full screen
+        # windows moved or resized send no event: look again every few seconds too
+        GLib.timeout_add_seconds(3, lambda: KEYBOARD.check_fullscreen() or True)
     panel_surface = surfaces[-1]  # the Claude panel lives on the lower screen (or the only one)
     glade.panel.on_typing = panel_surface.keyboard
     glade.panel_surface = panel_surface
@@ -537,7 +565,7 @@ def run(make):
     if is_game:
         fronts += [Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
                   Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]
-    hidden, shown = [False], [False]
+    hidden, shown, calm_skip = [False], [False], [False]
     last = [time.monotonic()]
     seen = set()  # errors already written to the log
 
@@ -555,6 +583,10 @@ def run(make):
 
     def frame():
         now = time.monotonic()
+        if glade.calm():  # calm (main.py): every other frame is skipped
+            calm_skip[0] = not calm_skip[0]
+            if calm_skip[0]:
+                return
         dt, last[0] = min(0.1, now - last[0]), now
         if getattr(glade, "paused", lambda: False)():  # the desktop, while the game is open
             if not hidden[0]:
@@ -573,7 +605,7 @@ def run(make):
         if not getattr(glade, "running", True):
             return
         for s in surfaces:
-            if s.view not in glade.covered:  # under a full-screen game: no need to show it
+            if not glade.hidden(s.view):  # under a full-screen game or windows: no need to show it
                 s.area.queue_draw()
         if is_game and not shown[0]:  # the game's first frame is up: the desktop can step aside
             shown[0] = True

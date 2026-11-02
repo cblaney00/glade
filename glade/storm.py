@@ -82,7 +82,9 @@ def limit(contents, rng):
             o.gone = True
 
 
-FEWER = 0.27  # the share of a place's animals kept back, so the screen is less crowded
+# the share of a place's animals kept back, so the screen is less crowded (his asks: 27% fewer,
+# 2026-10-27; then half as many again, 2026-11-02, so the glade does less work)
+FEWER = 0.635
 
 
 def crowd(content, rng, factor=2):
@@ -96,7 +98,7 @@ def crowd(content, rng, factor=2):
     for o in rng.sample(waiting, min(len(waiting), len(out) * (factor - 1))):
         o.gone = False
     now = [o for o in animals if not getattr(o, "gone", False)]
-    for o in rng.sample(now, round(len(now) * FEWER)):  # (his ask, 2026-10-27: 27% fewer out at once)
+    for o in rng.sample(now, round(len(now) * FEWER)):
         o.gone = True
 
 

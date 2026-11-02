@@ -5,10 +5,12 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
-- [ ] make glade less intensive, ask me questions on concessions to be made when it is running with full features, less creatures on screen at once would probably help as a place to start
+(nothing waiting: ask him what's next)
+
 
 ## Done
 
+- 2026-11-02: lighter running: half as many animals out, screens fully covered by windows aren't drawn, after 10 idle minutes the glade calms down (half speed, half the frames), and the game only keeps nearby places loaded (about half the memory).
 - 2026-11-02: on the desktop, right-clicking an animal shows its card right there; only its Battle it! / Forest Dex buttons, the corner boards and maps open the game (Battle it! goes straight into a battle with that very animal); the moon does nothing on the desktop.
 - 2026-11-02: every wild animal has its own level across its stage's range (first 2-15, middle 16-31, final 32-50); legendaries are Lv70.
 - 2026-11-01: Predator vision no longer lags: the grey world is redrawn 5 times a second and each outline is reused for a few frames (a frame went from 33 ms to under 20 ms).
