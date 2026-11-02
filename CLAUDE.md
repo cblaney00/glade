@@ -344,7 +344,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   lines each (Dragon 13 is the least, Water 23 the most). Next new line: #445 (only #445-#448 left before the
   legendaries; grow DEX_SIZE for more).
 - **Levels and experience** (`glade/levels.py`, 2026-10-28, his ask: a reason to level your party, Emerald's
-  exp math). Wild: first stages Lv5, middle Lv16, finals Lv32 (legendaries Lv50, Claude's pick). Stats use the
+  exp math). Wild (2026-11-02, his rule): each animal rolls its own level in its stage's range, first 2-15, middle 16-31, finals 32-50 (`levels.level_of`, `wild_range`, `WILD_CAP`); legendaries Lv70. Stats use the
   creature's level (`calc_stats(..., level)`), as do damage and Night Shade. A fainted foe's exp (base exp x
   level / 7, shared by yours that faced it and still stand, x1.5 from a trainer; none for catching) goes to
   kept creatures only (`Mon.uid`); `Battle.share_exp`, saved each turn by `Arena.keep_exp`. Growth rates are

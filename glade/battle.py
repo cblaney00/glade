@@ -1822,8 +1822,9 @@ class Arena:
 
     # --- the battle ---
     def start(self, t):
+        import levels
         from team import ivs_of, nature_of
-        own = lambda a, sp: (sp, ivs_of(a.obj), None, nature_of(a.obj))  # noqa: E731  an animal of the glade, its own self
+        own = lambda a, sp: (sp, ivs_of(a.obj), None, nature_of(a.obj), levels.level_of(a.obj, sp))  # noqa: E731  an animal of the glade, its own self
         if self.mode == "pick":
             (a, sa, _), (b, sb, _) = self.picked
             self.battle = Battle([own(a, sa)], [own(b, sb)])
@@ -2524,7 +2525,7 @@ class Card:
         cloth(surf, surf.get_rect(), CLOTH, alpha=240)
         y = 5
         import levels
-        lw = self.text(surf, f"Lv{levels.wild_level(self.species)}", self.W - 8, y, TEXT, right=True)
+        lw = self.text(surf, f"Lv{levels.level_of(getattr(self.animal, 'obj', None), self.species)}", self.W - 8, y, TEXT, right=True)
         self.text(surf, self.fit(self.species, self.W - 22 - lw), 8, y, (255, 255, 255))
         y += 16
         x = 8

@@ -1,7 +1,10 @@
 """Levels and experience, worked out the way Pokémon Emerald does (2026-10-28, his ask).
 
-- **Wild levels** (his numbers): a first stage is level 5, a middle stage 16, a final stage 32.
-  Legendaries never evolve, so they get a level of their own: 50.
+- **Wild levels** (2026-11-02, his rule): each animal out has its own level, anywhere in the range
+  its stage can exist at: a first stage 2-15, a middle stage 16-31, a final stage 32-50 (fully
+  evolved creatures are capped at 50 for now; a middle stage with no final one goes up to 50).
+  Legendaries never evolve: always level 70. (`level_of`, rolled once per animal like its IVs.)
+  `wild_level` is still the level an old save's creature of that stage starts at.
 - **Evolving**: at level 16 into the middle stage, at 32 into the final one (his pick, in place
   of the old Tower wins).
 - **Experience**: when a foe faints, each of yours that was out against it and is still standing
@@ -19,7 +22,8 @@ import zlib
 MAX = 100
 START = {1: 5, 2: 16, 3: 32}
 EVOLVE_AT = {1: 16, 2: 32}  # the stage it is -> the level it evolves at
-LEGEND_LEVEL = 50
+LEGEND_LEVEL = 70
+WILD_CAP = 50  # the highest a fully evolved wild creature is, for now (his rule)
 STARTERS = {"Mossprance", "Kindlet", "Pippalotl"}
 
 GROWTHS = ("Medium Fast", "Medium Slow", "Fast", "Slow", "Erratic", "Fluctuating")
@@ -82,6 +86,33 @@ def wild_level(species):
     if species in LEGENDARY:
         return LEGEND_LEVEL
     return START.get(min(stage(species), 3), 5)
+
+
+def wild_range(species):
+    """The lowest and highest level a wild creature of this species can be."""
+    from battle import LEGENDARY
+    from evolve import EVOLVES
+    if species in LEGENDARY:
+        return LEGEND_LEVEL, LEGEND_LEVEL
+    st = min(stage(species), 3)
+    lo = 2 if st == 1 else EVOLVE_AT[st - 1]
+    hi = EVOLVE_AT[st] - 1 if st in EVOLVE_AT and EVOLVES.get(species) else WILD_CAP
+    return lo, max(lo, hi)
+
+
+def level_of(obj, species):
+    """This wild animal's own level, rolled once (and again if it turns into another stage)."""
+    import random
+    kept = getattr(obj, "wild_level", None)
+    if kept and kept[0] == species:
+        return kept[1]
+    level = random.randint(*wild_range(species))
+    if obj is not None:
+        try:
+            obj.wild_level = (species, level)
+        except AttributeError:
+            pass
+    return level
 
 
 def base_exp(species):

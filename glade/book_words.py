@@ -111,7 +111,7 @@ BATTLES = [
         "Switch to bring in a better match. The one coming in takes the foe's move that turn, so switch "
         "to one that shrugs that move off. When one of yours faints, you choose who comes out next."], []),
     ("Levels and experience", [
-        "Wild creatures are Lv5 as a first stage, Lv16 as a middle stage, Lv32 as a final one.",
+        "Each wild creature has its own level: Lv2-15 as a first stage, Lv16-31 as a middle stage, Lv32-50 as a final one. Legendaries are always Lv70.",
         "Beating a foe gives experience to yours who faced it and are still standing. Trainers' creatures "
         "give half again as much. Catching gives none. Each line grows at its own pace."], []),
     ("Evolving", [
