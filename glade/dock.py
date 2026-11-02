@@ -7,7 +7,8 @@
 #                           under an app means it is open, a dim dot that it is minimised.
 #   glade-dock minimize     minimise the focused window (the title bar's – button)
 #   glade-dock restore ADDR bring a minimised window back
-#   glade-dock watch        give each new window the keyboard as it opens, and bring a
+#   glade-dock watch        give each new window the keyboard as it opens (where he last
+#                           left that app, at that size: "window spots"), and bring a
 #                           minimised window back whenever something focuses it (the top
 #                           bar's window list)
 #   glade-dock apps ARGS... the Apps menu (rofi ARGS), closed by a click outside it
@@ -18,6 +19,7 @@
 
 import json
 import os
+import re
 import shlex
 import socket
 import sys
@@ -152,12 +154,105 @@ def lower_glade():
         pass
 
 
+# --- window spots ----------------------------------------------------------------------
+#
+# Every app opens where he last left it, at the size he left it (his ask, 2026-11-02):
+# no button, it just learns. A second window of the same app opens there too, nudged
+# down and right so both show. Hyprland has no "moved" or "resized" event, so the spots
+# are read every couple of seconds instead.
+
+SPOTS = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
+                     "glade", "window-spots.json")
+NUDGE = 32       # how far each extra window of an app is moved, in pixels
+SETTLE = 3       # seconds a new window is left alone before its spot counts
+GAMES = re.compile(r"^(steam_app_.*|.*\.exe)$")  # games keep their own size and screen
+
+
+def load_spots():
+    try:
+        with open(SPOTS) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def keys(c):
+    """Where a window's spot is kept: the app with its first title (so a Save dialog has
+    its own spot, apart from the app's main window), and the app alone."""
+    return f"{c['class']}|{c.get('initialTitle', '')}", c["class"]
+
+
+def placeable(c):
+    return (c.get("class") and c.get("floating") and not c.get("fullscreen")
+            and not c["workspace"]["name"].startswith("special")
+            and not GAMES.match(c["class"]))
+
+
+def on_screen(spot):
+    x, y = spot["at"]
+    w, h = spot["size"]
+    cx, cy = x + w // 2, y + h // 2
+    return any(m["x"] <= cx < m["x"] + m["width"] / m["scale"]
+               and m["y"] <= cy < m["y"] + m["height"] / m["scale"] for m in get("monitors"))
+
+
+def place(address):
+    time.sleep(0.25)  # let the app pick its own size first, then change it
+    c = client(address)
+    if not c or not placeable(c):
+        return
+    spots = load_spots()
+    exact, app = keys(c)
+    others = [w for w in get("clients") if w["address"] != address and w.get("class") == c["class"]
+              and not w["workspace"]["name"].startswith("special")]
+    # The app's own spot only for its first window: a dialog opened over it has none yet.
+    spot = spots.get(exact) or (spots.get(app) if not others else None)
+    if not spot or not on_screen(spot):
+        return
+    n = sum(1 for w in others if keys(w)[0] == exact) % 6
+    x, y = spot["at"][0] + n * NUDGE, spot["at"][1] + n * NUDGE
+    w, h = spot["size"]
+    dispatch(f"resizewindowpixel exact {w} {h},address:{address}",
+             f"movewindowpixel exact {x} {y},address:{address}")
+
+
+def remember():
+    first_seen = {}
+    while True:
+        time.sleep(2)
+        now = time.time()
+        clients = get("clients")
+        live = {c["address"] for c in clients}
+        first_seen = {a: t for a, t in first_seen.items() if a in live}
+        for c in clients:
+            first_seen.setdefault(c["address"], now)
+        ready = [c for c in clients if placeable(c) and now - first_seen[c["address"]] >= SETTLE]
+        new = {}
+        # Oldest last, so each keeps its first open window's spot: the app's main window
+        # rather than a dialog, and not a nudged second window, which would creep.
+        for c in sorted(ready, key=lambda c: first_seen[c["address"]], reverse=True):
+            for key in keys(c):
+                new[key] = {"at": c["at"], "size": c["size"]}
+        spots = load_spots()
+        if any(spots.get(k) != v for k, v in new.items()):
+            spots.update(new)
+            try:
+                os.makedirs(os.path.dirname(SPOTS), exist_ok=True)
+                with open(SPOTS + ".tmp", "w") as f:
+                    json.dump(spots, f, indent=1)
+                os.replace(SPOTS + ".tmp", SPOTS)
+            except OSError:
+                pass
+
+
 def watch():
+    threading.Thread(target=remember, daemon=True).start()
     for name, data in events():
         if name == "openwindow":
             # ADDRESS,WORKSPACE,CLASS,TITLE — the address comes without its 0x
             address, ws = data.split(",")[:2]
             if not ws.startswith("special"):
+                threading.Thread(target=place, args=("0x" + address,), daemon=True).start()
                 # The keys go to the new window, even if the glade's arrow-key steering
                 # (its "glade" submap) was still on when it opened.
                 focus("0x" + address)
