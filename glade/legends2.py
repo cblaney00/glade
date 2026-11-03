@@ -67,6 +67,12 @@ LEGENDS2 = [
      ["Giga Drain", "Crunch", "Leech Seed", "Faint Attack", "Sleep Powder", "Swords Dance", "Magical Leaf",
       "Bite", "Synthesis", "Toxic"], 4.4, True, (44, 32, 52), (255, 70, 110), 6,
      "A crown of black thorns round a single red rose. The Thornwood grew up to guard it."),
+    # one more (2026-11-03, his pick of three): #461
+    ("comef", "Cometfall", "comet", ("Dragon", "Rock"), (100, 120, 115, 100, 85, 85), "Rock Head",
+     ["Dragon Claw", "Rock Slide", "Ancient Power", "Dragon Dance", "Earthquake", "Flamethrower", "Twister",
+      "Dragon Breath", "Iron Defense", "Meteor Mash"], 6.7, True, (96, 88, 110), (255, 200, 140), 12,
+     "The comet that made the Crater, still tumbling. Deep inside the stone a dragon's eye watches, "
+     "waiting for the sky to call it home."),
 ]
 
-FIRST_NUM = 449  # #449-#460; Elderglow and Moonward move to the very end
+FIRST_NUM = 449  # #449-#461; Elderglow and Moonward stay at the very end

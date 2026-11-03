@@ -384,6 +384,48 @@ def glow_thornh(o, s, t, st, k):
     lights(o, s, t, k)
 
 
+def draw_comef(o, s, t):
+    """Cometfall: a slowly tumbling comet-stone with a dragon's glowing eye deep inside, and a long
+    trail of star-fire behind it."""
+    z, x, y, f = o.size, o.x, o.y + bob(o, t), o.facing
+    o._lights = []
+    for i in range(16):  # the trail of star-fire, streaming back and fading
+        k = i / 15
+        tx = x - f * (6 + k * 26) * z
+        ty = y - (2 + k * 8) * z + math.sin(t * 2 + i) * k * 2 * z
+        c = (255, int(230 - 120 * k), int(170 - 120 * k))
+        circ(s, c, tx, ty, (3.2 - 2.6 * k) * z)
+        if i % 4 == 0:
+            o._lights.append((tx, ty, (4 - 3 * k) * z))
+    spin = t * 0.35 + o.phase
+    r = 8 * z
+    pts = []
+    for j in range(11):  # the rough stone, a lumpy tumbling outline
+        a = spin + j * TAU / 11
+        rr = r * (0.82 + 0.18 * math.sin(j * 2.7))
+        pts.append((x + math.cos(a) * rr, y + math.sin(a) * rr))
+    poly(s, o.body, pts)
+    poly(s, lite(o.body, 0.15), [pts[0], pts[1], pts[2], (x, y)])
+    for j in range(3):  # craters on its face
+        a = spin * 1.1 + j * 2.1
+        circ(s, dark(o.body, 0.3), x + math.cos(a) * r * 0.5, y + math.sin(a) * r * 0.5, (1.4 - 0.3 * j) * z)
+    for j in range(4):  # glowing cracks running to the eye
+        a = j * TAU / 4 + spin * 0.5
+        pygame.draw.line(s, (255, 170, 90), (x, y), (x + math.cos(a) * r * 0.7, y + math.sin(a) * r * 0.7))
+    # the dragon's eye, slit and amber, looking where it flies
+    pygame.draw.ellipse(s, (255, 210, 110), (x - 2.6 * z, y - 1.6 * z, 5.2 * z, 3.2 * z))
+    blink = (t * 0.4 + o.phase) % 6 < 0.15
+    if blink:
+        pygame.draw.line(s, (60, 30, 30), (x - 2.6 * z, y), (x + 2.6 * z, y))
+    else:
+        pygame.draw.ellipse(s, (60, 20, 30), (x + f * 0.5 * z - 0.5 * z, y - 1.4 * z, z, 2.8 * z))
+    o._lights.append((x, y, 7 * z))
+
+
+def glow_comef(o, s, t, st, k):
+    lights(o, s, t, k)
+
+
 for _kind, *_r in LEGENDS2:
     _cls = Flier if _kind in FLIERS else Walker
     setattr(_cls, "draw_" + _kind, globals()["draw_" + _kind])

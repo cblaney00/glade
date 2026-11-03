@@ -195,7 +195,7 @@ MOVES = {
 # row; the three starters' lines come first (#001-#009); room for DEX_SIZE. His rule (2026-10-27):
 # the legendaries always take the very last numbers of the Dex (LEGENDARY below).
 
-DEX_SIZE = 462  # (2026-11-03: twelve more legendaries, #449-#460)
+DEX_SIZE = 463  # (2026-11-03: thirteen more legendaries, #449-#461)
 SPECIES = {
     "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
