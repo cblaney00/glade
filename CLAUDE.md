@@ -102,10 +102,14 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   above, in its palette; paths leaving the upper screen continue here (specs are
   `sc.lower` in each scene builder, in lower-screen coords = upper x - 80).
 - `glade/pond.py` — the Glade's lily pond on the lower screen (koi, lily pads, ripples).
-- `glade/apex.py` — his easter egg: click the moon, type "apex". A legless blob of violet
-  jelly (his ask: amorphous, not cat-like) eats every animal; what it eats keeps glowing
-  inside it so the eating is obvious; then a long, characterful waddle off. The picture
-  never zooms to follow it — he only wants it on screen.
+- `glade/munch.py` — **the Munchling** (2026-11-03, his design; it replaced the violet jelly "apex"), Forest Dex #448
+  (the last free number; a legendary-rarity Dragon/Dark, 575, at home in the Forest, row in `legends2.py`). A noodle
+  of a dragon, **black and purple, fierce first, not too cute** (his words): near-black body, ragged purple spiked
+  mane, glowing violet eyes and tail tuft, long jaws with a fang. Its board sits **beside Predator vision** (game
+  only; `munch.button_rect`): it zips in and eats every animal on both screens in under 5 s (`EAT_FOR`), one happy
+  trick (`TRICKS`, random each time), wiggles off full, and as many *new* animals (fresh IVs) come out as it ate,
+  so he can use it again and again to look for strong ones. The moon's word "apex" calls it too (`apex.py` now only
+  keeps `Prey`/`find_prey`/`Listener`).
 - `glade/battle.py` — his second easter egg, Pokémon Showdown **Gen 3 OU** rules: click the
   moon (it shines bright while it listens), type "battle", click two animals (anywhere on
   the body; any place, any screen; not fireflies), and they walk onto a mossy field in the
@@ -351,7 +355,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   by theme, "good type distribution"): data in `glade/lines8.py` (kind, names, types, stat shape, final height,
   home; moves come from `pool()` by type), drawn in `glade/wave8.py` (the far places' 30) and `glade/wave9.py`
   (the 20), stories in `glade/lore8.py`. #295-#444; legendaries moved to #449/#450 with DEX_SIZE. Types now 13-23
-  lines each (Dragon 13 is the least, Water 23 the most). Next new line: #448 (only #448 left before the
+  lines each (Dragon 13 is the least, Water 23 the most). Every number is now taken (#448 is the Munchling) before the
   legendaries; grow DEX_SIZE for more).
 - **The catcher line** (2026-11-02, his ask: a line good for catching; his picks): Chimelet → Chimecloud →
   Chimetempest (#445-#447, the last row of `lines8.LINES`, drawn by `wave9.draw_chime`), a lullaby rain-cloud

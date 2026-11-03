@@ -9,6 +9,7 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-03: the Munchling (Dex #448): a black-and-purple noodle dragon, called from its board beside Predator vision, eats every animal in a place in under 5 seconds, wiggles off full, and new animals come out; also rare in the wild in the Forest.
 - 2026-11-02: one more legendary: Cometfall (Dragon/Rock, 605), a tumbling comet-stone with a dragon's eye inside, in the Comet Crater.
 - 2026-11-03: twelve more legendaries, one in each of twelve places (575-615, never evolving, Lv70).
 - 2026-11-02: levelling up past one level: your creature's battle panel has a blue exp bar that fills, wraps round and fills again for each level the experience overflows into (one message a level), and a creature that passes both evolution levels at once evolves twice.

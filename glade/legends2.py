@@ -11,6 +11,13 @@ in wave10.py.
 """
 
 LEGENDS2 = [
+    # the glade's predator (2026-11-03, his design: munch.py), the last free number, #448: a noodle
+    # of a dragon that eats every animal in a place when called (its board by Predator vision)
+    ("munch", "Munchling", "forest", ("Dragon", "Dark"), (85, 125, 80, 70, 80, 135), "Guts",
+     ["Crunch", "Dragon Claw", "Bite", "Faint Attack", "Dragon Dance", "Quick Attack", "Earthquake", "Return",
+      "Swords Dance", "Iron Tail", "Slash", "Dragon Breath"], 3.1, False, (34, 26, 44), (190, 110, 255), 14,
+     "A long black noodle of a dragon with a purple mane, always hungry. Call it when a place is too crowded: it "
+     "eats every creature in sight in a few seconds, smiles, and wiggles off for a nap, full."),
     ("veilf", "Veilfall", "waterfall", ("Water", "Rock"), (110, 95, 125, 95, 110, 60), "Swift Swim",
      ["Surf", "Hydro Pump", "Waterfall", "Rock Slide", "Ancient Power", "Ice Beam", "Calm Mind", "Recover",
       "Iron Defense", "Rest"], 6.8, True, (96, 128, 150), (150, 230, 255), 8,
@@ -75,4 +82,4 @@ LEGENDS2 = [
      "waiting for the sky to call it home."),
 ]
 
-FIRST_NUM = 449  # #449-#461; Elderglow and Moonward stay at the very end
+FIRST_NUM = 448  # #448 the Munchling, then #449-#461; Elderglow and Moonward stay at the very end

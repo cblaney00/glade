@@ -33,7 +33,7 @@ START = [
         "as a six-sided web. The card can open its Forest Dex page, or start a battle with it.",
         "Animals come and go like wild creatures do: each stays out a while, then slips away, and a new "
         "one comes out in its place. Now and then one is already evolved, and very rarely a legendary "
-        "shows itself. There are fifteen, each living in its own place: the stronger it is, the rarer "
+        "shows itself. There are sixteen, each living in its own place: the stronger it is, the rarer "
         "it is seen. They never evolve, and are always Lv70."],
         ["Glowtail", "Nimbusdrift", "Beaconwing"]),
     ("Catching", [

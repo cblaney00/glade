@@ -26,7 +26,8 @@ import resume
 import storm
 import vision
 import world
-from apex import Hunt, Listener
+import munch
+from apex import Listener
 from battle import Arena
 from dex import Dex
 from evolve import EVOLVES, Evolution
@@ -156,7 +157,7 @@ class Game(Glade):
         super().__init__(screen, rect, lower)
         self.minimap = Minimap(self.signs.font)
         self.listener = Listener()  # the easter eggs (apex.py): click the moon, type the word
-        self.hunt = None
+        self.hunt = None  # a Munchling's visit (munch.py), from its board or the moon's word "apex"
         self.arena = None  # a battle (battle.py)
         self.card = None   # an animal's battle stats (battle.py), from a right-click
         self.dex = None    # the Forest Dex (dex.py)
@@ -376,6 +377,7 @@ class Game(Glade):
 
     def corner(self, view, t):
         vision.draw_button(view.canvas, view, self.signs.font, self.vision is not None)
+        munch.draw_button(view.canvas, view, self.signs.font, self.hunt is not None)
         hiding.draw_dex_button(view.canvas, view, self.signs.font)
         hiding.draw_buttons(view.canvas, view, self.signs.font, self.hide)
         badges.draw(view.canvas, view, self.signs.font, t)
@@ -387,6 +389,9 @@ class Game(Glade):
         if vision.button_rect(view).collidepoint(m):
             if self.vision is None:
                 self.vision = vision.Vision(t)
+            return True
+        if munch.button_rect(view).collidepoint(m):
+            self.call_munchling(t)
             return True
         if hiding.dex_rect(view).collidepoint(m):
             self.popup, self.card = None, None
@@ -408,7 +413,7 @@ class Game(Glade):
         self.card, self.dex = None, None
 
     def storm_blocked(self):
-        return self.evolution is not None
+        return self.evolution is not None or self.hunt is not None
 
     def play_click(self, t):
         if self.board is not None:  # the tower's board or the boxes: like the dex
@@ -504,10 +509,13 @@ class Game(Glade):
                     low = self.lower() if self.bottom else None
                     self.arena = Arena(self.here, low, self.signs.font, t)
                     self.arena.mouse = self.top.mouse
-            elif self.hunt is None:
-                low = self.lower() if self.bottom else None
-                size = (self.bottom.w, self.bottom.h) if self.bottom else (0, 0)
-                self.hunt = Hunt(self.here, low, size, t)
+            else:
+                self.call_munchling(t)
+
+    def call_munchling(self, t):
+        """A Munchling comes and eats every animal here, and new ones come out (munch.py)."""
+        if self.hunt is None and self.storm is None and self.evolution is None:
+            self.hunt = munch.Munch(self, t)
 
     def zoomed(self, view):
         """The top screen is zoomed in on a battle (battle.Arena.camera)."""
@@ -518,8 +526,8 @@ class Game(Glade):
             self.asked_at = t
             self.follow(world.take(), t)
         if self.hunt is not None:
-            if self.hunt.done or self.hunt.scene is not self.here:
-                self.hunt.finish()  # finished, or he went elsewhere: everyone is back
+            if self.hunt.done or self.hunt.scene is not self.here or self.storm is not None:
+                self.hunt.finish()  # finished, or he went elsewhere: the new ones are simply out
                 self.hunt = None
             else:
                 self.hunt.update(dt, t)
@@ -552,7 +560,7 @@ class Game(Glade):
         if view is self.top:
             self.listener.draw_moon(view.canvas, getattr(content, "moon", None), t)
         if self.hunt is not None:
-            self.hunt.draw(view.canvas, view is self.bottom, t)
+            self.hunt.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
 
     def seen(self, view, content, t):
         if self.vision is not None:

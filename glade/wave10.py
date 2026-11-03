@@ -13,6 +13,7 @@ from beasts import FLIERS, LIT, WALKERS, Flier, Walker
 from legends2 import LEGENDS2
 from life import q
 from wave5 import LEGENDS, TAU, WHITE, dark, eyes, lite, moving, poly
+from munch import draw_munch, glow_munch  # noqa: F401 (the Munchling, #448: munch.py)
 
 for _kind, _name, _home, *_r, _flies, _body, _glow, _speed, _lore in LEGENDS2:
     _spec = dict(species=_name, body=_body, color=_glow, speed=_speed)
