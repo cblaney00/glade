@@ -195,7 +195,7 @@ MOVES = {
 # row; the three starters' lines come first (#001-#009); room for DEX_SIZE. His rule (2026-10-27):
 # the legendaries always take the very last numbers of the Dex (LEGENDARY below).
 
-DEX_SIZE = 450
+DEX_SIZE = 462  # (2026-11-03: twelve more legendaries, #449-#460)
 SPECIES = {
     "Duskling": dict(num=10, types=("Normal",), base=(54, 58, 47, 35, 47, 74), ability="Guts",
                     pool=["Body Slam", "Return", "Quick Attack", "Double-Edge", "Bite", "Crunch", "Iron Tail",
@@ -610,6 +610,11 @@ for _i, (_a, _b, _c, _types, _final, _shape, _ability, _pool) in enumerate(_PAGE
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _ability, _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _final or _types, _spread(_shape, 530), _ability, _pool[8:])
 SPECIES.update(LEGENDARY)
+# twelve more (2026-11-03, his ask; legends2.py): 570-615, never evolving
+from legends2 import FIRST_NUM as _L2NUM, LEGENDS2 as _L2  # noqa: E402
+for _i, (_k, _name, _home, _types, _base, _ability, _pool, *_r) in enumerate(_L2):
+    LEGENDARY[_name] = dict(num=_L2NUM + _i, types=_types, base=_base, ability=_ability, pool=list(_pool))
+    SPECIES[_name] = LEGENDARY[_name]
 LEGEND_NUMS = {d["num"] for d in LEGENDARY.values()}
 
 # Forest Dex page six (2026-10-27, his ask): the Dex grows to 400, and ten new lines (#259-#288),

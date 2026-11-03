@@ -98,6 +98,8 @@ from battle import _PAGE4 as _P4  # noqa: E402
 for _a, _b, _c, *_ in _P4:
     HEIGHT[_a], HEIGHT[_b], HEIGHT[_c] = _H4[_a]
 HEIGHT.update(Elderglow=5.8, Moonward=6.3)
+from legends2 import LEGENDS2 as _LG2  # noqa: E402
+HEIGHT.update({_name: _r[5] for _k, _name, *_r in _LG2})
 # page six (2026-10-27): (first, middle, final) heights in feet
 _H6 = {
     "Burrlet": (0.5, 1.6, 3.4), "Zingle": (0.4, 1.3, 3.2), "Mirelet": (0.8, 2.2, 4.3), "Smudgit": (0.7, 2.0, 4.0),

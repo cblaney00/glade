@@ -17,13 +17,13 @@ import pygame
 import art
 from apex import ease
 from art import GLOW, glow
-from battle import CLOTH, DEX_SIZE, DIM, EDGE, LEGEND_NUMS, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, line_start, mix, stat_color
+from battle import CLOTH, DEX_SIZE, DIM, EDGE, LEGENDARY, LEGEND_NUMS, MOVES, SPECIES, TEXT, TYPE_COLOR, cloth, line_start, mix, stat_color
 from beasts import FLIERS, WALKERS, Flier, Walker, owlet
 from life import Critter, Millipede, Slug, Squid, Track
 from pond import KOI, Fish, Water
 
 TOTAL = DEX_SIZE
-LEGENDS_ = ("Elderglow", "Moonward")
+LEGENDS_ = tuple(LEGENDARY)
 TITLES = dict(glade="The Glade", waterfall="The Waterfall", river="The River", forest="The Forest",
               rocks="The Mossy Rocks", ridge="The Snowy Ridge", springs="The Hot Springs",
               tower="The Battle Tower", caverns="The Crystal Caverns", meadow="The Starfall Meadow",

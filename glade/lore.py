@@ -120,6 +120,7 @@ WHERE = {
     "Dewlet": ('meadow', 'shore', 'garden'),
     "Elderglow": ('glade',),
     "Moonward": ('meadow',),
+    **{_n: (_h,) for _k, _n, _h, *_r in __import__("legends2").LEGENDS2},
     # Forest Dex page six (2026-10-27): one new line in each place (wave6.py)
     "Burrlet": ('glade', 'orchard', 'thorn'), "Burrclasp": ('glade', 'orchard', 'thorn'),
     "Zingle": ('waterfall', 'orchard', 'storm'), "Zingwing": ('waterfall', 'orchard', 'storm'),
@@ -517,6 +518,7 @@ LORE = {
     # --- the legendaries ---
     "Elderglow": "The oldest light in the glade. Some say the glade grew up around it, a long time ago.",
     "Moonward": "Watches over Starfall Meadow from the moon itself. Seen once in a lifetime, if you're lucky.",
+    **{_n: _r[-1] for _k, _n, *_r in __import__("legends2").LEGENDS2},
 }
 
 # The fifty lines of 2026-10-27 (lines8.py): their stories (lore8.py), and where their first two

@@ -1756,3 +1756,4 @@ for _kind, (_sp, _flies, *_rest) in KINDS.items():
 
 
 import wave6  # noqa: E402,F401  (page six: lines #259-#288)
+import wave10  # noqa: E402,F401  (twelve more legendaries, legends2.py)

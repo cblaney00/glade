@@ -314,6 +314,11 @@ started at login under Hyprland. Changing the installed copy is a config change 
   borrow from Pokémon's cover legendaries (no antlered deer, no dark bird, no sky-serpent).
   Elderglow is a drifting wreath of roots with a seed of light; Moonward a crescent of night-glass
   with one eye and seven moons in their phases. He counts 525+ as a strong total.
+- **Twelve more legendaries** (2026-11-03, his ask; he approved Claude's designs): `glade/legends2.py` (data,
+  #449-#460; Elderglow/Moonward moved to #461/#462, `DEX_SIZE` 462) drawn in `glade/wave10.py`, one per place
+  (`wave5.LEGENDS`): Veilfall (Waterfall), Rimeheart (Ridge), Calderon (Springs), Prismcore (Caverns), Wispmire
+  (Bog), Runetome (Ruins), Cloudloom (Bridge), Tidespindle (Shore), Harvestglow (Orchard), Hourdune (Dunes),
+  Anvilstorm (Storm Peaks), Thornheart (Thornwood). Totals 575-615, heights 4'00"-6'11", stories in the rows.
 - Dex names split onto two lines at a natural break (`dex.fit_name`); 27% fewer animals out at once, then half as many again (2026-11-02)
   (`storm.FEWER`); scenes a little brighter (`art.LIFT`, `art.THIN`); the floating lantern strings
   are gone; the open stats card is shown again in an overlay-layer window (`wayland.CardFront`) so it

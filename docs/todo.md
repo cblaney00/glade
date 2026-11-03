@@ -9,6 +9,7 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-03: twelve more legendaries, one in each of twelve places (575-615, never evolving, Lv70).
 - 2026-11-02: levelling up past one level: your creature's battle panel has a blue exp bar that fills, wraps round and fills again for each level the experience overflows into (one message a level), and a creature that passes both evolution levels at once evolves twice.
 - 2026-11-02: the catcher line: Chimelet → Chimecloud → Chimetempest (Water/Steel lullaby rain-cloud with silver bells, in the Glade), always knows False Swipe, Hypnosis and Recover, with high defences.
 - 2026-11-02: lighter running: half as many animals out, screens fully covered by windows aren't drawn, after 10 idle minutes the glade calms down (half speed, half the frames), and the game only keeps nearby places loaded (about half the memory).
