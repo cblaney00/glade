@@ -532,6 +532,48 @@ def draw_wail(o, s, t):
     shine_at(o, x, y - z, (3 + n) * z)
 
 
+def draw_chime(o, s, t):
+    """Chimelet: a small soft rain-cloud tied by a ribbon to a silver bell that swings under it,
+    ringing a lullaby. Chimecloud: a bigger cloud raining gently, two bells. Chimetempest: a great
+    storm-cloud hung with three bells, its rain a silver curtain and a calm light in its heart."""
+    z, x, y, n = begin(o)
+    w = (4.5, 6.5, 9)[n - 1] * z
+    bob = math.sin(t * 1.6 + o.phase) * 0.8 * z
+    cy = y - (5 + n * 2) * z + bob
+    bells = [(0, 1.0)] if n == 1 else ([(-0.4, 0.9), (0.4, 1.1)] if n == 2 else [(-0.6, 0.9), (0, 1.2), (0.6, 0.9)])
+    for i, (bx, ln) in enumerate(bells):  # bells on ribbons, swinging, ringing out of step
+        swing = math.sin(t * 2.4 + o.phase + i * 1.3) * 0.35
+        top = (x + bx * w, cy + w * 0.35)
+        drop = (4 + 2 * n) * z * ln
+        bxx, byy = top[0] + math.sin(swing) * drop, top[1] + math.cos(swing) * drop
+        pygame.draw.line(s, (220, 190, 255), top, (bxx, byy), max(1, R(z * 0.5)))
+        br = (1.4 + 0.3 * n) * z
+        poly(s, (200, 206, 225), [(bxx - br, byy + br * 1.3), (bxx + br, byy + br * 1.3), (bxx + br * 0.6, byy), (bxx - br * 0.6, byy)])
+        circ(s, (200, 206, 225), bxx, byy + br * 0.2, br * 0.8)
+        pygame.draw.line(s, (150, 156, 185), (bxx - br * 1.2, byy + br * 1.3), (bxx + br * 1.2, byy + br * 1.3), max(1, R(z * 0.5)))
+        pygame.draw.line(s, (250, 252, 255), (bxx - br * 0.4, byy + br * 0.2), (bxx - br * 0.7, byy + br * 1.1))
+        circ(s, (120, 120, 150), bxx, byy + br * 1.5, max(1, br * 0.35))  # the clapper
+        shine_at(o, bxx, byy + br * 0.6, br * 1.2)
+    if n >= 2:  # soft rain from under the cloud
+        for i in range(4 * n):
+            f = (t * 1.2 + i * 0.37) % 1
+            rx = x + (i / (4 * n) - 0.5) * w * 1.6
+            ry = cy + w * 0.3 + f * (6 + 3 * n) * z
+            pygame.draw.line(s, (170, 210, 255), (rx, ry), (rx - 0.3 * z, ry + 1.2 * z))
+    body = dark(o.body, 0.22) if n == 3 else o.body  # the tempest: a grey storm-cloud
+    for i, (px, py, pr) in enumerate(((-0.55, 0.05, 0.5), (0.55, 0.08, 0.5), (-0.2, -0.2, 0.62), (0.25, -0.15, 0.55), (0, 0.15, 0.6))):
+        puff = pr * w * (1 + 0.04 * math.sin(t * 1.3 + i + o.phase))
+        circ(s, dark(body, 0.18), x + px * w, cy + py * w + puff * 0.18, puff)
+    for i, (px, py, pr) in enumerate(((-0.55, 0.0, 0.48), (0.55, 0.03, 0.48), (-0.2, -0.25, 0.6), (0.25, -0.2, 0.53), (0, 0.1, 0.58))):
+        circ(s, body if i % 2 else lite(body, 0.1), x + px * w, cy + py * w, pr * w)
+    circ(s, lite(body, 0.4), x - w * 0.3, cy - w * 0.4, w * 0.2)
+    if n == 3:  # a calm light in the storm's heart
+        circ(s, o.color, x, cy, w * 0.18)
+        shine_at(o, x, cy, w * 0.9)
+    eyes(s, x + o.facing * 0.4 * z, cy + w * 0.05, (1.5 + 0.4 * n) * z, z, t, o.phase)
+    shine_at(o, x, cy, w * 0.7)
+
+
 def draw_grit(o, s, t):
     """Gritlet: a crest of sand-coloured plates that swims through the dunes, only its back showing.
     Gritcrest: a longer row of plates with a horned head that comes up to look. Gritsovereign: a great

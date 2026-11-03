@@ -173,6 +173,7 @@ MOVES = {
     "Water Gun": mv("Water", 40, 100, 25),
     "Amnesia": mv("Psychic", 0, None, 20, up={"spd": 2}),
     "Metal Claw": mv("Steel", 50, 95, 35, c=1, sec=(10, ("self", {"atk": 1}))),
+    "False Swipe": mv("Normal", 40, 100, 40, c=1, spare=True),  # always leaves the foe at least 1 HP
     "Harden": mv("Normal", 0, None, 30, up={"def": 1}),
     "Confusion": mv("Psychic", 50, 100, 25, sec=(10, "confuse")),
     "Slash": mv("Normal", 70, 100, 20, c=1, highcrit=1),
@@ -675,6 +676,14 @@ for _i, (_k, (_a, _b, _c), _types, _shape, *_r) in enumerate(_L8):
                        pool=_pool[:6])
     SPECIES[_b] = _grown(_a, _num + 1, _types, _spread(_shape, 410), _AB8[_types[0]], _pool[6:8])
     SPECIES[_c] = _grown(_b, _num + 2, _types, _spread(_shape, 530), _AB8[_types[0]], _pool[8:])
+# The catcher line (lines8.py): always knows False Swipe, Hypnosis and Recover; its fourth
+# move is one of its own type.
+CATCHER = ("False Swipe", "Hypnosis", "Recover")
+SPECIES["Chimelet"]["pool"] = list(CATCHER) + ["Water Gun", "Metal Claw", "Bubble Beam", "Protect"]
+SPECIES["Chimecloud"]["pool"] = SPECIES["Chimelet"]["pool"] + ["Surf", "Iron Defense", "Rest"]
+SPECIES["Chimetempest"]["pool"] = SPECIES["Chimecloud"]["pool"] + ["Iron Tail", "Hydro Pump"]
+for _c in ("Chimelet", "Chimecloud", "Chimetempest"):
+    SPECIES[_c]["always"] = CATCHER
 SPECIES["Kelpleviathan"]["types"] = ("Grass", "Dragon")  # (2026-10-30, his approved type review)
 SPECIES["Kelpleviathan"]["pool"] = list(dict.fromkeys(SPECIES["Kelpleviathan"]["pool"] + ["Dragon Claw", "Dragon Dance"]))
 
@@ -760,6 +769,9 @@ def moveset(species, rng):
     pool = sp["pool"][:]
     rng.shuffle(pool)
     stab = [m for m in pool if MOVES[m]["p"] and MOVES[m]["t"] in sp["types"]]
+    always = [m for m in sp.get("always", ()) if m in MOVES]
+    if always:  # the catcher: its catching moves, and one of its own type
+        return always[:3] + [stab[0] if stab else pool[0]]
     pick = [stab[0]]
     for m in pool:
         if len(pick) == 4:
@@ -1153,6 +1165,8 @@ class Battle:
             if f.ability != "Shell Armor":
                 crit = rng.random() < CRIT[(1 if m.get("highcrit") else 0) + (u.item == "Scope Lens")]
             dmg = min(f.hp, self.damage(u, f, m, crit))
+            if m.get("spare") and dmg >= f.hp:  # False Swipe
+                dmg = f.hp - 1
             if dmg >= f.hp and f.item == "Focus Band" and rng.random() < 0.1:
                 dmg = f.hp - 1
                 f.revealed = True

@@ -39,7 +39,9 @@ START = [
         "On an animal's stats card, press Battle it! to fight it with your party.",
         "Glow jars catch it. They open up once you have tried a run at the Battle Tower. The weaker it "
         "is, the likelier it stays in the jar; asleep or frozen helps a lot, and paralysed, poisoned or "
-        "burned helps a little. A jar wobbles up to three times before it holds.",
+        "burned helps a little. A jar wobbles up to three times before it holds. Chimelet, a little "
+        "rain-cloud with a silver bell that lives in the Glade, is made for this: it always knows False "
+        "Swipe (never knocks a creature out, always leaves it 1 HP), Hypnosis and Recover.",
         "What you catch goes into your party of six, or your boxes when the party is full."], []),
     ("Your party and boxes", [
         "Your party is the six you take into battle. Open it with the Your party board, or at the shrine "

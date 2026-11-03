@@ -154,4 +154,7 @@ LORE8 = {
     "Buoylet": "A bell-buoy that bobs on dry land as if it were at sea. It misses the waves.",
     "Buoyjolt": "A spark lives in its top. It rings its bell whenever the spark goes off.",
     "Buoybeacon": "Rocks so hard its bell clangs and its lamp flashes. Ships far out at sea are glad of it.",
+    "Chimelet": "A little rain-cloud tied to a silver bell. Its chime is a lullaby: whatever hears it yawns.",
+    "Chimecloud": "Rains softly on anything it has sung to sleep, so it wakes up cool and calm.",
+    "Chimetempest": "A great grey storm hung with silver bells. Its thunder is a lullaby the whole glade sleeps through.",
 }

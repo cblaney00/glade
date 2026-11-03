@@ -7,8 +7,10 @@ each off (move it to Done with the date) when it is finished.
 
 (nothing waiting: ask him what's next)
 
+
 ## Done
 
+- 2026-11-02: the catcher line: Chimelet → Chimecloud → Chimetempest (Water/Steel lullaby rain-cloud with silver bells, in the Glade), always knows False Swipe, Hypnosis and Recover, with high defences.
 - 2026-11-02: lighter running: half as many animals out, screens fully covered by windows aren't drawn, after 10 idle minutes the glade calms down (half speed, half the frames), and the game only keeps nearby places loaded (about half the memory).
 - 2026-11-02: on the desktop, right-clicking an animal shows its card right there; only its Battle it! / Forest Dex buttons, the corner boards and maps open the game (Battle it! goes straight into a battle with that very animal); the moon does nothing on the desktop.
 - 2026-11-02: every wild animal has its own level across its stage's range (first 2-15, middle 16-31, final 32-50); legendaries are Lv70.

@@ -346,8 +346,13 @@ started at login under Hyprland. Changing the installed copy is a config change 
   by theme, "good type distribution"): data in `glade/lines8.py` (kind, names, types, stat shape, final height,
   home; moves come from `pool()` by type), drawn in `glade/wave8.py` (the far places' 30) and `glade/wave9.py`
   (the 20), stories in `glade/lore8.py`. #295-#444; legendaries moved to #449/#450 with DEX_SIZE. Types now 13-23
-  lines each (Dragon 13 is the least, Water 23 the most). Next new line: #445 (only #445-#448 left before the
+  lines each (Dragon 13 is the least, Water 23 the most). Next new line: #448 (only #448 left before the
   legendaries; grow DEX_SIZE for more).
+- **The catcher line** (2026-11-02, his ask: a line good for catching; his picks): Chimelet → Chimecloud →
+  Chimetempest (#445-#447, the last row of `lines8.LINES`, drawn by `wave9.draw_chime`), a lullaby rain-cloud
+  with silver bells, Water/Steel, bulky (high HP/Def/SpD), at home in the Glade. `battle.CATCHER`: it always
+  knows False Swipe (new move, `spare`: never leaves the foe below 1 HP), Hypnosis and Recover, plus one of its
+  own type (`SPECIES[...]["always"]`, read by `moveset`).
 - **Levels and experience** (`glade/levels.py`, 2026-10-28, his ask: a reason to level your party, Emerald's
   exp math). Wild (2026-11-02, his rule): each animal rolls its own level in its stage's range, first 2-15, middle 16-31, finals 32-50 (`levels.level_of`, `wild_range`, `WILD_CAP`); legendaries Lv70. Stats use the
   creature's level (`calc_stats(..., level)`), as do damage and Night Shade. A fainted foe's exp (base exp x

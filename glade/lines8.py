@@ -62,6 +62,10 @@ LINES = [
     ("grit", ("Gritlet", "Gritcrest", "Gritsovereign"), ("Dragon", "Ground"), (100, 110, 95, 70, 75, 80), 6.9, False, (210, 170, 140), (255, 210, 150), 10, "dunes"),
     ("astral", ("Astralet", "Astralcoil", "Astralsovereign"), ("Dragon", "Electric"), (80, 95, 75, 110, 80, 110), 6.5, True, (60, 60, 120), (200, 220, 255), 26, "comet"),
     ("buoy", ("Buoylet", "Buoyjolt", "Buoybeacon"), ("Water", "Steel"), (90, 105, 90, 80, 75, 70), 4.5, False, (240, 120, 120), (255, 240, 170), 5, "lighthouse"),
+    # the catcher (2026-11-02, his ask: a line that is good for catching others; his picks: a
+    # lullaby cloud, Water/Steel, a healing move, at home in the Glade). #445-#447. Its moves are
+    # set in battle.py (CATCHER): False Swipe, Hypnosis and Recover always, so a catch never faints.
+    ("chime", ("Chimelet", "Chimecloud", "Chimetempest"), ("Water", "Steel"), (95, 55, 115, 70, 115, 50), 4.2, True, (205, 215, 240), (190, 225, 255), 10, "glade"),
 ]
 
 ABILITY = {"Normal": "Run Away", "Fire": "Flash Fire", "Water": "Swift Swim", "Grass": "Effect Spore",
