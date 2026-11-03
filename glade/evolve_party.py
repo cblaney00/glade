@@ -74,7 +74,14 @@ class EvolveBoard:
         if self.state == "evolving":
             self.state = "stopped"
 
+    def again(self):
+        """It grew past both evolution levels at once and has more evolving to do."""
+        import levels
+        return self.state == "done" and bool(levels.ready_to_evolve(self.kept.species, self.kept.level))
+
     def next(self):
+        if self.again():
+            self.queue.insert(0, self.kept)  # it grew past both levels at once: on to its final form
         if self.queue:
             self.begin(self.now)
         else:
@@ -144,4 +151,4 @@ class EvolveBoard:
             s.blit(img, img.get_rect(center=(cx, cy)))
             self.text(s, f"Huh? {self.old} stopped evolving!", cx, r.y + 18, WHITE)
             self.text(s, "It will try again when it next grows a level.", cx, r.y + 36, DIM)
-        self.button(s, pygame.Rect(cx - 50, r.bottom - 44, 100, 26), "Next" if self.queue else "OK", self.next, m)
+        self.button(s, pygame.Rect(cx - 50, r.bottom - 44, 100, 26), "Next" if self.queue or self.again() else "OK", self.next, m)

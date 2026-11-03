@@ -929,7 +929,8 @@ class Battle:
     # --- reporting ---
     def say(self, text, hit=None, by=None):
         a, b = self.mons
-        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit, by, tuple(self.active)))
+        # the last item: your creature's level and experience at this moment, for its exp bar
+        self.events.append((text, (a.hp, b.hp), (a.status, b.status), hit, by, tuple(self.active), (a.level, a.exp)))
 
     def side(self, mon):
         return self.mons.index(mon)
@@ -1340,15 +1341,20 @@ class Battle:
         for i, m in enumerate(self.teams[0]):
             if m not in mine or m.uid is None or m.level >= levels.MAX:
                 continue
-            m.exp += exp
+            # The exp bar fills to the next level, then wraps round and keeps filling, as many
+            # times as the experience overflows (his ask, 2026-11-03): one message a level.
+            total = m.exp + exp
+            m.exp = min(total, levels.exp_for(m.growth, m.level + 1))
             self.say(f"{m.name} gained {exp} Exp. Points!")
-            while m.level < levels.MAX and m.exp >= levels.exp_for(m.growth, m.level + 1):
+            while m.level < levels.MAX and total >= levels.exp_for(m.growth, m.level + 1):
                 m.level += 1
                 old = m.maxhp
                 m.maxhp, m.stats = calc_stats(m.species, m.ivs, m.evs, m.nature, m.level)
                 m.hp += m.maxhp - old
+                m.exp = min(total, levels.exp_for(m.growth, m.level + 1)) if m.level < levels.MAX else total
                 self.leveled.add(i)
                 self.say(f"{m.name} grew to Lv. {m.level}!")
+            m.exp = total
 
     def end_of_turn(self, order):
         for s in order:
@@ -2083,7 +2089,8 @@ class Arena:
     # --- time passing ---
     def update(self, dt, t):
         while self.queue and t >= self.next_at:
-            text, hp, st, hit, by, active = self.queue.pop(0)
+            text, hp, st, hit, by, active, grow = self.queue.pop(0)
+            self.grow_to(grow)
             for side in (0, 1):
                 if active[side] != self.shown[side]:
                     self.send_out(side, active[side], t)
@@ -2161,13 +2168,50 @@ class Arena:
             else:
                 pygame.draw.circle(s, mix(c, EDGE, 0.7), (ox, y), 3, 1)
 
+    def grow_to(self, grow):
+        """A message came up: your creature's exp bar heads for where it was then. A new level
+        empties the bar first, so it wraps round and fills again."""
+        if grow is None:
+            return
+        level, exp = grow
+        shown = getattr(self, "exp_shown", None)
+        if shown is None or shown[0] != level:
+            self.exp_shown = [level, self.exp_frac(level, exp) if shown is None else 0.0]
+        self.exp_goal = self.exp_frac(level, exp)
+
+    def exp_frac(self, level, exp):
+        import levels
+        mon = self.battle.teams[0][self.shown[0]]
+        if level >= levels.MAX:
+            return 1.0
+        lo, hi = levels.exp_for(mon.growth, level), levels.exp_for(mon.growth, level + 1)
+        return max(0.0, min(1.0, (exp - lo) / max(1, hi - lo)))
+
+    def exp_bar(self, s, x, y, w, dt):
+        """A thin blue bar under your creature's health: how close it is to its next level."""
+        shown = getattr(self, "exp_shown", None)
+        if shown is None:
+            return None
+        goal = getattr(self, "exp_goal", shown[1])
+        shown[1] += (goal - shown[1]) * min(1.0, dt * 5) if abs(goal - shown[1]) > 0.004 else goal - shown[1]
+        pygame.draw.rect(s, (20, 12, 30), (x, y, w, 2))
+        if shown[1] > 0:
+            pygame.draw.rect(s, (120, 200, 255), (x, y, max(1, round(w * shown[1])), 2))
+        return shown[0]
+
     def panel(self, s, side, x, y, w, tint):
         mon = self.battle.teams[side][self.shown[side]]
         self.cloth(s, pygame.Rect(x, y, w, 40), tint, alpha=170)
         hp = max(0, round(self.hp[side]))
         label = f"{hp}/{mon.maxhp}" if side == 0 else f"{math.ceil(100 * hp / mon.maxhp)}%"
         lw = self.text(s, label, x + w - 6, y + 3, TEXT, right=True)
-        self.text(s, self.fit(f"{mon.name}  Lv{mon.level}", w - 24 - lw), x + 6, y + 3, (255, 255, 255))
+        level = mon.level
+        if side == 0:
+            now = getattr(self, "drawn_at", None)
+            t = pygame.time.get_ticks() / 1000
+            self.drawn_at = t
+            level = self.exp_bar(s, x + 6, y + 23, w - 12, (t - now) if now else 0) or level
+        self.text(s, self.fit(f"{mon.name}  Lv{level}", w - 24 - lw), x + 6, y + 3, (255, 255, 255))
         self.bar(s, x + 6, y + 17, w - 12, self.hp[side], mon.maxhp)
         nx = x
         for k in mon.types:  # line two: its types and any status, and the team's orbs

@@ -357,7 +357,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   exp math). Wild (2026-11-02, his rule): each animal rolls its own level in its stage's range, first 2-15, middle 16-31, finals 32-50 (`levels.level_of`, `wild_range`, `WILD_CAP`); legendaries Lv70. Stats use the
   creature's level (`calc_stats(..., level)`), as do damage and Night Shade. A fainted foe's exp (base exp x
   level / 7, shared by yours that faced it and still stand, x1.5 from a trainer; none for catching) goes to
-  kept creatures only (`Mon.uid`); `Battle.share_exp`, saved each turn by `Arena.keep_exp`. Growth rates are
+  kept creatures only (`Mon.uid`); `Battle.share_exp`, saved each turn by `Arena.keep_exp`. (2026-11-03, his ask) Your panel has a blue exp bar (`Arena.exp_bar`): each event carries your creature's (level, exp), and the bar fills, wraps round on each level-up and fills again; `EvolveBoard.again` evolves twice when both levels were passed. Growth rates are
   Emerald's six, one per line from its first stage's name (starters Medium Slow, legendaries Slow); base exp
   is about 20/34/40% of the base total by stage. **Evolving is by level now (his pick): 16 and 32**, after the
   battle it was reached in (`Arena.ready` → `EvolveBoard`; Tower between battles, wild battles via main.py);
