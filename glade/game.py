@@ -19,6 +19,7 @@ import pygame
 import art
 import hiding
 import badges
+import carry
 import book
 import nav
 import loading
@@ -169,6 +170,9 @@ class Game(Glade):
         self.quit = None  # how to close the game (set by whatever runs it)
         self.asked_at = 0.0
         storm.FAMILIES = None  # every family may come out
+        if self.bottom:
+            self.lower()
+        carry.load(self)  # the animals the desktop had out at home, the very same ones
         resume.restore(self)  # after an update: where he was
         self.follow(world.take(), self.now())  # what the desktop opened it for
 
@@ -316,6 +320,7 @@ class Game(Glade):
             self.board.close()
         loading.gate.stop = True
         self.running = False
+        carry.save(self)  # the desktop takes the animals at home back
         world.release()
         if self.quit:
             self.quit()

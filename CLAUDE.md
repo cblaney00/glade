@@ -61,7 +61,7 @@ the desktop running) the game takes the desktop's place, behind windows on both 
 layer-shell code (`wayland.run(Game)`), and the desktop hides its surfaces once the game's first frame is up
 (`world.showing`, `Desktop.paused`) and passes glade-ctl keys on to `glade-game.ctl`. Anywhere else (Lando's
 machines, X11, `--window`) the game is an ordinary resizable window with both screens stacked (`game.window`),
-without the Claude panel. One game at a time (`glade-world.pid`; the desktop writes `glade-desktop.pid`).
+without the Claude panel. One game at a time (`glade-world.pid`; the desktop writes `glade-desktop.pid`). The same animals in both (`glade/carry.py`, 2026-11-03, his ask): opening the game notes who is out at home on the desktop (`world.before_open`) and the game's home takes them on; Rest hands them back (`Desktop.paused` loads them).
 After an update the game restarts itself in place (`Game.restart`, `os.execv`) and reopens where he was
 (`resume.restore`); the desktop is restarted by the config's glade-desktop loop. (History: Wander used to turn
 the desktop itself into the game; before that a separate window was tried, which showed nothing because it

@@ -35,6 +35,7 @@ DESKTOP_PID = os.path.join(RUN, "glade-desktop.pid")
 ASK = os.path.join(RUN, "glade-world.ask")
 READY = os.path.join(RUN, "glade-world.ready")  # the game is on screen (the desktop steps aside then)
 CLASS = "glade-world"  # the game window's class (when it is a window)
+before_open = None  # the desktop: notes who is out at home just before the game starts (carry.py)
 
 
 def _pid(path=PID):
@@ -90,6 +91,8 @@ def open_world(do=None, species=None, place=None, mon=None):
             except OSError:
                 pass
         return
+    if before_open is not None:
+        before_open()
     args = [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), "--game"]
     try:
         subprocess.Popen(args, start_new_session=True, stdout=None, stderr=None)

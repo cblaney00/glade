@@ -12,6 +12,7 @@ It is built on the same Glade as the game (main.Glade) and adds only this.
 import random
 
 import badges
+import carry
 import corner
 import gyms
 import nav
@@ -29,10 +30,16 @@ class Desktop(Glade):
         storm.limit([self.here] + list(self.lowers.values()), random.Random())  # 20 families, till a storm
         self.pausable = False  # set by wayland.py: there the game takes the desktop's place
         self.card = None  # an animal's stats card, from a right-click (only its buttons open the game)
+        self.away = False  # the game is open in its place
+        world.before_open = lambda: carry.save(self)  # the game starts with these very animals (carry.py)
 
     def paused(self):
         """The game is open in the desktop's place: the desktop steps aside and waits."""
-        return self.pausable and world.showing()
+        away = self.pausable and world.showing()
+        if self.away and not away:  # back from the game: its animals come home with it
+            carry.load(self)
+        self.away = away
+        return away
 
     def home_only(self, content):
         """The paths lead nowhere here: the far places, the Tower and gyms are the game's."""
