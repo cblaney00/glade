@@ -7,7 +7,6 @@ each off (move it to Done with the date) when it is finished.
 
 (nothing waiting: ask him what's next)
 
-
 ## Done
 
 - 2026-11-02: the catcher line: Chimelet → Chimecloud → Chimetempest (Water/Steel lullaby rain-cloud with silver bells, in the Glade), always knows False Swipe, Hypnosis and Recover, with high defences.
