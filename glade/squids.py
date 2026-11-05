@@ -1,14 +1,15 @@
 """The tree squid: his desktop icons.
 
-Every app, and everything in his Desktop folder, is a little glowing squid holding on
-to one of the trees on the left of the Glade, with that thing's picture in its arms.
-The name shows on a glowing banner while he points at it. Clicking the picture (or the
-squid) opens it.
+Each of his own projects (the folders in ~/projects that `vibe` made) is a little glowing
+squid holding on to one of the trees on the left of the Glade, with that project's picture
+in its arms. Nothing else lives in the trees: he asked for only his projects, so he can
+open them and test them easily. The name shows on a glowing banner while he points at it.
+Clicking the picture (or the squid) starts the project.
 
 - Each tree holds four squid. When the trees are full, the ones that don't fit wait,
   and the seed sign on the ground says how many: clicking it grows another tree.
-- Right-click a squid to open or remove it (a Desktop shortcut goes to the Trash, an
-  app just leaves the trees); right-click a tree he grew to take it away again.
+- Right-click a squid to open or remove it (it only leaves the trees: the project is
+  never touched); right-click a tree he grew to take it away again.
 - The more he clicks a squid, the better its spot: the most-used squid sit nearest the
   middle of the picture (clicks are counted in ~/.local/state/glade/squids.json).
 - When a squid is added or taken away the others move to make room: up or down their
@@ -16,7 +17,7 @@ squid) opens it.
 - He can drag a squid onto another spot. It stays there (a "pin"), and whoever was
   there swaps with it.
 
-The Desktop folder is looked at every few seconds on a background thread, so looking
+The projects folder is looked at every few seconds on a background thread, so looking
 never stalls a frame.
 """
 
@@ -24,7 +25,7 @@ import json
 import math
 import os
 import random
-import subprocess
+import re
 import threading
 import time
 
@@ -34,21 +35,15 @@ import art
 from art import GLOW, glow, mix
 from life import q, swell
 from beasts import owlet
-from orchard import app_command
 
 HOME = os.path.expanduser("~")
-DESKTOP = os.path.join(HOME, "Desktop")
+PROJECTS = os.path.join(HOME, "projects")
 STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".local/state"), "glade", "squids.json")
-LOOK_EVERY = 5  # seconds between looks at the Desktop folder
+LOOK_EVERY = 5  # seconds between looks at the projects folder
 RERANK_EVERY = 60  # seconds: clicks reorder the squid at most this often, so nothing jumps away mid-click
 
-# His apps, in the order they get a spot before he has clicked anything. The keys are
-# main.APPS's (the squid holds that app's little picture).
-APPS = [("files", "Files"), ("browser", "Web Browser"), ("terminal", "Terminal"), ("music", "Music"),
-        ("games", "Games"), ("discord", "Discord"), ("code", "Code Editor")]
-SKIP = {"The Glade"}  # the glade's own pictures folder: he asked for its squid to go
 
-COLORS = dict(app=GLOW["violet"], shortcut=GLOW["cyan"], folder=GLOW["amber"], file=GLOW["pink"])
+COLORS = dict(project=GLOW["violet"])
 
 SIZE = 0.7  # how big the squid are
 PER_TREE = 4  # squid on each tree
@@ -120,14 +115,6 @@ def picture(path):
     return pic
 
 
-def folder_icon():
-    s = pygame.Surface((ICON, ICON), pygame.SRCALPHA)
-    pygame.draw.rect(s, (200, 140, 60), (1, 3, 7, 3), border_radius=1)
-    pygame.draw.rect(s, (246, 190, 92), (1, 5, 14, 9), border_radius=1)
-    pygame.draw.line(s, (255, 226, 150), (2, 6), (13, 6))
-    return s
-
-
 def page_icon():
     s = pygame.Surface((ICON, ICON), pygame.SRCALPHA)
     pygame.draw.polygon(s, (236, 230, 250), [(3, 1), (10, 1), (13, 4), (13, 15), (3, 15)])
@@ -145,66 +132,87 @@ def sprout_icon():
     return s
 
 
-# --- what is on the Desktop ---------------------------------------------------------------
+# --- his projects ---------------------------------------------------------------------
 
-def read_entry(path):
-    e = {}
+def vibe_fields(d):
+    """The lines of a project's .vibe-project file, as a dict (empty if it has none)."""
+    out = {}
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            section = None
+        with open(os.path.join(d, ".vibe-project"), encoding="utf-8", errors="replace") as f:
             for line in f:
-                line = line.strip()
-                if line.startswith("["):
-                    section = line
-                elif section == "[Desktop Entry]" and "=" in line:
-                    k, v = line.split("=", 1)
-                    e.setdefault(k, v)
+                if "=" in line:
+                    k, v = line.rstrip("\n").split("=", 1)
+                    out.setdefault(k.strip(), v.strip())
     except OSError:
         pass
-    return e
+    return out
 
 
-def desktop_items():
+def godot_name(d):
     try:
-        names = sorted(os.listdir(DESKTOP), key=str.lower)
+        with open(os.path.join(d, "project.godot"), encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if line.startswith("config/name="):
+                    return line.split("=", 1)[1].strip().strip('"')
+    except OSError:
+        pass
+    return None
+
+
+def play_command(d, f):
+    """How a project starts: its `play=` line (run inside the project), else a Godot game,
+    play.sh or run.sh. None if there is no way to start it yet."""
+    if f.get("play"):
+        return ["sh", "-c", 'cd "$0" && exec ' + f["play"], d]
+    if os.path.isfile(os.path.join(d, "project.godot")):
+        return ["godot", "--path", d]
+    for script in ("play.sh", "run.sh"):
+        if os.access(os.path.join(d, script), os.X_OK):
+            return [os.path.join(d, script)]
+    return None
+
+
+def project_icon(d, f):
+    """Its picture: the `icon=` line (a path, from the project or from ~), else an icon file in it."""
+    icon = os.path.expanduser(f.get("icon") or "")
+    if icon:
+        return find_icon(icon if os.path.isabs(icon) else os.path.join(d, icon))
+    for rel in ("icon.png", "icon.svg", "public/icon.png", "public/icon.svg", "assets/icon.png", "assets/icon.svg"):
+        if os.path.isfile(os.path.join(d, rel)):
+            return os.path.join(d, rel)
+    return None
+
+
+def project_items():
+    """One squid for each of his projects in ~/projects (the folders `vibe` made, with a
+    .vibe-project file in them). Clicking it starts the project so he can try it."""
+    try:
+        names = os.listdir(PROJECTS)
     except OSError:
         return []
     out = []
     for n in names:
-        if n.startswith(".") or n in SKIP:
+        d = os.path.join(PROJECTS, n)
+        if not os.path.isfile(os.path.join(d, ".vibe-project")):
             continue
-        path = os.path.join(DESKTOP, n)
-        if n.endswith(".desktop"):
-            e = read_entry(path)
-            if not e.get("Exec") or e.get("Hidden") == "true":
-                continue
-            try:
-                cmd = app_command(e)
-            except ValueError:
-                continue
-            out.append(dict(id="desktop:" + n, name=e.get("Name") or n[:-8], kind="shortcut", cmd=cmd,
-                            path=path, icon=find_icon(e.get("Icon"))))
-        elif os.path.isdir(path):
-            out.append(dict(id="desktop:" + n, name=n, kind="folder", cmd=["xdg-open", path], path=path))
-        else:
-            out.append(dict(id="desktop:" + n, name=os.path.splitext(n)[0] or n, kind="file",
-                            cmd=["xdg-open", path], path=path))
-    return out
-
-
-def app_items():
-    return [dict(id="app:" + key, name=name, kind="app", key=key) for key, name in APPS]
+        f = vibe_fields(d)
+        cmd = play_command(d, f)
+        if not cmd:
+            continue
+        name = f.get("name") or godot_name(d) or re.sub(r"\s*\(.*\)\s*$", "", f.get("title") or "") or n
+        out.append(dict(id="project:" + n, name=name, kind="project", cmd=cmd, icon=project_icon(d, f)))
+    return sorted(out, key=lambda it: it["name"].lower())
 
 
 class Looker:
-    """Keeps `items` up to date with the Desktop folder, on its own thread."""
+    """Keeps `items` up to date with his projects folder, on its own thread."""
 
     def __init__(self):
-        self.items = app_items() + desktop_items()
+        self.items = project_items()
         threading.Thread(target=self.run, daemon=True).start()
 
     def look(self):
-        self.items = app_items() + desktop_items()
+        self.items = project_items()
 
     def run(self):
         while True:
@@ -501,22 +509,9 @@ class Colony:
 
     # the squid --------------------------------------------------------------------------
     def remove(self, sq):
-        """Right-click → Remove. A Desktop shortcut or file goes to the Trash (so it can be
-        got back); an app only leaves the trees."""
+        """Right-click → Remove: the project only leaves the trees (its folder stays)."""
         it = sq.item
-        if it.get("path"):
-            try:
-                subprocess.run(["gio", "trash", it["path"]], timeout=5, check=True,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except (OSError, subprocess.SubprocessError):
-                return
-            self.state["clicks"].pop(it["id"], None)
-            self.state["pins"].pop(it["id"], None)
-            try:
-                self.looker.look()
-            except Exception:
-                pass
-        elif it["id"] not in self.state["hidden"]:
+        if it["id"] not in self.state["hidden"]:
             self.state["hidden"].append(it["id"])
         self.save()
         self.shown = None
@@ -582,13 +577,11 @@ class Colony:
         self.arrange(items)
 
     def tile_of(self, it):
-        if it["kind"] == "folder":
-            return folder_icon()
         if it.get("icon"):
             pic = picture(it["icon"])
             if pic is not None:
                 return pic
-        return None if it["kind"] == "app" else page_icon()  # apps: main.ICONS draws theirs
+        return page_icon()
 
     def arrange(self, items):
         placed = self.layout(items)

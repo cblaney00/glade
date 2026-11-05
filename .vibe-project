@@ -1,3 +1,5 @@
 title=Glade
 slug=glade
 shell=vibe-python
+play=glade --game
+icon=~/.local/share/icons/projects/glade.png
