@@ -9,6 +9,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-05: Glade's whole history of changes (137 of them, from the first day on) added to VibeNote's Glade list as finished items, each on the day it was made.
+
 - 2026-11-03: the animals stay when Wander is clicked: the game opens with the very animals the desktop had out at home (same IVs, nature, level, stage), and Rest hands them back to the desktop.
 - 2026-11-03: the Munchling (Dex #448): a black-and-purple noodle dragon, called from its board beside Predator vision, eats every animal in a place in under 5 seconds, wiggles off full, and new animals come out; also rare in the wild in the Forest.
 - 2026-11-02: one more legendary: Cometfall (Dragon/Rock, 605), a tumbling comet-stone with a dragon's eye inside, in the Comet Crater.
