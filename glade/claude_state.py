@@ -234,8 +234,28 @@ def ensure_watcher(d):
         pass
 
 
+VIBENOTE_LIVE = "/home/insideabush/.local/share/vibenote/live.json"
+
+
+def refresh_vibenote_usage():
+    """VibeNote's live usage bars: only root can ask Claude's server how full the limits are,
+    and these hooks run as root, so ask after Claude's replies, at most once a minute."""
+    try:
+        if time.time() - os.path.getmtime(VIBENOTE_LIVE) < 60:
+            return
+    except OSError:
+        pass
+    try:
+        subprocess.Popen(["vibenote", "--live-usage"], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 def hook(event):
     name = event.get("hook_event_name", "")
+    if name in ("Stop", "PostToolUse") and os.geteuid() == 0:
+        refresh_vibenote_usage()
     pid = claude_pid()
     d = load(pid)
     if name == "SessionEnd":
