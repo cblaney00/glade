@@ -2,9 +2,9 @@
 
 Each of his own projects (the folders in ~/projects that `vibe` made) is a little glowing
 squid holding on to one of the trees on the left of the Glade, with that project's picture
-in its arms. Nothing else lives in the trees: he asked for only his projects, so he can
-open them and test them easily. The name shows on a glowing banner while he points at it.
-Clicking the picture (or the squid) starts the project.
+in its arms. The trees are for his projects, so he can open them and test them easily; the
+only other squid is the Terminal, which he asked to have back. The name shows on a glowing
+banner while he points at it. Clicking the picture (or the squid) starts the project.
 
 - Each tree holds four squid. When the trees are full, the ones that don't fit wait,
   and the seed sign on the ground says how many: clicking it grows another tree.
@@ -43,7 +43,7 @@ LOOK_EVERY = 5  # seconds between looks at the projects folder
 RERANK_EVERY = 60  # seconds: clicks reorder the squid at most this often, so nothing jumps away mid-click
 
 
-COLORS = dict(project=GLOW["violet"])
+COLORS = dict(project=GLOW["violet"], app=GLOW["violet"])
 
 SIZE = 0.7  # how big the squid are
 PER_TREE = 4  # squid on each tree
@@ -204,15 +204,21 @@ def project_items():
     return sorted(out, key=lambda it: it["name"].lower())
 
 
+# The one squid that is not a project. "app:terminal" is the id it had before, so it keeps
+# the clicks and the spot it earned then; its key draws the Glade's own little terminal
+# picture (main.ICONS) and starts it through main.APPS.
+TERMINAL = dict(id="app:terminal", name="Terminal", kind="app", key="terminal")
+
+
 class Looker:
     """Keeps `items` up to date with his projects folder, on its own thread."""
 
     def __init__(self):
-        self.items = project_items()
+        self.items = [TERMINAL] + project_items()
         threading.Thread(target=self.run, daemon=True).start()
 
     def look(self):
-        self.items = project_items()
+        self.items = [TERMINAL] + project_items()
 
     def run(self):
         while True:
@@ -577,6 +583,8 @@ class Colony:
         self.arrange(items)
 
     def tile_of(self, it):
+        if it.get("key"):
+            return None  # an app: main.ICONS draws its picture
         if it.get("icon"):
             pic = picture(it["icon"])
             if pic is not None:
