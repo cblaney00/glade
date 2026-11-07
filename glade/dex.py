@@ -119,7 +119,7 @@ def paint(pic, thing, t):
             owlet(pic, x, y + (3 if st > 1 else 0), 0.8 if st == 1 else 0.7, GLOW["violet"], t, 1.0, None, -10, st)
         else:
             from squids import TreeSquid
-            sq = TreeSquid({"kind": "app", "id": "dex"}, x, y + (4 if len(thing) > 2 else 0), 0.8 if len(thing) < 3 else 0.7)
+            sq = TreeSquid({"kind": "project", "id": "dex"}, x, y + (4 if len(thing) > 2 else 0), 0.8 if len(thing) < 3 else 0.7)
             sq.stage = thing[2] if len(thing) > 2 else 1
             sq.shine(pic, t, 14)
         return

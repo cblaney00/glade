@@ -272,7 +272,7 @@ def body(species, at=(480, 300)):
     dx, dy = at[0] - dex.PW // 2, at[1] - dex.PH // 2
     if isinstance(thing, tuple):  # a tree dweller: draw it like a perched tree squid
         from squids import TreeSquid
-        sq = TreeSquid({"kind": "app", "id": "kept"}, at[0], at[1], 1.0)
+        sq = TreeSquid({"kind": "project", "id": "kept"}, at[0], at[1], 1.0)
         if thing[1] == "owlet":
             sq.kind = "owlet"
         if len(thing) > 2:  # Boughgrip, Canopolis
