@@ -457,7 +457,8 @@ class View:
         screen.blit(pygame.transform.scale(shown, self.rect.size), self.rect.topleft)
 
 
-CALM_AFTER = 600  # seconds without the pointer over the glade before it calms down
+BLEND = 0.5  # seconds one place takes to melt into the next (his pick, 2026-11-06)
+CALM_AFTER = 600 # seconds without the pointer over the glade before it calms down
 
 
 class Glade:
@@ -483,7 +484,8 @@ class Glade:
         self.panel = Panel()  # the Claude panel: a minimised way of talking to Claude (claude_panel.py)
         self.show_panel = True  # (not in the game's window: that is for any computer, not his desktop)
         self.here = self.scene(HOME)
-        self.fade, self.fade_to = 0.0, None
+        self.fade, self.fade_to = 0.0, None  # the blend into a new place: 1 -> 0, and where to
+        self.blend = []  # (view, the old place's last picture), melting away over the new one
         self.flash = None
         self.t0 = time.monotonic()
         self.history = []  # the places you came from, for Backspace
@@ -580,7 +582,18 @@ class Glade:
         self.popup = None
         if remember:
             self.history.append(self.here.key)
-        self.fade_to, self.picked = key, None
+        self.picked = None
+        self.begin_blend(key)
+
+    def begin_blend(self, key):
+        """Change places at once, under the picture already on screen, which then melts into the
+        new place over BLEND seconds (his pick, 2026-11-06: a blend, not a dip to dark). Any
+        building happens now, while that picture still shows, so nothing jumps."""
+        self.blend = [(view, view.canvas.copy()) for view, _ in self.views()]
+        self.here = self.scene(key)
+        if self.bottom:
+            self.lower()
+        self.fade, self.fade_to = 1.0, key
 
     def activate(self, view, content, sp, t):
         if sp.kind == "grow":  # the seed sign: grow another tree for the squid
@@ -835,14 +848,11 @@ class Glade:
         if self.calm():
             dt *= 0.5
         self.updater.tick(self, t)
-        # a quick fade, so clicking through the places never feels slow
+        # the old place melts into the new one; a slow frame never skips any of it
         if self.fade_to:
-            self.fade += dt / 0.15
-            if self.fade >= 1:
-                self.here = self.scene(self.fade_to)
-                self.fade_to = None
-        elif self.fade > 0:
-            self.fade = max(0.0, self.fade - dt / 0.15)
+            self.fade -= min(dt, 1 / 30) / BLEND
+            if self.fade <= 0:
+                self.fade, self.fade_to, self.blend = 0.0, None, []
         elif t > 2:
             self.idle_work(t)
         self.here.update(dt)
@@ -899,10 +909,11 @@ class Glade:
             if view is self.map_view() and self.corner_free():
                 self.corner(view, t)
             if self.fade > 0:
-                veil = art.solid()
-                veil.fill(INK)
-                veil.set_alpha(int(255 * min(1.0, self.fade)))
-                view.canvas.blit(veil, (0, 0))
+                for v, old in self.blend:
+                    if v is view:
+                        k = self.fade * self.fade * (3 - 2 * self.fade)  # eased at both ends
+                        old.set_alpha(int(255 * k))
+                        view.canvas.blit(old, (0, 0))
             m = view.mouse()
             if m:
                 view.canvas.blit(CURSOR, (int(m[0]), int(m[1])))

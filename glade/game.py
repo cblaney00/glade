@@ -296,7 +296,7 @@ class Game(Glade):
             self.go(req["place"])
         elif do in ("card", "battle") and species:
             if self.here.key != HOME:  # the animal was at home
-                self.here, self.fade = self.scene(HOME), 1.0
+                self.go(HOME, remember=False)
             found = world.find_animal(self.here, species)
             if found is None or found[1] != species:
                 self.dex = Dex(self.signs.font, species, t)  # nobody just like it here: its Dex page

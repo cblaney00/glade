@@ -9,6 +9,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-06: walking between places is smooth now: the old place melts straight into the new one over half a second (his picks: a blend, not a dip to dark), and the building happens before the blend so it never jumps.
+
 - 2026-11-05: Glade's whole history of changes (137 of them, from the first day on) added to VibeNote's Glade list as finished items, each on the day it was made.
 
 - 2026-11-03: the animals stay when Wander is clicked: the game opens with the very animals the desktop had out at home (same IVs, nature, level, stage), and Rest hands them back to the desktop.
