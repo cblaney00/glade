@@ -1,7 +1,8 @@
 """Running the glade as the desktop under Hyprland (or any wlroots-style compositor).
 
-Wayland has a proper place for a desktop: a *layer-shell* surface on the "bottom"
-layer, behind every window and under the bar, one per monitor. pygame cannot make
+Wayland has a proper place for a desktop: a *layer-shell* surface on the "background"
+layer, behind every window and under the bar (which sits on "bottom", behind windows
+too), one per monitor. pygame cannot make
 those, so GTK does (through gtk-layer-shell), and pygame keeps doing all the drawing
 off-screen: each frame its small canvas is handed to cairo and blown up with
 nearest-neighbour scaling, so the pixels stay crisp.
@@ -59,7 +60,7 @@ class Surface:
         win = self.win = Gtk.Window()
         GtkLayerShell.init_for_window(win)
         GtkLayerShell.set_namespace(win, "glade")
-        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.BOTTOM)
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.BACKGROUND)
         GtkLayerShell.set_monitor(win, monitor)
         self.monitor = monitor
         for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
