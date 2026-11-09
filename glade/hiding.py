@@ -67,7 +67,7 @@ class Hiding:
             if content is None:
                 continue
             pond = getattr(content, "pond", None)  # the koi dive too, as in a storm
-            for o in list(roster(content)) + list(getattr(pond, "fish", []) if pond is not None else []):
+            for o in list(roster(content, any_family=True)) + list(getattr(pond, "fish", []) if pond is not None else []):
                 if not getattr(o, "gone", False) and not any(o is k for k in keep):
                     self.moves.append(Shelter(o, low, True, t + n * 0.12 + self.rng.uniform(0, 0.3), self.rng))
                     self.hidden.append((o, low))

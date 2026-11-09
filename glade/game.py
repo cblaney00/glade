@@ -11,6 +11,7 @@ anywhere else it is an ordinary window with both screens in it, one above the ot
 
 import math
 import os
+import random
 import sys
 import threading
 
@@ -155,6 +156,7 @@ class Game(Glade):
         # the far places, built on the side while he plays, so the game never freezes (warm)
         self.ready, self.ready_lock, self.warmer, self.gen = {}, threading.Lock(), None, 0
         self.loaded_at = None  # when the last far place came in (for the loading bar)
+        storm.new_season(random.Random())  # each time the game opens, a new season (storm.py)
         super().__init__(screen, rect, lower)
         self.minimap = Minimap(self.signs.font)
         self.listener = Listener()  # the easter eggs (apex.py): click the moon, type the word

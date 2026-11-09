@@ -200,6 +200,11 @@ three passes: `draw` (before lighting), `light` (add to the light map), `shine` 
   second wave: `scenes.second_wave`, plus all five walkers and four fliers on each lower screen).
   The trees always hold a mix of squid and owlets (each one is either), re-mixed by a storm. Places
   not on screen are re-shuffled at once. Animals in a battle are left alone.
+- **Seasons** (2026-11-09, his ask: less at once): in the game every Thunderstorm (and each start of the
+  game) is a new `storm.SEASON`; until the next one only about half (`storm.SHARE`) of each place's
+  families come out (`storm.in_season`, picked per place from the season; legendaries are free). A board
+  in the sky names it ("Season of Moss", `storm.SEASONS`, `Storm.draw_season`; on the desktop too). Who is
+  *out* is always looked up with `any_family=True`, so one out of season still leaves normally.
 - `glade/evolve.py` — **evolution** (his test, 2026-10-26): only the middle stages of his five
   best designs so far — Critter → Glowtail, Squid → Nimbusdrift, Lanternwing → Beaconwing,
   Brawlhop → Thudhop, Sporeling → Sporestride. They have base totals of about 410 and are

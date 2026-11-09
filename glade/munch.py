@@ -435,7 +435,7 @@ class Munch:
             if content is None:
                 continue
             animals = [o for o in storm.roster(content) if not any(o is k for k in self.keep)]
-            ate = sum(1 for o in animals if id(o) in eaten)
+            ate = sum(1 for o in storm.roster(content, any_family=True) if id(o) in eaten)
             waiting = [o for o in animals if getattr(o, "gone", False)]
             for o in storm.choose(waiting, self.rng, ate):
                 storm.fresh(o)

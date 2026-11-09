@@ -39,13 +39,13 @@ def newcomer(thing):
 def roster(content, everyone=False, any_family=False):
     """Every animal of a place (or of the ground below it) that takes turns being out
     (`everyone`: the bodies of ones you caught too). On the desktop only the families in
-    `FAMILIES` take part (`any_family`: all of them)."""
+    `FAMILIES` take part, and in the game only this season's (`any_family`: all of them)."""
     if content is None:
         return []
     out, seen = [], set()
     for o in list(getattr(content, "lives", [])) + list(getattr(content, "parts", [])):
         if id(o) not in seen and type(o).__name__ in ROTATE and (everyone or not getattr(o, "caught", False)) \
-                and (any_family or FAMILIES is None or family(o) in FAMILIES):
+                and (any_family or in_season(content, o)):
             seen.add(id(o))
             out.append(o)
     return out
@@ -57,6 +57,44 @@ def roster(content, everyone=False, any_family=False):
 CAP = 20
 FAMILIES = None
 _FIRST = {}
+
+
+# Seasons (his ask, 2026-11-09): in the game every Thunderstorm starts a new season, and until the
+# next one only about half the kinds living in each place (SHARE) come out. SEASON is a number the
+# picks are made from, so each place picks its own; None: no seasons (the desktop has FAMILIES).
+SEASON = None
+SHARE = 0.5
+SEASONS = ("Season of Embers", "Season of Moss", "Season of Frost", "Season of Lanterns", "Season of Mist",
+           "Season of Thorns", "Season of Tides", "Season of Spores", "Season of Petals", "Season of Echoes",
+           "Season of Starlight", "Season of Hollows", "Season of Dew", "Season of Ash", "Season of Bells",
+           "Season of Roots")
+_named = [None]  # (the last season's name, so the next is always another)
+
+
+def in_season(content, o):
+    """May this animal come out where it lives just now?"""
+    if FAMILIES is not None:
+        return family(o) in FAMILIES
+    if SEASON is None or getattr(o, "legendary", False):  # (a legendary's rarity is its own limit)
+        return True
+    got = getattr(content, "season", None)
+    if got is None or got[0] != SEASON:
+        fams = sorted({family(a) for a in roster(content, everyone=True, any_family=True)} - {None})
+        n = min(len(fams), max(2, math.ceil(SHARE * len(fams))))
+        got = content.season = (SEASON, set(random.Random(f"{SEASON}:{getattr(content, 'key', '')}").sample(fams, n)))
+    return family(o) in got[1]
+
+
+def new_season(rng):
+    global SEASON
+    SEASON = rng.random()
+
+
+def out_of_season(content, keep=()):
+    """Everyone out who is not in this season goes into hiding (where he is not looking: at once)."""
+    for o in roster(content, everyone=True, any_family=True):
+        if not getattr(o, "gone", False) and not in_season(content, o) and not any(o is k for k in keep):
+            o.gone, o.leave_at = True, None
 
 
 def family(x):
@@ -89,6 +127,7 @@ FEWER = 0.635
 
 def crowd(content, rng, factor=2):
     """Bring out more of a place's animals at the start: `factor` times as many as were out."""
+    out_of_season(content)  # (the game: only this season's kinds)
     animals = roster(content)
     from evolve import wild_stage
     for o in animals:  # each one in the wild might be an evolved one (15%, or 1% a final stage)
@@ -125,7 +164,9 @@ def dwellers(colony, rng):
 def reshuffle(content, rng, keep):
     """A storm somewhere he is not looking: the change happens at once."""
     animals = [o for o in roster(content) if not any(o is k for k in keep)]
-    pick = choose(animals, rng)
+    n = sum(1 for o in roster(content, any_family=True) if not getattr(o, "gone", False))
+    out_of_season(content, keep)
+    pick = choose(animals, rng, n)
     for o in animals:
         out = any(o is p for p in pick)
         if out and getattr(o, "gone", False):
@@ -242,7 +283,7 @@ class Lifespans:
         for content, low in here:
             if content is None:
                 continue
-            for o in roster(content):
+            for o in roster(content, any_family=True):  # (one out of season leaves too)
                 if getattr(o, "gone", False) or id(o) in busy:
                     continue
                 if getattr(o, "leave_at", None) is None:
@@ -255,7 +296,7 @@ class Lifespans:
         for content in list(glade.scenes.values()) + list(glade.lowers.values()) if far else ():
             if any(content is c for c, _ in here):
                 continue
-            for o in roster(content):  # elsewhere: at once
+            for o in roster(content, any_family=True):  # elsewhere: at once
                 if getattr(o, "gone", False):
                     continue
                 if getattr(o, "leave_at", None) is None:
@@ -323,8 +364,9 @@ class Storm:
         n = 0
         self.before = {}  # who was out in each, so as many come back
         for content, low in ((self.scene, False), (self.low, True)):
-            self.before[id(content)] = [o for o in roster(content) if not getattr(o, "gone", False) and not self.kept(o)]
-            for o in roster(content):
+            self.before[id(content)] = [o for o in roster(content, any_family=True)
+                                        if not getattr(o, "gone", False) and not self.kept(o)]
+            for o in roster(content, any_family=True):
                 if not getattr(o, "gone", False) and not self.kept(o):
                     self.moves.append(Shelter(o, low, True, t + 1.0 + n * 0.22 + self.rng.uniform(0, 0.3), self.rng))
                     n += 1
@@ -332,6 +374,13 @@ class Storm:
             for f in getattr(pond, "fish", []) if pond is not None else []:
                 if not getattr(f, "gone", False):
                     self.moves.append(Shelter(f, low, True, t + 1.4 + self.rng.uniform(0, 1), self.rng))
+        self.font = glade.signs.font
+        self.season = None  # the game: a new season, and its name on a board (come_out)
+        if SEASON is not None or FAMILIES is not None:  # (the desktop: new families, come_out)
+            if SEASON is not None:
+                new_season(self.rng)
+            self.season = self.rng.choice([n for n in SEASONS if n != _named[0]])
+            _named[0] = self.season
         # elsewhere the change happens at once
         for sc in glade.scenes.values():
             if sc is not self.scene:
@@ -402,6 +451,26 @@ class Storm:
         k = ease((t - self.t0) / 1.5) * ease((self.t0 + LENGTH - t) / 1.5)
         if k <= 0:
             return
+        self.draw_weather(s, low, t, k)
+        if self.season and not low:
+            self.draw_season(s, t)
+
+    def draw_season(self, s, t):
+        """The new season's name, on a board at the top of the sky, after the flash that brought it."""
+        a = t - self.bolts[2] - 0.6
+        k = ease(a / 0.8) * ease((LENGTH - 0.5 - (t - self.t0)) / 0.8)
+        if k <= 0:
+            return
+        img = self.font.render(self.season, False, TEXT)
+        r = pygame.Rect(0, 0, img.get_width() + 36, img.get_height() + 16)
+        r.midtop = (s.get_width() // 2, 26 - round(8 * (1 - k)))
+        board = pygame.Surface(r.size, pygame.SRCALPHA)
+        cloth(board, board.get_rect(), (196, 170, 255), hot=True, alpha=235)
+        board.blit(img, (18, 8))
+        board.set_alpha(round(255 * k))
+        s.blit(board, r)
+
+    def draw_weather(self, s, low, t, k):
         w, h = s.get_size()
         veil = self.veils.get((w, h))
         if veil is None:

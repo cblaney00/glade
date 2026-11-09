@@ -68,6 +68,9 @@ START = [
         "The Thunderstorm button brings rain and lightning. Everyone in sight shelters: diggers sink into "
         "their holes, fliers fly off, fish dive. When it passes, a fresh mix of the animals who live there "
         "comes out.",
+        "Each storm also starts a new season, with its name on a board in the sky. Until the next storm "
+        "only about half the kinds living in each place come out, a different half each season, so look "
+        "for the ones you want in the right season.",
         "When a new version of the Glade is ready, a gold notice shows by the button: press Thunderstorm "
         "to load it. You come back right where you were."], []),
     ("Hiding", [
