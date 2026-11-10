@@ -9,7 +9,7 @@ START = [
         "This is the Glade: a forest clearing where it is always night. The light comes from glowing "
         "moss, mushrooms, crystals, lanterns and fireflies, and little squid swim through the air for "
         "no reason at all.",
-        "Thirty-one places lie around it, joined by paths. Creatures live in every one of them: find "
+        "Thirty-one places lie around it, joined by paths. Each has creatures of its own, found nowhere else: find "
         "them, catch them, raise them, and battle the trainers, the gym leaders, the Battle Tower and, "
         "at last, the Elite 4.",
         "Pick a chapter on the ribbons above. Pointing at a picture in this book names it."],

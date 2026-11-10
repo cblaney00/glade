@@ -184,7 +184,9 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
     `far`: stretches of ground further back (2026-10-27, his ask: more room for animals),
     each with two walkers of their own that wander only there, drawn smaller (`persp`), and a
     flier or two in the distance above them. `persp`: size by height on the screen (the desktop's
-    aerial home has its own, aerial.py)."""
+    aerial home has its own, aerial.py). Kinds whose home is elsewhere (homes.py) are left out."""
+    from homes import only
+    fliers, walkers, new = only(fliers, sc.key), only(walkers, sc.key), only(new, sc.key)
     for kind in fliers:
         f = sc.live(Flier(rng, sky, kind, 1.1))
         if kind not in out:
@@ -197,7 +199,7 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
         if kind not in out:
             newcomer(w)
     from wave5 import HOMES, LEGENDS
-    new = tuple(new) + HOMES.get(sc.key, ())  # pages four to six of the Forest Dex (wave5.py)
+    new = tuple(new) + only(HOMES.get(sc.key, ()), sc.key)  # pages four to six of the Forest Dex (wave5.py)
     own = random.Random(sum(map(ord, sc.key)) + 2)
     legend = LEGENDS.get(sc.key)
     if legend:  # a legendary lives here, out only rarely (storm.py), and big
@@ -214,7 +216,7 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
             sc.live(Walker(own, ground, x_range, kind, 1.1, roam=roam, persp=persp))
             ground, x_range = grounds[(i + 1) % len(grounds)]
             sc.live(newcomer(Walker(own, ground, x_range, kind, 1.1, roam=roam, persp=persp)))
-    if far:
+    if far and (walkers or any(k not in FLIERS for k in new)):
         back = random.Random(sum(map(ord, sc.key)) + 3)
         kinds = list(walkers) + [k for k in new if k not in FLIERS]
         flying = list(fliers) + [k for k in new if k in FLIERS]
@@ -225,8 +227,9 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
                 sc.live(w if j == 0 else newcomer(w))
             mid = (x_range[0] + x_range[1]) / 2
             gy = ground(mid)
-            f = Flier(back, (x_range[0], gy - 70, x_range[1] - x_range[0], 40), flying[i % len(flying)], 1.1 * persp(gy))
-            sc.live(f if i == 0 else newcomer(f))
+            if flying:
+                f = Flier(back, (x_range[0], gy - 70, x_range[1] - x_range[0], 40), flying[i % len(flying)], 1.1 * persp(gy))
+                sc.live(f if i == 0 else newcomer(f))
     # a second of each, waiting to come out (his ask: twice as many animals about). Their own
     # dice, so the rest of the place is painted just as before.
     more = random.Random(sum(map(ord, sc.key)) + 1)

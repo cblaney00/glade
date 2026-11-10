@@ -74,7 +74,7 @@ stump in the middle; the Waterfall cliff behind; the Forest's crowns left; the R
 the front; small in the mist further out the Caverns, Ridge, Ruins, Starfall Meadow and Hot Springs. Tall trees on both
 edges hold the `Colony` (where new trees grow and the seed sign are `sc.grow_at`/`sc.seed`, saved under the game's
 GROW_AT x so it is the same trees). **It makes the same animals in the same order as build_glade** (carry.py hands
-them across one for one; keep it so: 44 bodies) and has the same `sc.lower`, so the lower screen is unchanged.
+them across one for one; keep it so: 24 bodies since homes.py) and has the same `sc.lower`, so the lower screen is unchanged.
 Walkers there use `aerial.high` for size (`second_wave(..., persp=)`). Each place shown has a `Spot` kind "peek" with
 an eye board. **Zoom:** `desktop.Camera`, mouse wheel on the top screen, 1x (start) to 2x, the point under the pointer
 stays put, back out after `CALM_AFTER / 2`. It crops-and-scales the top canvas after the boards are drawn
@@ -480,3 +480,9 @@ started at login under Hyprland. Changing the installed copy is a config change 
   challenge; the champion picked separately (`CHAMPIONS`) and only shown when reached. Members' teams are fixed (seeded
   by name), middle/final stages of their type, ace last; Lv 57-60, champion Lv 62 (aces +2). Healed before each
   battle (Claude's call: there are no items); a loss or "Give up" ends it; wins counted in `Collection.champion`.
+- **Every line lives in one place** (`glade/homes.py`, 2026-11-10, his ask and pick): the second wave used to be
+  everywhere and the far places borrowed each other's animals; now `HOME` gives each such kind one place, and
+  `scenes.second_wave` / `lower.py` leave out kinds whose home is elsewhere (`homes.only`). The background ones
+  (Driftlet, Gloamooze, Cairncurl, Lilyfin) stay everywhere. `lore.WHERE` is now `glade/where.py`, made by
+  `tools/make_where.py` (remake it when animals move). A gym leader whose place has fewer than 6 lines tops up
+  with visitors of the gym's type from elsewhere (`gyms.visitors`). **A new kind listed in two places needs a HOME.**

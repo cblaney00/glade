@@ -109,6 +109,13 @@ def locals_of(key):
                   and evolve.stage_of(s)[1] == 1 and "tower" not in w)
 
 
+def visitors():
+    """Every first stage that lives somewhere in the wild (a trainer may have brought one from afar)."""
+    import lore
+    return sorted(s for s, w in lore.WHERE.items() if s in SPECIES and s not in LEGENDARY
+                  and evolve.stage_of(s)[1] == 1 and "tower" not in w)
+
+
 def themed(key):
     """The place's own creatures of the leader's type first, then the rest of its creatures."""
     types = set(GYMS[key][1])
@@ -144,6 +151,11 @@ def roster(key, seed, typed, others):
     rng.shuffle(typed)
     rng.shuffle(others)
     pool = typed + others
+    if len(pool) < 6 and key in GYMS:  # a place with few lines of its own (homes.py): visitors of its type
+        want = set(GYMS[key][1])
+        far = sorted(s for s in visitors() if s not in pool and want & set(SPECIES[s]["types"]))
+        rng.shuffle(far)
+        pool += far[:6 - len(pool)]
     if not pool:
         return []
     ace = max(typed or pool, key=lambda f: total(grown(f, 100)))

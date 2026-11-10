@@ -7,9 +7,10 @@ each off (move it to Done with the date) when it is finished.
 
 - [ ] the new grass space created feels a little empty right now
 - [ ] the creatures should be able to walk everywhere that they physically can and they should get smaller based on perspective
-- [ ] creatures from any area can be found at the main glade, but there are creatures (especially strong ones) that should be limited to their own area, choose evolution lines to be unique to each scene
 
 ## Done
+
+- 2026-11-10: every evolution line lives in one place only (his pick): the nine that used to be everywhere (Brawlhop, Mossdelve, Sporeling, Rimeslink, Coppernib, Gloomflit, Lanternwing, Glimmerfly, Mistwisp) and everyone the far places borrowed each have one home now, so the Glade has only its own gentle ones and Prismwyrm's line is only at the Waterfall. The tiny background ones (floating squid, slugs, snails, fish) are still everywhere. The Forest Dex says where each one lives.
 
 - 2026-11-10: the desktop's home is an aerial view now: the Glade from high up in the middle, the Waterfall, Forest, River and Mossy Rocks around it, and the Crystal Caverns, Snowy Ridge, Old Ruins, Starfall Meadow and Hot Springs small in the mist further out; tree squid and owls in tall trees along both edges. The mouse wheel zooms in and out (it drifts back out after a few idle minutes), and clicking a place's board fades in a small live look at it (right-click its animals for their card, "Wander there" opens the game there); clicking anywhere else or using another window closes it (his picks).
 

@@ -208,9 +208,10 @@ class Lower(art.Lighting):
         out = spec.get("out", ())
         from beasts import FLIERS as _FL
         from wave5 import HOMES
+        from homes import only  # (each kind only in its own place, homes.py)
         extra = HOMES.get(scene.key, ())  # pages four to six of the Forest Dex live down here too
-        spec = dict(spec, walkers=tuple(spec.get("walkers", WALK)) + tuple(k for k in extra if k not in _FL),
-                    fliers=tuple(spec.get("fliers", FLY)) + tuple(k for k in extra if k in _FL))
+        spec = dict(spec, walkers=only(tuple(spec.get("walkers", WALK)) + tuple(k for k in extra if k not in _FL), scene.key),
+                    fliers=only(tuple(spec.get("fliers", FLY)) + tuple(k for k in extra if k in _FL), scene.key))
         near = lambda y, h=h: (1.2 + y / h) / 2.0  # noqa: E731 (his ask: further up this screen is further away, so smaller)
         roam = []  # every walker's stretch of ground: they all wander between them
         if pond:
