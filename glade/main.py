@@ -291,6 +291,8 @@ class Signs:
         spot.hits = [spot.rect.inflate(40, 40) if spot.kind == "go" else spot.rect, rect.inflate(8, 8)]
         if getattr(spot, "squid", None):  # a tree squid's banner is what he clicks, not the squid
             spot.hits = [rect.inflate(8, 8)]
+        if spot.kind == "peek":  # the aerial home's places: only their board (2026-11-10, his ask)
+            spot.hits = [rect]
 
     def draw(self, s, spot, hot, t, locked=None):
         """`locked`: why its place isn't open yet (unlock.py): the board is dimmed, with a padlock,

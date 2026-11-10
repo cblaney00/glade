@@ -76,7 +76,7 @@ edges hold the `Colony` (where new trees grow and the seed sign are `sc.grow_at`
 GROW_AT x so it is the same trees). **It makes the same animals in the same order as build_glade** (carry.py hands
 them across one for one; keep it so: 24 bodies since homes.py) and has the same `sc.lower`, so the lower screen is unchanged.
 Walkers there use `aerial.high` for size (`second_wave(..., persp=)`). Each place shown has a `Spot` kind "peek" with
-an eye board. **Zoom:** `desktop.Camera`, mouse wheel on the top screen, 1x (start) to 2x, the point under the pointer
+an eye board, clickable only on the board itself (his ask). **Zoom:** `desktop.Camera`, mouse wheel on the top screen, 1x (start) to 2x, the point under the pointer
 stays put, back out after `CALM_AFTER / 2`. It crops-and-scales the top canvas after the boards are drawn
 (`Glade.camera` hook) and sets `View.cam`, so `View.mouse()` is in picture coordinates and `View.screen_mouse()` in
 canvas-as-shown ones (the cursor, the card, the peek use those; `desktop.Flat` gives a card the shown pointer,
