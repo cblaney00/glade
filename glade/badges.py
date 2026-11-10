@@ -278,6 +278,12 @@ def draw(s, view, font, t):
     s.blit(case(r, have, pointed, font), r, (0, 0, r.w, State.shown))
     if k < 1:
         return
+    from minimap import padlock
+    from unlock import locked
+    for key in locked():  # a gym in a place not open yet: a padlock in its socket (unlock.py)
+        if key in GYMS and key not in have:
+            nx, ny = node(r, key)
+            padlock(s, r.x + nx, r.y + ny)
     # the won gems glow softly and, one after another, catch the light
     for i, k in enumerate(have):
         nx, ny = node(r, k)

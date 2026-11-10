@@ -472,7 +472,7 @@ def build_aerial():
                  speed=2.5, shell=(232, 178, 140)))
     trunk = lambda x, w, lo, hi: dict(x=x, w=w, lo=lo, hi=hi, bottom=540, lean=leans[x])  # noqa: E731
     sc.colony = sc.live(Colony(sc, Spot, [trunk(24, 24, 96, 470), trunk(80, 16, 96, 470),
-                                          trunk(884, 16, 96, 470), trunk(938, 24, 96, 470)]))
+                                          trunk(884, 16, 96, 340), trunk(938, 24, 96, 340)]))
     sc.critter = Critter(rng, lambda x: 436 + 4 * math.sin(x / 60), (380, 600))
     sc.live(sc.critter)
     additions(sc, rng, [("ring", 690, 470), ("cairn", 262, 452)])

@@ -292,8 +292,29 @@ class Signs:
         if getattr(spot, "squid", None):  # a tree squid's banner is what he clicks, not the squid
             spot.hits = [rect.inflate(8, 8)]
 
-    def draw(self, s, spot, hot, t):
+    def draw(self, s, spot, hot, t, locked=None):
+        """`locked`: why its place isn't open yet (unlock.py): the board is dimmed, with a padlock,
+        and pointing at it says who to beat first."""
         cold, warm, rect, wide = spot.boards
+        if locked:
+            dim = getattr(spot, "dim", None)
+            if dim is None:
+                from minimap import padlock
+                grey = pygame.transform.grayscale(cold)
+                grey.fill((150, 140, 170, 170), special_flags=pygame.BLEND_RGBA_MULT)
+                dim = pygame.Surface((grey.get_width() + 12, grey.get_height()), pygame.SRCALPHA)
+                dim.blit(grey, (0, 0))
+                padlock(dim, grey.get_width() + 4, grey.get_height() // 2)  # beside the name, not over it
+                spot.dim = dim
+            s.blit(dim, rect)
+            if hot:
+                note = self.font.render(locked, False, (255, 236, 190))
+                box = note.get_rect(midtop=(rect.centerx, rect.bottom + 4)).inflate(12, 6)
+                box.clamp_ip(s.get_rect())
+                pygame.draw.rect(s, (40, 26, 56), box, border_radius=4)
+                pygame.draw.rect(s, (250, 214, 130), box, 1, border_radius=4)
+                s.blit(note, note.get_rect(center=box.center))
+            return
         if hot:
             art.glow(s, *wide.center, max(wide.w, wide.h) // 2 + 18, (255, 150, 220), 120)
         s.blit(warm if hot else cold, wide if hot else rect)
@@ -589,6 +610,9 @@ class Glade:
     def go(self, key, remember=True):
         if self.fade_to or key == self.here.key:
             return
+        if not self.can_go(key):  # (the game's rule: places open as their neighbours' gyms are beaten)
+            self.refused(key)
+            return
         self.popup = None
         if remember:
             self.history.append(self.here.key)
@@ -825,9 +849,9 @@ class Glade:
             hot = self.picked[1]
         for sp in content.spots:
             if sp is not hot:
-                self.signs.draw(s, sp, False, t)
+                self.signs.draw(s, sp, False, t, self.lock_of(sp))
         if hot is not None:  # last, so a long name is drawn over its neighbours
-            self.signs.draw(s, hot, True, t)
+            self.signs.draw(s, hot, True, t, self.lock_of(hot))
         if hot is not None and hot.kind == "app":
             sparkle(s, *hot.mark, t)
         self.map_overlay(view, t)
@@ -932,6 +956,27 @@ class Glade:
     # --- hooks: what the desktop and the game each add (desktop.py, game.py) -----------------
     def builder(self, key):
         return BUILDERS[key]()
+
+    def can_go(self, key):
+        return True
+
+    def refused(self, key):
+        """Somewhere not open yet was asked for (the game's, unlock.py)."""
+
+    def lock_of(self, sp):
+        """Why a board's place isn't open yet, or None."""
+        return None
+
+    def draw_denied(self, s, t):
+        """A moment's note when a locked place was asked for: who to beat first."""
+        d = getattr(self, "denied", None)
+        if d is None or t - d[1] > 2.5:
+            return
+        from battle import cloth
+        img = self.signs.font.render(d[0], False, (255, 255, 255))
+        r = img.get_rect(midtop=(self.top.w // 2, 12)).inflate(20, 10)
+        cloth(s, r, (250, 214, 130), hot=True, alpha=235)
+        s.blit(img, img.get_rect(center=r.center))
 
     def home_only(self, content):
         return content

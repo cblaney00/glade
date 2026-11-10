@@ -86,6 +86,8 @@ class Desktop(Glade):
         self.cam = Camera()
         self.cam_t = None
         self.peek = None  # the small live look at a place (peek.py), while it is open
+        from minimap import Minimap
+        self.minimap = Minimap(self.signs.font)  # on the top screen here (his ask, 2026-11-10)
 
     def builder(self, key):
         if key == HOME:
@@ -173,7 +175,22 @@ class Desktop(Glade):
         return False
 
     def to_place(self, key, t):
+        import unlock
+        if not unlock.can_go(key):  # not open yet (unlock.py): say who to beat, don't open the game
+            self.denied = (unlock.reason(key), self.now())
+            return
         world.open_world("go", place=key)
+
+    def draw_map(self, s, t):
+        """The minimap in the top screen's bottom-right corner, over the zoom; a place on it opens the
+        game there (when it is open)."""
+        import unlock
+        self.minimap.locked = unlock.locked()
+        rect = self.minimap.place(self.top)
+        rect.bottomright = (self.top.w - 6, self.top.h - 6)
+        m = self.top.screen_mouse()
+        pointed = self.minimap.at(m)
+        self.minimap.draw(s, self.top, HOME, pointed, t, place=False)
 
     def show_card(self, view, m, species, t, animal=None):
         """The card is drawn over the zoom, so it goes where the animal looks to be."""
@@ -184,6 +201,9 @@ class Desktop(Glade):
         self.card = self.make_card(Flat(view), m, species, t, animal)
 
     def above(self, view, content, t):
+        if view is self.top:
+            self.draw_map(view.canvas, t)
+            self.draw_denied(view.canvas, t)
         if self.peek is not None and view is self.top:
             self.peek.draw(view.canvas, self.signs.font, view.screen_mouse(), t)
         if self.card is not None and self.card.view.base is view:
@@ -205,14 +225,20 @@ class Desktop(Glade):
     def play_click_late(self, t):
         """With a peek open: its board goes there in the game, the rest of it does nothing, and a
         click anywhere else closes it (and goes on to whatever was clicked)."""
+        m = self.top.screen_mouse()
+        place = self.minimap.at(m)
+        if place is not None or (m and self.minimap.rect and self.minimap.rect.collidepoint(m)):
+            self.close_peek()
+            if place is not None and place != HOME:
+                self.to_place(place, t)
+            return True
         if self.peek is None:
             return False
-        m = self.top.screen_mouse()
         if self.peek.inside(m):
             if self.peek.board.collidepoint(m):
                 key = self.peek.key
                 self.close_peek()
-                world.open_world("go", place=key)
+                self.to_place(key, t)
             return True
         self.close_peek()
         return False

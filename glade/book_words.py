@@ -20,6 +20,10 @@ START = [
         "The minimap in the lower screen's corner shows every place; the one you are in glows. Point at "
         "a place to see its name, and click it to go straight there. In this book, every place and "
         "trainer has a Go there button too.",
+        "Not every place is open at first. From the Glade you can go to the places right next to it; "
+        "beat a place's gym leader and the places next to that one open, so you choose which way to "
+        "go. A place not open yet is dark with a padlock on the minimap and on its path board; point "
+        "at it to see who to beat first. The Battle Tower is always open.",
         "The Home key takes you back to the Glade. Rest closes the game."], []),
     ("Your first creature", [
         "Walk down past the Mossy Rocks to the Battle Tower and click its door. The first time, you "

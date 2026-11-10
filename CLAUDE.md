@@ -86,6 +86,17 @@ extra a frame while open), in a wooden frame with its name and a "Wander there" 
 Right-click an animal in it: its card. Any click outside it, a window taking the focus (`Glade.window_focused`, from
 wayland.py), Thunderstorm, the game opening or a few idle minutes close it and let the place go.
 
+**Places open as gyms are beaten** (`glade/unlock.py`, 2026-11-10, his rule): in the game a place is open when it
+is the Glade, its gym is beaten, or it is next to (scenes.LINKS) the Glade or a beaten place; the Tower is always open
+(the starter is there). His badges count as they are (his pick). `Glade.go` asks the `can_go` hook (the game's:
+`unlock.can_go`), so paths, keys, minimap, badge case, Nav, the Book and the desktop's openings are all gated; a refused
+place shows "Beat Leader X first" / "Open The Y first" (`unlock.reason`, `Glade.draw_denied`). Locked path boards are
+grey with a padlock (`Signs.draw(..., locked)`, `Glade.lock_of`), as are their minimap stones and badge sockets.
+**The minimap** is its own module now (`glade/minimap.py`; `game.Minimap` still finds it): in the game on the lower
+screen as before; on the desktop in the top screen's bottom-right (his ask), drawn over the zoom
+(`Desktop.draw_map`); a place on it opens the game there if it is open. (The aerial's right trees hold squid only
+down to y 340, above it.)
+
 **Loading while wandering** (`glade/loading.py`, 2026-10-28, his ask: Wander stuttered for ~20 s and he
 wanted to know when it is all loaded): the game loads the places within `game.NEAR` (2) paths, nearest first, and lets go of any more than `FORGET` (3) away (`Game.forget`; 2026-11-02, his pick: much less memory), on a side thread
 that only works in the gaps between frames (`loading.between_frames` after each frame in both loops;
