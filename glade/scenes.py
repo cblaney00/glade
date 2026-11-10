@@ -134,6 +134,8 @@ class Scene(art.Lighting):
         place(self)  # a gym leader's banner stone, where there is one
         self.parts.append(("still", self.cur))
         self.cur = None
+        from walk import for_scene
+        for_scene(self)  # where its walkers may go (walk.py)
         from spacing import gather
         gather(self)
         parts = []
@@ -171,7 +173,7 @@ WALK = ("toad", "mole", "sporeling", "newt", "beetle")
 def persp(y):
     """How big something standing at y looks on the upper screen: 1 at the front of the
     meadow (y 512), smaller further back toward the hills."""
-    return max(0.6, min(1.05, 0.35 + 0.65 * (y - 200) / 312))  # (the far river bank was a tad small at 0.42)
+    return max(0.5, min(1.05, 0.35 + 0.65 * (y - 200) / 312))  # (0.5: they walk further back now, walk.py)  # (the far river bank was a tad small at 0.42)
 
 
 def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(), far=(), persp=persp):
@@ -224,6 +226,7 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
         for i, (ground, x_range) in enumerate(far):
             for j in range(2):
                 w = Walker(back, ground, x_range, kinds[(i * 2 + j) % len(kinds)], 1.1, roam=far, persp=persp)
+                w.far = True  # (it keeps to the far ground, walk.py)
                 sc.live(w if j == 0 else newcomer(w))
             mid = (x_range[0] + x_range[1]) / 2
             gy = ground(mid)

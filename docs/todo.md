@@ -5,10 +5,12 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
-- [ ] the new grass space created feels a little empty right now
-- [ ] the creatures should be able to walk everywhere that they physically can and they should get smaller based on perspective
+(nothing waiting: ask him what's next)
 
 ## Done
+
+- 2026-11-10: the creatures walk anywhere on the ground now (his pick: every place, the desktop home included, and every lower screen), back and front, not just along a few lines, and they get smaller the further back they go. Water, pools, lakes, the minimap corner and the trees are left alone.
+- 2026-11-10: the big grass area in the middle of the desktop home is filled in (his picks: plants and glow, small places): a little lily pond, glowing wildflowers and bulb plants, berry bushes, mushroom clusters, stepping stones, a ring of tiny standing stones, petals under the blossom tree and lantern posts along the paths.
 
 - 2026-11-10: every evolution line lives in one place only (his pick): the nine that used to be everywhere (Brawlhop, Mossdelve, Sporeling, Rimeslink, Coppernib, Gloomflit, Lanternwing, Glimmerfly, Mistwisp) and everyone the far places borrowed each have one home now, so the Glade has only its own gentle ones and Prismwyrm's line is only at the Waterfall. The tiny background ones (floating squid, slugs, snails, fish) are still everywhere. The Forest Dex says where each one lives.
 

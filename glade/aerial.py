@@ -25,7 +25,7 @@ from life import (Aurora, Blades, Critter, Fireflies, Lantern, Motes, Petals, Pu
                   Steam, Track, Vines, Waterfall, make_rng)
 from orchard import Nibbler, Orchard
 from scenes import (CAVE_CRYSTAL, SPRING, FallingStars, Scene, Spot, additions, crystal, leaf_row, moss_glow,
-                    mushroom, pal, second_wave, snowcaps)
+                    mushroom, pal, second_wave, snowcaps)  # noqa: F401
 from squids import Colony
 
 CLEAR = (488, 404)  # the middle of the clearing, where the paths meet
@@ -60,6 +60,136 @@ def eye():
     pygame.draw.circle(s, (20, 40, 60), (7, 7), 1)
     s.set_at((8, 6), (255, 255, 255))
     return s
+
+
+POND = (214, 420, 34, 11)  # the little lily pond in the grass (cx, cy, rx, ry)
+LANTERNS = ((436, 456), (566, 398), (322, 384), (690, 432))
+
+
+def meadow_life(sc, p, glows):
+    """The clearing's grass filled in (2026-11-10, his ask: "the new grass space feels a little
+    empty"; his picks: plants and glow, and small places). Its own dice, so the rest of the
+    picture and the animals are just as they were."""
+    rng = make_rng(12)
+    d = 0.22
+    lay = art.plane()
+    # a little lily pond, with a rim of stones and reeds
+    cx, cy, rx, ry = POND
+    water = mix(sc.col("water", d), (40, 70, 160), 0.25)
+    pygame.draw.ellipse(lay, sc.col("stone", d), (cx - rx - 3, cy - ry - 2, rx * 2 + 6, ry * 2 + 5))
+    pygame.draw.ellipse(lay, water, (cx - rx, cy - ry, rx * 2, ry * 2))
+    pygame.draw.ellipse(lay, mix(water, (255, 255, 255), 0.35), (cx - rx + 8, cy - ry + 3, rx, ry), 1)
+    for a in range(0, 360, 30):  # rim stones
+        x = cx + math.cos(math.radians(a)) * (rx + 2)
+        y = cy + math.sin(math.radians(a)) * (ry + 1)
+        pygame.draw.ellipse(lay, mix(sc.col("stone", d), (236, 228, 255), 0.15 + 0.1 * (a % 60 == 0)),
+                            (round(x) - 3, round(y) - 2, 6, 4))
+    for x, y in ((cx - 14, cy - 2), (cx + 10, cy + 3), (cx + 20, cy - 4)):  # lily pads and lotuses
+        pygame.draw.ellipse(lay, sc.col("leaf", d), (x - 4, y - 1, 9, 4))
+        pygame.draw.circle(lay, (255, 200, 238), (x, y - 1), 1)
+        glows.append((x, y - 1, 14, GLOW["pink"], 70, x * 0.1))
+    for x in (cx - rx - 2, cx - rx + 4, cx + rx - 4, cx + rx + 1):  # reeds
+        for k in range(3):
+            pygame.draw.line(lay, sc.col("leaf2", d), (x + k * 2, cy + 2), (x + k * 2 + k - 1, cy - 8 - (x + k) % 5))
+    sc.add(lay, d, texture=0.3)
+    sc.lamp(cx, cy, 60, GLOW["cyan"], 40)
+    sc.shine(cx, cy, 5, GLOW["cyan"], 40)
+    glows.append((cx, cy, rx, GLOW["cyan"], 50, 1.3))
+
+    lay = art.plane()
+    # wildflower patches that glow, all over the grass
+    for rect in ((112, 386, 130, 40), (270, 450, 90, 40), (452, 470, 140, 44), (640, 396, 90, 26),
+                 (500, 420, 70, 26), (120, 470, 80, 20)):
+        art.flowers(lay, rng, rect, p["flowers"], rect[2] * rect[3] // 30)
+        for _ in range(rect[2] // 10):
+            x, y = rng.randint(rect[0], rect[0] + rect[2]), rng.randint(rect[1], rect[1] + rect[3])
+            c = rng.choice((GLOW["pink"], GLOW["cyan"], GLOW["violet"], (255, 246, 200)))
+            lay.set_at((x, y), c)
+            glows.append((x, y, 12, c, 70, x * 0.13 + y))
+    # tall grass tufts
+    for _ in range(46):
+        x, y = rng.randint(100, 740), rng.randint(380, 528)
+        if abs(x - POND[0]) < 44 and abs(y - POND[1]) < 18:
+            continue
+        for k in range(rng.randint(4, 7)):
+            ln = rng.randint(5, 10)
+            pygame.draw.line(lay, sc.col(rng.choice(("leaf", "leaf2")), 0.16),
+                             (x + k, y), (x + k + rng.randint(-3, 3), y - ln))
+    # little round bushes with glowing berries
+    for x, y, r in ((150, 404, 9), (286, 418, 8), (700, 452, 9), (530, 512, 8), (380, 466, 7)):
+        pygame.draw.ellipse(lay, mix(sc.col("leaf", d), (0, 0, 0), 0.3), (x - r, y - r // 2, r * 2, r))
+        art.foliage(lay, rng, x, y - r // 2, r, r * 0.7, sc.col("leaf", d), p, leaf=(2, 3))
+        for _ in range(4):
+            bx, by = x + rng.randint(-r + 2, r - 2), y - rng.randint(1, r)
+            lay.set_at((bx, by), GLOW["violet"])
+            glows.append((bx, by, 10, GLOW["violet"], 80, bx * 0.2))
+        sc.shadow(x, y + 1, r, 3, 0.35)
+    # mossy stepping stones from the pond toward the forest path, and a ring of little standing stones
+    for i, (x, y) in enumerate(((250, 412), (266, 404), (282, 398), (296, 390))):
+        pygame.draw.ellipse(lay, sc.col("stone", d), (x - 4, y - 2, 8, 4))
+        pygame.draw.line(lay, sc.col("moss", d), (x - 2, y - 2), (x + 2, y - 2))
+    for k in range(6):
+        a = k * math.pi / 3
+        x, y = round(640 + math.cos(a) * 18), round(500 + math.sin(a) * 6)
+        pygame.draw.rect(lay, sc.col("stone", 0.18), (x - 1, y - 6, 3, 6))
+        lay.set_at((x, y - 6), GLOW["cyan"])
+        glows.append((x, y - 6, 10, GLOW["cyan"], 60, k))
+    # fallen petals under the blossom tree
+    for _ in range(90):
+        x, y = rng.randint(540, 680), rng.randint(438, 468)
+        lay.set_at((x, y), rng.choice(((255, 200, 230), (255, 236, 246), (255, 150, 200))))
+    sc.add(lay, 0.18, texture=0.4)
+    lay = art.plane()
+    # glowing mushroom clusters
+    for x, y, size, cap in ((180, 446, 3, GLOW["cyan"]), (186, 450, 2, GLOW["cyan"]), (262, 394, 3, GLOW["amber"]),
+                            (520, 456, 3, GLOW["pink"]), (527, 460, 2, GLOW["pink"]), (676, 392, 3, GLOW["lime"]),
+                            (470, 518, 3, GLOW["violet"]), (476, 521, 2, GLOW["violet"]), (120, 430, 2, GLOW["lime"]),
+                            (306, 506, 3, GLOW["cyan"]), (726, 404, 2, GLOW["pink"])):
+        mushroom(lay, x, y, size, cap, sc, glows)
+    # lantern posts by the paths
+    for x, y in LANTERNS:
+        pygame.draw.line(lay, sc.col("wood", 0.16), (x, y), (x, y - 16), 2)
+        pygame.draw.line(lay, sc.col("wood", 0.16), (x, y - 16), (x + 4, y - 16))
+        pygame.draw.rect(lay, sc.col("wood", 0.1), (x + 2, y - 15, 5, 6))
+        pygame.draw.rect(lay, (255, 236, 170), (x + 3, y - 14, 3, 4))
+        sc.lamp(x + 4, y - 12, 60, GLOW["amber"], 50)
+        sc.shine(x + 4, y - 12, 3, GLOW["amber"], 80)
+        glows.append((x + 4, y - 12, 18, GLOW["amber"], 60, x * 0.05))
+        sc.shadow(x, y + 1, 4, 2, 0.4)
+    # tall glow-bulb plants: a curling stem with a luminous bulb, in little groups
+    for gx, gy, c in ((140, 444, GLOW["cyan"]), (346, 410, GLOW["pink"]), (596, 500, GLOW["lime"]),
+                      (712, 486, GLOW["violet"]), (254, 500, GLOW["amber"]), (520, 398, GLOW["cyan"])):
+        for k in range(3):
+            x, y = gx + k * 5 - 5, gy + (k % 2) * 3
+            h = 10 + (k * 7) % 6
+            lean = (k - 1) * 2
+            pygame.draw.line(lay, sc.col("leaf2", 0.16), (x, y), (x + lean, y - h))
+            pygame.draw.line(lay, sc.col("leaf", 0.16), (x, y - 3), (x - 3, y - 5))
+            pygame.draw.circle(lay, c, (x + lean, y - h - 1), 2)
+            lay.set_at((x + lean, y - h - 2), (255, 255, 255))
+            glows.append((x + lean, y - h - 1, 18, c, 90, gx * 0.1 + k))
+        sc.lamp(gx, gy - 12, 44, c, 40)
+    sc.add(lay, 0.16)
+    for x, y, w, h, c in ((150, 492, 30, 6, GLOW["cyan"]), (680, 470, 26, 6, None), (250, 476, 24, 5, GLOW["lime"]),
+                          (540, 430, 22, 5, None)):
+        art.glowmoss(sc, sc.cur, x, y, w, h, c)
+
+
+def ground(sc):
+    """Where its animals may walk (walk.py): the clearing's grass, not the River, the pond, the
+    tree, the stones, nor the corner the minimap covers."""
+    from walk import drawn, oval
+    edge = [(96, 384), (200, 378), (340, 372), (380, 352), (420, 334), (450, 328), (536, 328), (560, 336),
+            (600, 340), (700, 352), (748, 362), (748, 532), (96, 532)]
+    holes = [oval(*POND[:2], POND[2] + 6, POND[3] + 5), (530, 296, 150, 96), (592, 392, 26, 46),
+             oval(400, 412, 16, 10), (726, 444, 22, 16)]
+    for x, y, w, h in ((330, 436, 28, 12), (620, 446, 34, 14), (566, 372, 18, 8), (360, 376, 16, 7)):
+        holes.append(oval(x, y - h // 3, w // 2 + 3, h // 2 + 3))
+    for x, y, w, h in ((218, 520, 70, 30), (160, 532, 50, 22), (286, 534, 44, 18), (452, 530, 50, 20),
+                       (110, 500, 30, 14), (512, 536, 38, 14)):
+        holes.append(oval(x, y - h // 3, w // 2 + 2, h // 2 + 2))
+    holes += [oval(x, y, 6, 4) for x, y in LANTERNS]
+    sc.field = drawn([edge], holes)
 
 
 def build_aerial():
@@ -431,6 +561,8 @@ def build_aerial():
     art.glowmoss(sc, sc.cur, lx - 22, ly - 9, 30, 4)
     sc.shadow(lx, ly + 6, 30, 5, 0.4)
 
+    meadow_life(sc, p, glows)
+
     # --- the Mossy Rocks, along the front edge ---------------------------------------------------
     lay = art.plane()
     front_moss = []
@@ -505,5 +637,6 @@ def build_aerial():
         pts=[(202, -4), (180, 16), (160, 60), (156, 120), (172, 190), (204, 260), (220, 340), (208, 460)],
         widths=[94, 98, 104, 112, 120, 128, 136, 148],
         sign=(320, 392), spot=((120, 300, 240, 150), "The Mossy Rocks", "rocks", (212, 412)))])
+    ground(sc)  # (before done: walk.py gives the walkers this ground)
     return sc.done()
 

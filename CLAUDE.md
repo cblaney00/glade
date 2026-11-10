@@ -486,3 +486,15 @@ started at login under Hyprland. Changing the installed copy is a config change 
   (Driftlet, Gloamooze, Cairncurl, Lilyfin) stay everywhere. `lore.WHERE` is now `glade/where.py`, made by
   `tools/make_where.py` (remake it when animals move). A gym leader whose place has fewer than 6 lines tops up
   with visitors of the gym's type from elsewhere (`gyms.visitors`). **A new kind listed in two places needs a HOME.**
+- **Walking anywhere on the ground** (`glade/walk.py`, 2026-11-10, his ask, "everywhere" his pick): every upper
+  screen's walkable ground is drawn in `walk.AREAS` (polygons traced from each place's picture; `HOLES` for pools,
+  lakes, a house); each lower screen's is all of it but the pond and round the path signs (`walk.for_lower`).
+  `Scene.done` → `walk.for_scene` gives each walker the piece it stands on (`Walker.field`; the River's water is
+  not ground). `Walker._wander` picks any spot in it it can walk straight to (not too steep, within ~420 px) and
+  walks there; size follows `persp(y)` (floor 0.5 now) all the way. The aerial home sets its own `sc.field`
+  (`aerial.ground`). **When a place's art changes, check its AREAS still fit.** Slugs, the Duskling and fliers
+  are as before.
+- **The aerial home's grass filled in** (`aerial.meadow_life`, 2026-11-10, his picks: plants and glow, small
+  places): a lily pond with rim stones and lotuses, glowing wildflower patches, tall glow-bulb plants, berry
+  bushes, mushroom clusters, grass tufts, stepping stones, a ring of little standing stones, petals under the
+  blossom tree and four lantern posts by the paths. Its own dice (`make_rng(12)`), so the rest is unchanged.

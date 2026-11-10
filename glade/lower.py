@@ -245,6 +245,8 @@ class Lower(art.Lighting):
                     crawlers.append(newcomer(Walker(more, line[0], line[1], kind, 2.0, roam=roam, avoid=wet, persp=near)))
                     break
         crawlers += [newcomer(Flier(more, (60, 20, w - 120, h // 2), kind, 2.0)) for kind in spec.get("fliers", FLY)]
+        from walk import for_lower  # they walk anywhere on this ground but the pond (walk.py)
+        for_lower([c for c in crawlers if type(c).__name__ == "Walker"], w, h, pond, [pp["sign"] for pp in paths])
         sky = Squid(rng, (60, 20, w - 120, h // 2), rng.choice([GLOW["cyan"], GLOW["pink"], GLOW["violet"]]), size=2.0)
         self.parts = [far, ferns] + crawlers + [near, bugs, sky, Motes(rng, (0, 0, w, h), 26, GLOW["cyan"])]
         if glows:

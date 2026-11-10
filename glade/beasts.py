@@ -445,6 +445,7 @@ class Walker(Clock):
         looks standing at y (1 at the front)."""
         self.depth, self.persp = 1.0, persp
         self.roam, self.avoid, self.blend = roam, avoid, None
+        self.field = None  # the ground it may walk anywhere on (walk.py; set once its place is built)
         spec = WALKERS[kind]
         self.rng, self.ground, self.xr, self.kind, self.size = rng, ground, x_range, kind, size
         self.species, self.body, self.color, self.speed = spec["species"], spec["body"], spec["color"], spec["speed"]
@@ -481,14 +482,20 @@ class Walker(Clock):
         for i in range(6):
             was = self.ground, self.xr, self.blend
             self._retarget()
-            self.lane_to = self.rng.uniform(-self.lane_w, self.lane_w)
+            self.lane_to = 0.0 if self.field is not None else self.rng.uniform(-self.lane_w, self.lane_w)
             if i == 5 or not crowded(self, self.target, self.ground(self.target) + self.lane_to):
                 return
             self.ground, self.xr, self.blend = was
 
     def _retarget(self):
         """Somewhere new to go: along this stretch of ground, or now and then over to another
-        anywhere in its place (walking across between them)."""
+        anywhere in its place (walking across between them). With a field (walk.py): anywhere on
+        its ground, near or far, in a straight line."""
+        if self.field is not None:
+            if not self._wander():  # nowhere good this time: a little step, if the ground is there
+                tx = self.x + self.rng.uniform(-20, 20)
+                self.target = tx if self.field.inside(tx, self.ground(tx)) else self.x
+            return
         self.target = self.rng.uniform(*self.xr)
         if not self.roam or self.rng.random() > 0.45:
             return
@@ -513,6 +520,27 @@ class Walker(Clock):
             self.ground, self.target = between, tx
             self.xr = (min(self.xr[0], tx - 1), max(self.xr[1], tx + 1))
             return
+
+    def _wander(self):
+        """Pick a spot on its ground it can walk straight to: not too steep a way (it walks by its
+        x), not further than about half the screen, and clear of anything it must not cross."""
+        from walk import line
+        x0, y0 = self.x, self.ground(self.x)
+        reach = 60 if self.kind == "mole" else 420  # (a mole stays near its old hole)
+        for _ in range(14):
+            tx, ty = self.field.pick(self.rng)
+            dx = tx - x0
+            if not 14 < abs(dx) < reach or abs(ty - y0) > 0.6 * abs(dx):
+                continue
+            if not self.field.clear_way(x0, y0, tx, ty, self.avoid):
+                continue
+            way = line(x0, y0, tx, ty)
+            near = (tx - 10 * self._size, tx + 10 * self._size) if self.kind == "mole" else (tx - 1, tx + 1)
+            self.blend = (way, line(tx, ty, tx, ty), tx, near)
+            self.ground, self.target = way, tx
+            self.xr = (min(x0, tx) - 1, max(x0, tx) + 1)
+            return True
+        return False
 
     def update(self, dt, t):
         if self.wait > 0:
