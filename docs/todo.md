@@ -9,6 +9,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-10: clicking on the home screen is accurate again: the tree squid up high (Terminal, Principia RPG, Husk, Sub of Seas) and the Grow a tree sign were hidden under the far places' click areas; now a squid or a name board always wins.
+
 - 2026-11-10: the creatures walk anywhere on the ground now (his pick: every place, the desktop home included, and every lower screen), back and front, not just along a few lines, and they get smaller the further back they go. Water, pools, lakes, the minimap corner and the trees are left alone.
 - 2026-11-10: the big grass area in the middle of the desktop home is filled in (his picks: plants and glow, small places): a little lily pond, glowing wildflowers and bulb plants, berry bushes, mushroom clusters, stepping stones, a ring of tiny standing stones, petals under the blossom tree and lantern posts along the paths.
 

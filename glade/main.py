@@ -478,6 +478,13 @@ class View:
     def hovered(self, spots):
         m = self.mouse()
         if m:
+            # small exact targets first (a name board, a tree squid, the seed sign), so a wide
+            # area like the aerial home's peeks never covers them (2026-11-10, his report)
+            for sp in spots:
+                boards = getattr(sp, "boards", None)
+                if (boards and boards[2].collidepoint(m)) or (
+                        (getattr(sp, "squid", None) or sp.kind == "grow") and sp.hit(m)):
+                    return sp
             for sp in spots:
                 if sp.hit(m):
                     return sp
