@@ -5,7 +5,9 @@ each off (move it to Done with the date) when it is finished.
 
 ## To do
 
-(nothing waiting: ask him what's next)
+- [ ] the new grass space created feels a little empty right now
+- [ ] the creatures should be able to walk everywhere that they physically can and they should get smaller based on perspective
+- [ ] creatures from any area can be found at the main glade, but there are creatures (especially strong ones) that should be limited to their own area, choose evolution lines to be unique to each scene
 
 ## Done
 
