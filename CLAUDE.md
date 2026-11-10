@@ -67,6 +67,25 @@ After an update the game restarts itself in place (`Game.restart`, `os.execv`) a
 the desktop itself into the game; before that a separate window was tried, which showed nothing because it
 inherited `SDL_VIDEODRIVER=dummy`; `game.window` removes that.)
 
+**The aerial home** (`glade/aerial.py`, `glade/peek.py`, 2026-11-10, his ask and picks): on the desktop only, home's
+top screen is `aerial.build_aerial()` (`Desktop.builder`; the game keeps `scenes.build_glade`): the Glade from high up
+and a little behind, looking north, at the same 960x540 — clearing, blossom tree (its `Orchard`), signpost, lantern
+stump in the middle; the Waterfall cliff behind; the Forest's crowns left; the River winding right; the Mossy Rocks along
+the front; small in the mist further out the Caverns, Ridge, Ruins, Starfall Meadow and Hot Springs. Tall trees on both
+edges hold the `Colony` (where new trees grow and the seed sign are `sc.grow_at`/`sc.seed`, saved under the game's
+GROW_AT x so it is the same trees). **It makes the same animals in the same order as build_glade** (carry.py hands
+them across one for one; keep it so: 44 bodies) and has the same `sc.lower`, so the lower screen is unchanged.
+Walkers there use `aerial.high` for size (`second_wave(..., persp=)`). Each place shown has a `Spot` kind "peek" with
+an eye board. **Zoom:** `desktop.Camera`, mouse wheel on the top screen, 1x (start) to 2x, the point under the pointer
+stays put, back out after `CALM_AFTER / 2`. It crops-and-scales the top canvas after the boards are drawn
+(`Glade.camera` hook) and sets `View.cam`, so `View.mouse()` is in picture coordinates and `View.screen_mouse()` in
+canvas-as-shown ones (the cursor, the card, the peek use those; `desktop.Flat` gives a card the shown pointer,
+`peek.Seen` maps an animal's place for its card). **Peeks:** `peek.Peek` builds the place on a side thread in the
+frame gaps (loading.py), shows a shimmer, then fades the live place in at half size (drawn every other frame, ~5 ms
+extra a frame while open), in a wooden frame with its name and a "Wander there" board (`world.open_world("go")`).
+Right-click an animal in it: its card. Any click outside it, a window taking the focus (`Glade.window_focused`, from
+wayland.py), Thunderstorm, the game opening or a few idle minutes close it and let the place go.
+
 **Loading while wandering** (`glade/loading.py`, 2026-10-28, his ask: Wander stuttered for ~20 s and he
 wanted to know when it is all loaded): the game loads the places within `game.NEAR` (2) paths, nearest first, and lets go of any more than `FORGET` (3) away (`Game.forget`; 2026-11-02, his pick: much less memory), on a side thread
 that only works in the gaps between frames (`loading.between_frames` after each frame in both loops;

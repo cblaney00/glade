@@ -174,7 +174,7 @@ def persp(y):
     return max(0.6, min(1.05, 0.35 + 0.65 * (y - 200) / 312))  # (the far river bank was a tad small at 0.42)
 
 
-def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(), far=()):
+def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(), far=(), persp=persp):
     """One of every animal of the second wave (beasts.py) lives in every place: the fliers
     in its sky, the walkers on its stretches of ground. They start out sheltering, and a
     thunderstorm (storm.py) brings out a random mix of everyone who lives here. The far
@@ -183,7 +183,8 @@ def second_wave(sc, rng, sky, grounds, fliers=FLY, walkers=WALK, out=(), new=(),
     rest of the place is painted just as before; one of each starts out in sight.
     `far`: stretches of ground further back (2026-10-27, his ask: more room for animals),
     each with two walkers of their own that wander only there, drawn smaller (`persp`), and a
-    flier or two in the distance above them."""
+    flier or two in the distance above them. `persp`: size by height on the screen (the desktop's
+    aerial home has its own, aerial.py)."""
     for kind in fliers:
         f = sc.live(Flier(rng, sky, kind, 1.1))
         if kind not in out:

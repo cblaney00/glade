@@ -9,6 +9,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-10: the desktop's home is an aerial view now: the Glade from high up in the middle, the Waterfall, Forest, River and Mossy Rocks around it, and the Crystal Caverns, Snowy Ridge, Old Ruins, Starfall Meadow and Hot Springs small in the mist further out; tree squid and owls in tall trees along both edges. The mouse wheel zooms in and out (it drifts back out after a few idle minutes), and clicking a place's board fades in a small live look at it (right-click its animals for their card, "Wander there" opens the game there); clicking anywhere else or using another window closes it (his picks).
+
 - 2026-11-09: seasons: in the game every Thunderstorm starts a new season (its name shows on a board in the sky, e.g. "Season of Moss"), and until the next storm only about half the kinds living in each place come out (his picks).
 
 - 2026-11-06: walking between places is smooth now: the old place melts straight into the new one over half a second (his picks: a blend, not a dip to dark), and the building happens before the blend so it never jumps.

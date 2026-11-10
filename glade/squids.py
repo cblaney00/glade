@@ -237,12 +237,15 @@ class GrownTree:
 
     GROW, SHRINK = 2.6, 1.6  # seconds
 
-    def __init__(self, scene, x, top, born):
-        self.x, self.top, self.born, self.dying = x, top, born, None
+    def __init__(self, scene, x, top, born, ground=GROUND, saved=None):
+        """`saved`: the tree as squids.json knows it (its x in the game's clearing; the desktop's
+        aerial view grows its trees elsewhere, scene.grow_at, but they are the same trees)."""
+        self.x, self.top, self.born, self.dying, self.ground = x, top, born, None, ground
+        self.saved = x if saved is None else saved
         rng = random.Random(x * 7 + 1)
         lay = art.plane()
-        self.lean = art.trunk(lay, rng, x, top, GROUND, 12, scene.col("wood", 0.5), branches=1, pal=scene.pal)
-        cx = x + (GROUND - top) * self.lean
+        self.lean = art.trunk(lay, rng, x, top, ground, 12, scene.col("wood", 0.5), branches=1, pal=scene.pal)
+        cx = x + (ground - top) * self.lean
         for r, dy, c in ((20, -2, "leaf3"), (16, 8, "leaf"), (13, -10, "leaf")):
             art.clump(lay, rng, round(cx), top + dy, r, scene.col(c, 0.5))
         art.finish(lay, scene.pal, 0.5, rng)
@@ -269,7 +272,7 @@ class GrownTree:
     def light(self, lm, t):
         k = self.k(t)
         if k > 0.05:
-            glow(lm, self.x, GROUND - 4, int(34 * k), GLOW["moss"], 40)
+            glow(lm, self.x, self.ground - 4, int(34 * k), GLOW["moss"], 40)
 
 
 
@@ -449,7 +452,11 @@ class Colony:
         self.state = self.load()
         self.t = 0.0
         self.clock = None
-        self.grown = [GrownTree(scene, x, top, -99.0) for x, top in GROW_AT if x in self.state["trees"]]
+        # where trees can grow here (x, top, ground), one for each of GROW_AT; and the seed sign
+        self.grow_at = getattr(scene, "grow_at", None) or [(x, top, GROUND) for x, top in GROW_AT]
+        self.seed = getattr(scene, "seed", SEED)
+        self.grown = [GrownTree(scene, *self.grow_at[i], -99.0, saved=x)
+                      for i, (x, _) in enumerate(GROW_AT) if x in self.state["trees"]]
         self.dying = []  # trees sinking back into the meadow
         self.trunks = []
         self.retrunk()
@@ -477,16 +484,16 @@ class Colony:
     # the trees -----------------------------------------------------------------------
     def retrunk(self):
         self.trunks = list(self.base) + [
-            dict(x=g.x, w=10, lo=g.top + 34, hi=GROUND - 56, bottom=GROUND, lean=g.lean, grown=g)
+            dict(x=g.x, w=10, lo=g.top + 34, hi=g.ground - 56, bottom=g.ground, lean=g.lean, grown=g)
             for g in self.grown]
 
     def grow(self, t):
         """The seed sign was clicked: a new tree grows in the next free place."""
-        have = {g.x for g in self.grown}
-        for x, top in GROW_AT:
+        have = {g.saved for g in self.grown}
+        for i, (x, _) in enumerate(GROW_AT):
             if x not in have:
-                self.grown.append(GrownTree(self.scene, x, top, t))
-                self.state["trees"] = [g.x for g in self.grown]
+                self.grown.append(GrownTree(self.scene, *self.grow_at[i], t, saved=x))
+                self.state["trees"] = [g.saved for g in self.grown]
                 self.save()
                 self.retrunk()
                 self.shown = None  # rearrange now: the waiting squid swim over
@@ -498,7 +505,7 @@ class Colony:
             self.grown.remove(tree)
             tree.dying = t
             self.dying.append(tree)
-            self.state["trees"] = [g.x for g in self.grown]
+            self.state["trees"] = [g.saved for g in self.grown]
             self.save()
             self.retrunk()
             self.shown = None
@@ -509,7 +516,7 @@ class Colony:
             return None
         for i, tr in enumerate(self.trunks):
             g = tr.get("grown")
-            if g and g.top - 20 <= m[1] <= GROUND and abs(self.x_at(i, m[1]) - m[0]) < 14:
+            if g and g.top - 20 <= m[1] <= g.ground and abs(self.x_at(i, m[1]) - m[0]) < 14:
                 return g
         return None
 
@@ -619,8 +626,8 @@ class Colony:
             spots.append(sp)
         if len(self.grown) < len(GROW_AT):  # the seed sign: grows a tree for the squid waiting
             label = "Grow a tree" + (f" ({self.waiting} waiting)" if self.waiting else "")
-            sp = self.Spot("grow", (SEED[0] - 12, SEED[1] - 14, 24, 20), label, None, SEED,
-                           sign=(SEED[0], SEED[1] - 24))
+            sp = self.Spot("grow", (self.seed[0] - 12, self.seed[1] - 14, 24, 20), label, None, self.seed,
+                           sign=(self.seed[0], self.seed[1] - 24))
             sp.icon = self.sprout
             spots.append(sp)
         self.scene.spots[:] = [sp for sp in self.scene.spots if sp not in self.mine] + spots
@@ -682,15 +689,15 @@ class Colony:
         for g in self.grown + self.dying:
             g.light(lm, t)
         if len(self.grown) < len(GROW_AT):
-            glow(lm, SEED[0], SEED[1] - 4, 22, GLOW["lime"], q(60 + 20 * math.sin(t * 1.3)))
+            glow(lm, self.seed[0], self.seed[1] - 4, 22, GLOW["lime"], q(60 + 20 * math.sin(t * 1.3)))
         for sq in self.squid.values():
             if not getattr(sq, "gone", False):  # away in a battle (battle.py)
                 sq.light(lm, t)
 
     def shine(self, s, t):
         if len(self.grown) < len(GROW_AT):  # the sapling under the seed sign, softly glowing
-            glow(s, SEED[0], SEED[1] - 5, 9, GLOW["lime"], q(40 + 15 * math.sin(t * 1.3)))
-            s.blit(self.sprout, (SEED[0] - 8, SEED[1] - 13))
+            glow(s, self.seed[0], self.seed[1] - 5, 9, GLOW["lime"], q(40 + 15 * math.sin(t * 1.3)))
+            s.blit(self.sprout, (self.seed[0] - 8, self.seed[1] - 13))
         held = self.dragging[0] if self.dragging else None
         for sq in sorted(self.squid.values(), key=lambda sq: sq is held):  # the held one on top
             if getattr(sq, "gone", False):  # away in a battle (battle.py)

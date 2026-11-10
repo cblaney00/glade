@@ -452,6 +452,7 @@ class Keyboard:
             if self.window:  # (and the Claude panel stops typing; what he typed stays in the box)
                 self.glade.panel.stop_typing()
                 self.glade.front_raised = False  # a window has the focus: it goes in front of the Dex
+                self.glade.window_focused()  # (the desktop's peeks close)
         if name in FULLSCREEN_EVENTS and not self.fs_pending:
             self.fs_pending = True  # a burst of events: look once, a moment later
             GLib.timeout_add(250, self.check_fullscreen)
@@ -562,7 +563,7 @@ def run(make):
     glade.panel_surface = panel_surface
 
     # the stats card (the desktop's too), the Dex and the boards, in front of the windows
-    fronts = [Front(glade, surfaces, lambda g: (g.card.view, g.card.rect) if g.card is not None else None)]
+    fronts = [Front(glade, surfaces, lambda g: (getattr(g.card.view, "base", g.card.view), g.card.rect) if g.card is not None else None)]
     if is_game:
         fronts += [Front(glade, surfaces, lambda g: (g.top, g.dex.rect) if g.dex is not None else None),
                   Front(glade, surfaces, lambda g: (g.top, g.board.rect) if g.board is not None else None)]

@@ -174,7 +174,7 @@ EDGE = (24, 14, 34)
 TEXT = (255, 238, 214)
 HOT = (255, 172, 228)
 # the glow inside each kind of banner: paths to other places, and apps / files
-MIST = dict(go=(110, 255, 180), app=(196, 140, 255), grow=(190, 255, 120), tower=(255, 150, 214), boxes=(255, 214, 120))
+MIST = dict(go=(110, 255, 180), peek=(110, 255, 180), app=(196, 140, 255), grow=(190, 255, 120), tower=(255, 150, 214), boxes=(255, 214, 120))
 
 
 class Signs:
@@ -427,12 +427,22 @@ class View:
         # sets this (None when the pointer is elsewhere).
         self.external = False
         self.pointer = None
+        self.cam = None  # the part of the picture zoomed in on (desktop.Camera), None when not zoomed
 
     def shown(self):
         """The part of the canvas on screen: all of it (the picture never zooms)."""
         return pygame.Rect(0, 0, self.w, self.h)
 
     def mouse(self):
+        """Where the pointer is on the picture itself (through the zoom, when zoomed in)."""
+        m = self.screen_mouse()
+        if m is None or self.cam is None:
+            return m
+        c = self.cam
+        return c.x + m[0] * c.w / self.w, c.y + m[1] * c.h / self.h
+
+    def screen_mouse(self):
+        """Where the pointer is on the canvas as shown (for what is drawn over the zoom)."""
         if self.external:
             if self.pointer is None:
                 return None
@@ -556,7 +566,7 @@ class Glade:
         if key not in self.scenes:
             with loading.Rush(), self.building:
                 if key not in self.scenes:
-                    self.scenes[key] = self.home_only(BUILDERS[key]())
+                    self.scenes[key] = self.home_only(self.builder(key))
         return self.scenes[key]
 
     def lower(self):
@@ -893,6 +903,7 @@ class Glade:
             if self.hiding is not None:
                 self.hiding.draw(view.canvas, view is self.bottom, t, self.storm_scratch)
             self.overlay(view, content, t)
+            self.camera(view, t)
             self.above(view, content, t)
             if self.storm_view() is view:
                 storm.draw_button(view.canvas, view, self.signs.font)
@@ -914,13 +925,22 @@ class Glade:
                         k = self.fade * self.fade * (3 - 2 * self.fade)  # eased at both ends
                         old.set_alpha(int(255 * k))
                         view.canvas.blit(old, (0, 0))
-            m = view.mouse()
+            m = view.screen_mouse()
             if m:
                 view.canvas.blit(CURSOR, (int(m[0]), int(m[1])))
 
     # --- hooks: what the desktop and the game each add (desktop.py, game.py) -----------------
+    def builder(self, key):
+        return BUILDERS[key]()
+
     def home_only(self, content):
         return content
+
+    def camera(self, view, t):
+        """After the picture and its boards: the desktop's zoom (desktop.py)."""
+
+    def window_focused(self):
+        """A window took the focus (wayland.py)."""
 
     def idle_work(self, t):
         """Between fades: the game loads its far places."""
