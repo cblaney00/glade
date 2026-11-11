@@ -106,22 +106,24 @@ def paint(pic, thing, t):
     pygame.draw.ellipse(pic, (54, 96, 92), (PW // 2 - 22, PH - 12, 44, 5))
     if thing is None:
         return
-    if isinstance(thing, tuple):  # a tree's dweller on a bit of trunk, holding an icon
-        x, y = PW // 2, PH - 26
-        pygame.draw.rect(pic, (96, 70, 110), (x - 7, 0, 14, PH))
-        pygame.draw.rect(pic, (120, 92, 136), (x - 7, 0, 3, PH))
-        pad = pygame.Rect(0, 0, 13, 13)
-        pad.center = (x, y + 15)
-        pygame.draw.rect(pic, mix(GLOW["violet"], EDGE, 0.5), pad, border_radius=3)
-        pygame.draw.rect(pic, mix(GLOW["violet"], (255, 255, 255), 0.4), pad, 1, border_radius=3)
+    if isinstance(thing, tuple):  # a tree's dweller, big, on a short stub of branch: no app icon
+        # (2026-11-11, his ask: the icon box made it look like an empty slot, and battles use this picture)
+        st = thing[2] if len(thing) > 2 else 1
+        x = PW // 2
         if thing[1] == "owlet":
-            st = thing[2] if len(thing) > 2 else 1
-            owlet(pic, x, y + (3 if st > 1 else 0), 0.8 if st == 1 else 0.7, GLOW["violet"], t, 1.0, None, -10, st)
+            sz = (1.25, 1.15, 0.95)[st - 1]
+            perch = PH - 14  # the branch's top: its talons (y + 8 sz) grip it
+            pygame.draw.rect(pic, (96, 70, 110), (x - 18, perch, 36, 5), border_radius=2)
+            pygame.draw.rect(pic, (120, 92, 136), (x - 18, perch, 36, 2), border_radius=2)
+            owlet(pic, x, perch - 8 * sz, sz, GLOW["violet"], t, 1.0, None, -10, st)
         else:
             from squids import TreeSquid
-            sq = TreeSquid({"kind": "project", "id": "dex"}, x, y + (4 if len(thing) > 2 else 0), 0.8 if len(thing) < 3 else 0.7)
-            sq.stage = thing[2] if len(thing) > 2 else 1
-            sq.shine(pic, t, 14)
+            y = PH - 15
+            pygame.draw.rect(pic, (96, 70, 110), (x - 6, y - 6, 12, PH - y + 2), border_radius=2)  # a stub of trunk
+            pygame.draw.rect(pic, (120, 92, 136), (x - 6, y - 6, 3, PH - y + 2))
+            sq = TreeSquid({"kind": "project", "id": "dex"}, x, y, (1.0, 0.95, 0.8)[st - 1])
+            sq.stage = st
+            sq.shine(pic, t, 12)
         return
     if isinstance(thing, Squid):  # keep it from swimming out of the picture
         thing.x += (PW // 2 - thing.x) * 0.2
