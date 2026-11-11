@@ -141,7 +141,7 @@ def meadow_life(sc, p, glows):
     sc.add(lay, 0.18, texture=0.4)
     lay = art.plane()
     # glowing mushroom clusters
-    for x, y, size, cap in ((180, 446, 3, GLOW["cyan"]), (186, 450, 2, GLOW["cyan"]), (262, 394, 3, GLOW["amber"]),
+    for x, y, size, cap in ((168, 446, 3, GLOW["cyan"]), (174, 450, 2, GLOW["cyan"]), (262, 394, 3, GLOW["amber"]),
                             (520, 456, 3, GLOW["pink"]), (527, 460, 2, GLOW["pink"]), (676, 392, 3, GLOW["lime"]),
                             (470, 518, 3, GLOW["violet"]), (476, 521, 2, GLOW["violet"]), (120, 430, 2, GLOW["lime"]),
                             (306, 506, 3, GLOW["cyan"]), (726, 404, 2, GLOW["pink"])):
@@ -175,6 +175,112 @@ def meadow_life(sc, p, glows):
         art.glowmoss(sc, sc.cur, x, y, w, h, c)
 
 
+# the paths across the clearing, to keep the grass edge's plants off them
+PATHS = [[(488, 404), (486, 380), (488, 352), (490, 326), (491, 315)],
+         [(488, 404), (420, 398), (360, 384), (310, 366), (270, 356), (220, 332), (206, 324)],
+         [(488, 404), (560, 404), (630, 394), (690, 382), (716, 376), (722, 350)]]
+
+
+def near_path(x, y, room=14):
+    for pts in PATHS:
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            dx, dy = x1 - x0, y1 - y0
+            f = max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy or 1)))
+            if math.hypot(x - x0 - f * dx, y - y0 - f * dy) < room:
+                return True
+    return False
+
+
+def grassline(sc, p, glows, bot):
+    """Where the clearing's grass meets the Forest, the Waterfall's bank and the River (2026-11-10, his
+    ask: "more detail by the grassline"; his picks: all of ferns and tall grass, glowing flowers and
+    mushrooms, mossy stones, roots and a log, and low bushes). Its own dice, like meadow_life."""
+    rng = make_rng(13)
+    d = 0.26
+    lay = art.plane()
+    leaf, leaf2, leaf3 = sc.col("leaf", d), sc.col("leaf2", d), sc.col("leaf3", d)
+    wood, wood2, stone, moss = sc.col("wood", d), sc.col("wood2", d), sc.col("stone", d), sc.col("moss", d)
+    lights = [GLOW["cyan"], GLOW["pink"], GLOW["violet"], GLOW["lime"], GLOW["amber"]]
+    moss_pts = []
+
+    def fern(x, y):
+        for k in range(5):
+            a = math.radians(-150 + k * 30 + rng.randint(-8, 8))
+            ln = rng.randint(7, 11)
+            ex, ey = x + math.cos(a) * ln, y + math.sin(a) * ln * 0.8
+            pygame.draw.line(lay, leaf2 if k % 2 else leaf, (x, y), (round(ex), round(ey)))
+            for f in (0.4, 0.65, 0.85):
+                px, py = x + (ex - x) * f, y + (ey - y) * f
+                lay.set_at((round(px), round(py) - 1), leaf3)
+
+    def reeds(x, y):
+        for k in range(rng.randint(4, 6)):
+            h = rng.randint(8, 15)
+            lean = rng.randint(-3, 3)
+            pygame.draw.line(lay, leaf if k % 2 else leaf2, (x + k * 2 - 4, y), (x + k * 2 - 4 + lean, y - h))
+            if rng.random() < 0.35:
+                pygame.draw.line(lay, wood2, (x + k * 2 - 4 + lean, y - h), (x + k * 2 - 4 + lean, y - h + 3))
+
+    def flower(x, y):
+        c = rng.choice(lights)
+        for k in range(rng.randint(2, 3)):
+            fx, fy, h = x + k * 4 - 4, y + (k % 2), rng.randint(5, 9)
+            pygame.draw.line(lay, leaf2, (fx, fy), (fx, fy - h))
+            pygame.draw.circle(lay, c, (fx, fy - h), 1)
+            lay.set_at((fx, fy - h), (255, 255, 255))
+            glows.append((fx, fy - h, 12, c, 80, fx * 0.13))
+        sc.lamp(x, y - 6, 26, c, 26)
+
+    def toadstools(x, y):
+        c = rng.choice(lights)
+        mushroom(lay, x, y, 3, c, sc, glows)
+        mushroom(lay, x + 5, y + 2, 2, c, sc, glows)
+
+    def stone_(x, y):
+        art.rock(lay, rng, x, y, rng.randint(10, 16), rng.randint(5, 8), stone, moss=moss, mossiness=0.7,
+                 glow_pts=moss_pts)
+        sc.shadow(x, y + 2, 7, 2, 0.3)
+
+    def bush(x, y):
+        r = rng.randint(7, 10)
+        pygame.draw.ellipse(lay, mix(leaf3, (0, 0, 0), 0.3), (x - r, y - 2, r * 2, 5))
+        art.foliage(lay, rng, x, y - r // 2, r, r * 0.6, leaf3 if rng.random() < 0.5 else leaf, p, leaf=(2, 3))
+        if rng.random() < 0.6:
+            c = rng.choice((GLOW["pink"], GLOW["violet"], GLOW["cyan"]))
+            for _ in range(3):
+                bx, by = x + rng.randint(-r + 3, r - 3), y - rng.randint(2, r)
+                lay.set_at((bx, by), c)
+                glows.append((bx, by, 8, c, 70, bx * 0.2))
+        sc.shadow(x, y + 1, r, 2, 0.3)
+
+    kinds = [fern, reeds, flower, toadstools, stone_, bush, fern, reeds, flower, bush]
+    # the edge: under the Forest's crowns, up its flank, the bank by the pool, the River's near bank
+    edge = [(x, 330 + int(3 * math.sin(x / 13)) + (x // 8) % 2 * 5) for x in range(104, 420, 8)]
+    edge += [(428, 330), (452, 328), (530, 328), (552, 334)]
+    edge += [(x, round(bot(x)) + 4 + (x // 8) % 2 * 4) for x in range(564, 750, 9)]
+    for x, y in edge:
+        x, y = x + rng.randint(-4, 4), y + rng.randint(-1, 2)
+        if near_path(x, y):
+            continue
+        rng.choice(kinds)(x, y)
+        if rng.random() < 0.5:  # tall grass between, so the edge is never a hard line
+            reeds(x + 8, y + 2)
+    # a fallen log and a few roots where the Forest begins
+    lx, ly = 300, 336
+    pygame.draw.rect(lay, wood, (lx - 16, ly - 4, 32, 6), border_radius=3)
+    pygame.draw.line(lay, wood2, (lx - 14, ly - 4), (lx + 14, ly - 4))
+    pygame.draw.ellipse(lay, wood2, (lx + 13, ly - 4, 5, 6))
+    pygame.draw.line(lay, moss, (lx - 10, ly - 5), (lx + 4, ly - 5))
+    moss_pts += [(lx - 8, ly - 5), (lx, ly - 5)]
+    sc.shadow(lx, ly + 3, 18, 3, 0.4)
+    for rx, ry in ((132, 332), (252, 334), (372, 334)):
+        for k in (-1, 1):
+            pts = [(rx, ry - 4), (rx + k * 4, ry - 1), (rx + k * 9, ry + 1), (rx + k * 13, ry + 2)]
+            pygame.draw.lines(lay, wood, False, pts)
+    sc.add(lay, d, texture=0.4)
+    moss_glow(sc, moss_pts, strength=40)
+
+
 def ground(sc):
     """Where its animals may walk (walk.py): the clearing's grass, not the River, the pond, the
     tree, the stones, nor the corner the minimap covers."""
@@ -189,6 +295,7 @@ def ground(sc):
                        (110, 500, 30, 14), (512, 536, 38, 14)):
         holes.append(oval(x, y - h // 3, w // 2 + 2, h // 2 + 2))
     holes += [oval(x, y, 6, 4) for x, y in LANTERNS]
+    holes.append(oval(204, 460, 12, 8))  # the sapling under Grow a tree
     sc.field = drawn([edge], holes)
 
 
@@ -199,7 +306,7 @@ def build_aerial():
     sc = Scene("glade", "The Glade", p, rng)
     # (set before the trees' squid are made: where new trees grow, and the seed sign, squids.py)
     sc.grow_at = [(842, 150, 500), (806, 178, 506)]
-    sc.seed = (150, 508)
+    sc.seed = (204, 466)  # up from the Mossy Rocks' board, so the two never meet (2026-11-10, his ask)
     glows = []
     sc.live(Stars(rng, 260, 120, avoid=lambda x, y: 330 < x < 620 and y > 60))
     sc.live(Aurora(rng, 0, 110, [((120, 255, 190), (110, 210, 255)), ((190, 140, 255), (255, 150, 220))]))
@@ -367,6 +474,10 @@ def build_aerial():
     edge_pts += [(392 - (y - 226) * 0.32 + 6 * math.sin(y / 9), y) for y in range(232, 372, 10)]
     edge_pts += [(x, 372 + int(5 * math.sin(x / 13))) for x in range(340, -1, -14)]
     pygame.draw.polygon(lay, floor, edge_pts)
+    # the Forest path runs on in under the crowns (2026-11-10, his ask: all the way in); no dice, so
+    # the rest of the picture is unchanged
+    trail, trail_edge = mix(sc.col("earth", 0.5), floor, 0.35), mix(sc.col("earth_edge", 0.5), floor, 0.4)
+    art.path(lay, [(212, 330), (186, 312), (156, 296), (124, 284), (96, 276)], [7, 6, 5, 5, 4], trail, trail_edge)
     x = 0
     while x < 396:  # the back row, rising over the forest's far edge
         r = rng.randint(5, 9)
@@ -466,6 +577,10 @@ def build_aerial():
              rng=rng)  # river
     art.path(lay, [(cx, cy), (452, 440), (412, 480), (380, 516), (362, 548)], [16, 22, 28, 34, 40], earth, edge,
              rng=rng)  # down to the Mossy Rocks
+    # ... and on all the way in (2026-11-10, his ask): to the pool's foot and down to the river bank
+    art.path(lay, [(490, 330), (490, 322), (491, 315)], [6, 5, 4], earth, edge)
+    art.path(lay, [(272, 357), (244, 343), (220, 332), (206, 324)], [6, 6, 6, 6], earth, edge)  # into the Forest
+    art.path(lay, [(712, 378), (716, 366), (720, 356), (722, round(bot(722)))], [8, 7, 6, 6], earth, edge)
     pygame.draw.ellipse(lay, edge, (458, 395, 60, 18))
     pygame.draw.ellipse(lay, earth, (460, 394, 56, 16))
     # a stepping-stone footbridge over the river
@@ -562,6 +677,7 @@ def build_aerial():
     sc.shadow(lx, ly + 6, 30, 5, 0.4)
 
     meadow_life(sc, p, glows)
+    grassline(sc, p, glows, bot)
 
     # --- the Mossy Rocks, along the front edge ---------------------------------------------------
     lay = art.plane()

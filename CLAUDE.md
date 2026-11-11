@@ -498,3 +498,7 @@ started at login under Hyprland. Changing the installed copy is a config change 
   places): a lily pond with rim stones and lotuses, glowing wildflower patches, tall glow-bulb plants, berry
   bushes, mushroom clusters, grass tufts, stepping stones, a ring of little standing stones, petals under the
   blossom tree and four lantern posts by the paths. Its own dice (`make_rng(12)`), so the rest is unchanged.
+  `aerial.grassline` (his picks, own dice `make_rng(13)`): ferns, reeds, glowing flowers and mushrooms, mossy stones,
+  bushes, roots and a log along the grass edge (y ~330 by the Forest and pool, the River's near bank), kept off
+  `PATHS`. The paths run all the way in: to the pool's foot, the river bank and the Forest's edge (no dice, drawn
+  separately). The Grow a tree sapling sits at (204, 466), clear of the Mossy Rocks board.

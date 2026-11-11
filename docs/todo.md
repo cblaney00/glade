@@ -9,6 +9,8 @@ each off (move it to Done with the date) when it is finished.
 
 ## Done
 
+- 2026-11-10: on the desktop home the paths run all the way in (to the foot of the waterfall, the river bank and the forest), and the grass edge has ferns, tall grass, bushes, glowing flowers and mushrooms, mossy stones, roots and a fallen log (his picks: all of them).
+- 2026-11-10: Grow a tree moved up onto open grass, so it no longer bumps into the Mossy Rocks sign.
 - 2026-11-10: clicking on the home screen is accurate again: the tree squid up high (Terminal, Principia RPG, Husk, Sub of Seas) and the Grow a tree sign were hidden under the far places' click areas; now a squid or a name board always wins.
 
 - 2026-11-10: the creatures walk anywhere on the ground now (his pick: every place, the desktop home included, and every lower screen), back and front, not just along a few lines, and they get smaller the further back they go. Water, pools, lakes, the minimap corner and the trees are left alone.
