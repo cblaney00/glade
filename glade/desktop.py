@@ -31,7 +31,8 @@ from peek import Peek, Seen
 class Camera:
     """The mouse wheel zooms the aerial home in and out (his picks, 2026-11-10): it starts all the
     way out; all the way in is about as close as the Glade used to look; the point under the pointer
-    stays put while zooming; after a few idle minutes it drifts back out by itself."""
+    stays put while zooming; it glides back out a minute after the last scroll, when a window is
+    clicked into, or after a few idle minutes."""
 
     MOST = 2.0  # all the way in
     STEP = 1.15  # one notch of the wheel
@@ -85,6 +86,7 @@ class Desktop(Glade):
         world.before_open = lambda: carry.save(self)  # the game starts with these very animals (carry.py)
         self.cam = Camera()
         self.cam_t = None
+        self.wheeled = None  # when the wheel last zoomed (now()); None once back out
         self.peek = None  # the small live look at a place (peek.py), while it is open
         from minimap import Minimap
         self.minimap = Minimap(self.signs.font)  # on the top screen here (his ask, 2026-11-10)
@@ -102,10 +104,12 @@ class Desktop(Glade):
 
     def window_focused(self):
         self.close_peek()
+        self.wheeled = -1e9  # a window was clicked into: the view glides back out
 
     def scroll(self, dy):
         if self.top.screen_mouse() is not None and self.here.key == HOME:
             self.cam.wheel(self.top, dy)
+            self.wheeled = self.now()
             return
         super().scroll(dy)
 
@@ -115,7 +119,12 @@ class Desktop(Glade):
         dt = 0.0 if self.cam_t is None else min(0.1, t - self.cam_t)
         self.cam_t = t
         idle = self.now() - self.stirred > CALM_AFTER / 2  # a few idle minutes: back out it goes
-        self.cam.apply(view, dt, idle)
+        # ...and also a minute after the last scroll, or once a window is clicked into (2026-11-18:
+        # an accidental scroll used to leave it stuck zoomed in for as long as he used the computer)
+        done = self.wheeled is not None and self.now() - self.wheeled > 60
+        if done and self.cam.k <= 1.0001:
+            self.wheeled = None
+        self.cam.apply(view, dt, idle or done)
         if idle:
             self.close_peek()
 
