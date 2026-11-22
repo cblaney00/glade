@@ -62,15 +62,24 @@ class Hiding:
         self.low = glade.lower() if glade.bottom else None
         self.moves, self.hidden = [], []
         self.returning = False
+        self.catch_up(t, keep)
+
+    def catch_up(self, t, keep):
+        """Everyone out here who isn't hiding yet goes into hiding. Run again once a second while
+        his switch is on, so an animal brought out later (back from the game, a newcomer) hides too."""
+        self.checked = t
+        self.moves = [m for m in self.moves if not m.done]  # finished ones have done their work
+        moving = {id(m.obj) for m in self.moves}
         n = 0
         for content, low in ((self.scene, False), (self.low, True)):
             if content is None:
                 continue
             pond = getattr(content, "pond", None)  # the koi dive too, as in a storm
             for o in list(roster(content, any_family=True)) + list(getattr(pond, "fish", []) if pond is not None else []):
-                if not getattr(o, "gone", False) and not any(o is k for k in keep):
+                if not getattr(o, "gone", False) and id(o) not in moving and not any(o is k for k in keep):
                     self.moves.append(Shelter(o, low, True, t + n * 0.12 + self.rng.uniform(0, 0.3), self.rng))
-                    self.hidden.append((o, low))
+                    if not any(o is h for h, _ in self.hidden):
+                        self.hidden.append((o, low))
                     n += 1
 
     @property

@@ -582,6 +582,8 @@ class Glade:
             else:
                 if not self.covered and not self.hide:
                     h.come_back(t)
+                elif self.hide and not h.returning and t - h.checked >= 1.0:
+                    h.catch_up(t, self.lifespans.keep(self))  # anyone brought out since hides too
                 h.update(t)
         elif self.storm is None and not self.fade_to and (self.hide or self.covered
                 and self.game_since is not None and t - self.game_since >= hiding.WAIT):
