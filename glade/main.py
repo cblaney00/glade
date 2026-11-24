@@ -10,6 +10,8 @@ This module is what the two share: the name boards, the views, and main.Glade.
 import glob
 import math
 import os
+# Glade makes no sound: never open an audio channel (an idle one keeps the speakers on, and they chirp)
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import random
 import re
 import shlex

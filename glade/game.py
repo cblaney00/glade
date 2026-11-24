@@ -10,6 +10,8 @@ anywhere else it is an ordinary window with both screens in it, one above the ot
 """
 
 import os
+# Glade makes no sound: never open an audio channel (an idle one keeps the speakers on, and they chirp)
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import random
 import sys
 import threading

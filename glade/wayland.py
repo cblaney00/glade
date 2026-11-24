@@ -18,6 +18,8 @@ through it on to the game's own pipe.
 
 import json
 import os
+# Glade makes no sound: never open an audio channel (an idle one keeps the speakers on, and they chirp)
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import re
 import socket
 import subprocess
