@@ -547,7 +547,7 @@ class Glade:
         self.unseen = set()  # the views ordinary windows cover completely: not drawn either (wayland.py)
         self.stirred, self.pointer_was = 0.0, None  # when he last moved the pointer over the glade
         self.game_since = None  # when a full-screen window last came up
-        self.updater = resume.Updater()  # after a rebuild: Thunderstorm switches to the new glade
+        self.updater = resume.Updater()  # Thunderstorm starts the glade afresh (the new one after a rebuild)
         if self.bottom:
             self.lower()
 
@@ -701,11 +701,7 @@ class Glade:
         if view is not None:  # the Thunderstorm button
             m = view.mouse()
             if m and storm.button_rect(view).collidepoint(m):
-                if self.updater.load(self):  # a newer glade is waiting: the button loads it
-                    return
-                self.lifespans.settle()
-                self.storm = storm.Storm(self, t)
-                self.storm_started()
+                self.updater.load(self)  # the glade starts afresh, and the storm comes then
                 return
         if self.play_click(t):
             return
@@ -1033,6 +1029,12 @@ class Glade:
 
     def to_place(self, key, t):
         """A badge-case gem was clicked."""
+
+    def thunderstorm(self, t):
+        """The storm the Thunderstorm button brings: the animals take turns."""
+        self.lifespans.settle()
+        self.storm = storm.Storm(self, t)
+        self.storm_started()
 
     def storm_started(self):
         pass

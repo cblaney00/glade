@@ -7,6 +7,10 @@ place, the Forest Dex's page and creature, the boxes) and steps aside. The deskt
 again at once by pkgs/glade's glade-desktop loop; the game (world.py) starts the new version of
 itself in its place (game.Game.restart), and it opens where you were. The button is the only
 way it ever updates, and it always works when pressed, even mid-battle (his rule, 2026-10-27).
+
+Thunderstorm always starts the glade afresh now, newer version or not (his ask, 2026-11-27: a screen
+that blinked off came back black, and the button didn't fix it). The storm still comes: the fresh
+glade finds the STORM note and starts it straight away.
 """
 
 import json
@@ -16,6 +20,7 @@ import time
 
 PATH = os.path.expanduser("~/.local/state/glade/resume.json")
 FRESH = 600  # a note older than this (a reboot the next day, say) is not used
+STORM = os.path.expanduser("~/.local/state/glade/storm-next")  # the fresh glade starts with a storm
 
 
 def installed():
@@ -33,8 +38,12 @@ RUNNING = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__fil
 class Updater:
     def __init__(self):
         self.checked, self.waiting = -10.0, False
+        self.storm_due = storm_note()
 
     def tick(self, glade, t):
+        if self.storm_due:  # Thunderstorm restarted us: its storm comes now
+            self.storm_due = False
+            glade.thunderstorm(t)
         if t - self.checked < 5 or not RUNNING.startswith("/nix/store/"):
             return
         self.checked = t
@@ -42,13 +51,29 @@ class Updater:
         self.waiting = bool(new) and new != RUNNING and new.startswith("/nix/store/")
 
     def load(self, glade):
-        """Switch to the newer glade now (the Thunderstorm button), whatever is going on."""
-        if not self.waiting:
-            return False
+        """Start the glade afresh now (the Thunderstorm button), the newer one if there is one,
+        whatever is going on; the storm comes once it is back."""
+        try:
+            os.makedirs(os.path.dirname(STORM), exist_ok=True)
+            with open(STORM, "w") as f:
+                f.write(str(time.time()))
+        except OSError:
+            pass
         if hasattr(glade, "restart"):  # the game: it opens where you were, in its new version
             save(glade)
             glade.restart()
         os._exit(0)  # the desktop: its loop starts the new glade straight away
+
+
+def storm_note():
+    """Whether the glade was just restarted by Thunderstorm (and so owes a storm)."""
+    try:
+        with open(STORM) as f:
+            when = float(f.read() or 0)
+        os.remove(STORM)
+    except (OSError, ValueError):
+        return False
+    return time.time() - when < 60
 
 
 def save(glade):
